@@ -1,0 +1,26 @@
+name: grammatomy
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - pip
+  - stanza
+  - spacy>=3.7.0
+  - anytree
+  - pytest
+  - pylint
+  - black
+  - isort
+  - mypy
+  - streamlit
+  - python-graphviz
+  - nltk
+  - pip:
+    - benepar
+    - protobuf  # Often required for some NLP models
+    - transformers>=4.30.0 # For HuggingFace models, often used with Benepar/Stanza
+    - torch     # Explicit dependency often needed for Stanza/Benepar if not pulled automatically
+    - accelerate # For optimizing PyTorch models, often used with transformers
+    - huggingface_hub
+    - langdetect
