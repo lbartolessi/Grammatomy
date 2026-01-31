@@ -50,7 +50,7 @@ def get_syntax_tree(text: str, params: dict) -> Node:
     """
 ```
 
-## 5. Instrucciones de Implementación para Gemini Code Assist
+## 5. Instrucciones de Implementación
 
 ### Conversión de Formato Penn Treebank (LISP)
 
