@@ -1,5 +1,8 @@
 # MNEMOSYNE MANIFESTO
 
+> **CURRENT CHAPTER:** 006
+> **PROJECT PHASE:** Service Implementation
+
 - **Role:** You are a Wayfarer collaborating on the project found in this workspace.
 - **Continuity:** Mnemosyne is your external memory. Use it to avoid repeating mistakes ("senda que nunca se ha de volver a pisar").
 - **Startup Protocol:** At the start of a session, review the `## NEXT ACTION` section in `itinerary.md` to resume work immediately.
@@ -11,3 +14,4 @@
 - **Discovery:** Identify the target project via README or config files.
 - **Goal:** Be an architect. Ensure every decision is justified in the Methodology or Log.
 - **Synchronization:** Methodology (Theory) and Itinerary (Action) are entangled. A change in Strategy MUST trigger an immediate review of the Path.
+- **Chapter Tracking:** The `CURRENT CHAPTER` tag at the top of this file is the Single Source of Truth. Update it immediately upon Chapter Succession.

@@ -1,4 +1,15 @@
-# **Grammatomy**: _Universal Constituent Parser_ (AnyTree Wrapper)
+---
+title: Grammatomy
+emoji: 🩻
+colorFrom: gray
+colorTo: blue
+sdk: docker
+pinned: false
+app_port: 8501
+short_description: Universal Constituent Parser for Spanish Prosody
+---
+
+# 🩻 **Grammatomy**: _Universal Constituent Parser_ (AnyTree Wrapper)
 
 ## 1. Visión General y Objetivo
 
@@ -24,14 +35,14 @@ Para idiomas distintos al inglés, no usaremos `benepar.download()`. En su lugar
 
 ## 3. Catálogo de Modelos por Idioma (Open Source)
 
-| Idioma        | Código | Motor Stanza (Package) | Modelo Benepar / Hugging Face (Recomendado)                         |
-| :------------ | :----- | :--------------------- | :------------------------------------------------------------------ |
-| **Español**   | `es`   | `default_accurate` (Bertin-RoBERTa) | *No disponible en Benepar*. Usar Stanza o modelos Seq2Seq (PlanTL). |
-| **Portugués** | `pt`   | `cintil_charlm`        | *Soporte nativo en Stanza*.                                         |
-| **Italiano**  | `it`   | `vit_charlm`           | *Soporte nativo en Stanza*.                                         |
-| **Alemán**    | `de`   | `spmrl_charlm`         | *Soporte nativo en Stanza*.                                         |
-| **Inglés**    | `en`   | `gum` (o `wsj`)        | `benepar_en3` (Official Berkeley)                                   |
-| **Francés**   | `fr`   | *No soportado*         | *Incompatible con transformers >= 4.30 (WIP)*                       |
+| Idioma        | Código | Motor Stanza (Package)              | Modelo Benepar / Hugging Face (Recomendado)                         |
+| :------------ | :----- | :---------------------------------- | :------------------------------------------------------------------ |
+| **Español**   | `es`   | `default_accurate` (Bertin-RoBERTa) | _No disponible en Benepar_. Usar Stanza o modelos Seq2Seq (PlanTL). |
+| **Portugués** | `pt`   | `cintil_charlm`                     | _Soporte nativo en Stanza_.                                         |
+| **Italiano**  | `it`   | `vit_charlm`                        | _Soporte nativo en Stanza_.                                         |
+| **Alemán**    | `de`   | `spmrl_charlm`                      | _Soporte nativo en Stanza_.                                         |
+| **Inglés**    | `en`   | `gum` (o `wsj`)                     | `benepar_en3` (Official Berkeley)                                   |
+| **Francés**   | `fr`   | _No soportado_                      | _Incompatible con transformers >= 4.30 (WIP)_                       |
 
 ## 4. Estructura de la Interfaz Pública
 
@@ -63,6 +74,16 @@ Implementar `LispParser.to_anytree(lisp_str)` siguiendo estos pasos:
 4. Si el elemento es un terminal (hoja), asignarlo al atributo `word` del nodo actual.
 5. Incluir en cada nodo hoja toda la información morfológica (tagging) que el motor proporcione.
 
+```text
+S
+├── SN
+│   └── NP
+│       └── Juan
+└── VP
+    └── V
+        └── vino
+```
+
 ### Lógica de Carga para spaCy-Benepar (Alternativa)
 
 Si el motor es `spacy`, utiliza este patrón:
@@ -87,7 +108,32 @@ lisp_tree = sent._.parse_string
 3. **Bridge Stanza**: Integración del pipeline de Stanford.
 4. **Bridge spaCy**: Integración de Benepar con soporte para modelos externos.
 5. **AnyTree Exporter**: Utilidad para visualizar el árbol en consola o exportar a JSON/dict.
-6. **Interactive Demo Aplication**: Dos versiones: StramLit y Gradio. Evaluar la posibilidad de implementar gráficos estilo DisplaCy, con zoom en la rueda del mouse y pan arrastrable.
-7. **Servicio RestFull**: Para servir el árbol de análisis en varios formatos (Penn Treebank, json) y gráficos en formato ascii-text o png.
-8. **Hugging Face Space**: Despliegue de la demo en Gradio y de la ResFull App en Hugging Face Space.
-9. **Performance Benchmark Suite**: Desarrollo de scripts para comparar latencia CPU/GPU, medir tiempos de arranque (cold/warm start) y validar modelos multilingües con oraciones complejas estandarizadas.
+6. **Interactive Web Demo**: Prototipado rápido en Streamlit/Gradio para validación de conceptos.
+7. **Grammatomy API (REST)**: Servicio centralizado (FastAPI) para desacoplar el motor de la interfaz.
+8. **Grammatomy Studio (Desktop/Qt)**: Aplicación nativa (PySide6) capaz de operar en modo híbrido:
+   - _Local_: Motor integrado para privacidad y potencia.
+   - _Remoto_: Cliente ligero consumiendo la API (Escenario "Gaming PC" -> Tablet).
+9. **Distribution & Deployment Ecosystem**: Estrategia de empaquetado universal para "ocultar" Python al usuario final:
+   - _Contenerización_: Docker (Solo para despliegue en Servidor/API).
+   - _Linux_: AppImage.
+   - _Windows_: Instalador nativo "Invisible Python" (MSI/EXE vía PyInstaller/Nuitka).
+   - _Cloud_: Hugging Face Spaces.
+10. **Performance Benchmark Suite**: Desarrollo de scripts para comparar latencia CPU/GPU, medir tiempos de arranque (cold/warm start) y validar modelos multilingües con oraciones complejas estandarizadas.
+
+## 7. Ejecución de la Demo Interactiva
+
+### Modo Público (Por defecto)
+
+Muestra una interfaz simplificada, ocultando opciones técnicas (CPU/GPU, selección de motor) y forzando los modelos recomendados (BERT para español).
+
+```bash
+streamlit run src/grammatomy/demo/app.py
+```
+
+### Modo Desarrollador (`--dev`)
+
+Habilita todos los controles: selección manual de motor (Stanza/spaCy), dispositivo de hardware y variantes de modelos.
+
+```bash
+streamlit run src/grammatomy/demo/app.py -- --dev
+```

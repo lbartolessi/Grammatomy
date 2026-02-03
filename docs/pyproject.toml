@@ -1,0 +1,18 @@
+[project]
+name = "grammatomy-service"
+version = "0.1.0"
+description = "RESTful API Layer for Grammatomy"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    # En desarrollo local, instalaremos el core en modo editable (-e ../core)
+    # En producción, esto sería una dependencia de paquete real.
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.scripts]
+grammatomy-server = "app.main:start"

@@ -23,6 +23,10 @@ dependencies = [
     "huggingface_hub",
     "protobuf",
     "langdetect",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "PyYAML",
 ]
 
 [project.optional-dependencies]
@@ -31,21 +35,39 @@ dev = [
     "black",
     "isort",
     "mypy",
-    "pylint"
+    "pylint",
+    "httpx"
+]
+gui = [
+    "PyQt6"
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[project.scripts]
+grammatomy-studio = "grammatomy.tools.studio:main"
+
 [tool.pylint.main]
 source-roots = ["src"]
+extension-pkg-allow-list = ["PyQt6"]
 
 [tool.pylint."messages control"]
 disable = [
     "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",
-    "too-few-public-methods"
+    "too-few-public-methods",
+]
+good-names = [
+    "e", "i", "j", "k", "v", # common loop variables
+    "ex", # common exception variable
+    "fp", # file pointer
+    "wheelEvent",
+    "itemChange",
+    "mouseMoveEvent",
+    "mouseReleaseEvent",
+    "contextMenuEvent",
 ]
 
 [tool.pytest.ini_options]
@@ -54,5 +76,6 @@ markers = [
 ]
 filterwarnings = [
     "ignore:.*SwigPy.*:DeprecationWarning",
-    "ignore:.*swigvarlink.*:DeprecationWarning"
+    "ignore:.*swigvarlink.*:DeprecationWarning",
+    "ignore:.*torch_struct.*:UserWarning"
 ]

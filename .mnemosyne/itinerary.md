@@ -4,6 +4,7 @@
 > UPDATE RULE: Update this file EVERY TIME:
 >
 > 1. A task or sub-task is completed (mark as [DONE]).
+>    CONSTRAINT: Do NOT mark a task as [DONE] until the corresponding tests have been executed and passed.
 > 2. New tasks are identified or priorities shift via user override.
 > 3. We move to a new Chronicle Chapter.
 >    ACTION: Re-calculate the "Critical Path". Ensure blocked tasks are indented.
@@ -22,8 +23,8 @@
 - [x] Project Setup
 - [x] Initialize Mnemosyne Framework
 - [x] Parser LISP (Universal Converter)
-    - [x] Implement LispParser.to_anytree logic
-    - [x] Unit tests for LISP parsing
+  - [x] Implement LispParser.to_anytree logic
+  - [x] Unit tests for LISP parsing
 - [x] Bridge Stanza (Default Accurate)
 - [x] Bridge spaCy (Benepar integration) [NOTE: English/Fallback only. Spanish requires Seq2Seq]
 - [x] Bridge Transformers (Seq2Seq SOTA) [BLOCKED: PlanTL models empty; BLOOM requires fine-tuning]
@@ -32,5 +33,44 @@
 - [x] Model & Language Inventory [DONE: Stanza=ES/IT/PT, Benepar=EN/FR/DE]
 - [x] Local Model Registry & Updater [DONE: tools/manage_models.py]
 - [x] Performance Benchmark Suite [DONE: tests/benchmark.py]
-- [ ] RESTful Service (FastAPI/Flask) [TO BE DEFINED]
-- [ ] Hugging Face Space Deployment [TO BE DEFINED]
+- [x] RESTful Service (FastAPI) [DONE]
+  - [x] API Skeleton (FastAPI + Pydantic)
+  - [x] Endpoint: /parse (Constituency Tree)
+  - [x] Endpoint: /render/ascii (Text)
+  - [x] Endpoint: /render/graphviz (Image)
+  - [x] Endpoint: /render/json (Raw Tree)
+  - [x] Endpoint: /render/lisp (Penn Treebank)
+  - [x] Unit Tests (TestClient) [DONE]
+- [x] Hugging Face Space Deployment [DONE]
+  - [x] Configure Dockerfile for Streamlit
+  - [x] Add Space Metadata (YAML)
+- [ ] Release Engineering & Documentation [NEXT SESSION]
+  - [x] Define Architectural Objectives & Personas [DONE]
+  - [x] Define Frontend Stack (Lit/TS) [DONE]
+  - [ ] Monorepo Restructuring [IMMEDIATE ACTION]
+    - [ ] Create folder structure (core, api, web, studio)
+    - [ ] Migrate existing Python logic to `src/core`
+    - [ ] Initialize `src/web` with Lit boilerplate
+  - [x] Monorepo Restructuring [DONE]
+    - [x] Create folder structure (core, api, web, studio)
+    - [x] Define per-module dependencies (pyproject.toml/package.json)
+    - [ ] Migrate existing Python logic to `src/core` [USER ACTION REQUIRED]
+  - [ ] Hugging Face Space Deployment (v2: Stateless Web App) [NEW TARGET]
+    - [ ] Archive Legacy Streamlit Demo
+    - [ ] Deploy FastAPI Backend (Docker)
+    - [ ] Deploy Static Frontend (Lit Build)
+  - [ ] Code Quality Audit (Pylint/SonarQube cleanup)
+  - [ ] Standard Logging Implementation (Replace print statements)
+  - [ ] PyPI Packaging Strategy (Library vs Demo separation)
+  - [ ] ReadTheDocs Integration (MkDocs setup)
+  - [ ] Grammatomy Studio (Desktop/Qt) [NEW STRATEGY]
+    - [ ] Qt/PySide6 Skeleton with QWebEngineView
+    - [ ] Cytoscape.js Integration for Tree Visualization
+    - [ ] Hybrid Client Logic (Local Engine vs API Client)
+  - [ ] Distribution & Deployment Ecosystem [NEW STRATEGY]
+    - [ ] "Invisible Python" Build Pipeline (Nuitka/PyInstaller)
+    - [ ] Windows Installer (Inno Setup / MSI)
+    - [ ] Linux AppImage Generation
+- [ ] Linguistic Edge-Case Suite (Native/Non-Translated) [POSTPONED]
+- [ ] Scientific Limitations Report (Model Characterization) [TO BE DEFINED]
+- [ ] Scientific Limitations Report (Model Characterization) [TO BE DEFINED]

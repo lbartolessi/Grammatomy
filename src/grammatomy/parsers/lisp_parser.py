@@ -1,5 +1,5 @@
-import re
-from typing import Optional
+from typing import List, Optional
+
 from anytree import Node
 
 
@@ -14,73 +14,102 @@ class SyntaxNode(Node):
         label=None,
         word=None,
         pos=None,
-        **kwargs
+        raw_lisp=None,
+        **kwargs,
     ):
         super().__init__(name, parent, children, **kwargs)
-        self.label = label
+        self.label = label if label is not None else name
         self.word = word
         self.pos = pos
+        self.raw_lisp = raw_lisp
+
+
+def _process_token(
+    token: str, stack: List[SyntaxNode], tokens: List[str], index: int
+) -> int:
+    """Processes a single token and updates the stack."""
+    if token == "(":
+        # Look ahead for the label
+        if index + 1 < len(tokens):
+            label = tokens[index + 1]
+            node = SyntaxNode(label, label=label)
+            if stack:
+                node.parent = stack[-1]
+            stack.append(node)
+            return index + 1  # Skip the label we just consumed
+    elif token == ")":
+        if stack:
+            stack.pop()
+    else:
+        # It is a leaf content (terminal). Reverse sanitization
+        word_text = token.replace("-LRB-", "(").replace("-RRB-", ")")
+        if stack:
+            parent_node = stack[-1]
+            # 1. Create structural leaf for export/traversal compatibility
+            SyntaxNode(word_text, parent=parent_node)
+            # 2. Set attributes on the parent POS node
+            parent_node.word = word_text
+            # Heuristic: if the parent has a label, that label is likely the POS
+            parent_node.pos = parent_node.label
+
+    return index
+
+
+def from_ptb(ptb_string: str) -> SyntaxNode:
+    """
+    Parses a Penn Treebank (S-expression) string into an anytree Node structure.
+
+    Reverses the logic of `to_ptb`, including parenthesis desanitization.
+
+    Args:
+        ptb_string: The PTB formatted string (e.g., "(S (NP Juan))").
+
+    Returns:
+        SyntaxNode: The root node of the constructed tree.
+    """
+    if not ptb_string or not ptb_string.strip():
+        raise ValueError("Input PTB string is empty")
+
+    # Normalize spaces around parentheses to facilitate tokenization
+    # We assume standard PTB format where structure parens are separate.
+    normalized = ptb_string.replace("(", " ( ").replace(")", " ) ")
+    tokens = normalized.split()
+
+    # Root will be the first node created
+    stack: List[SyntaxNode] = []
+    root_ref: List[SyntaxNode] = []  # Mutable container to capture root
+
+    i = 0
+    while i < len(tokens):
+        # Capture root on first node creation
+        if tokens[i] == "(" and not root_ref and i + 1 < len(tokens):
+            # We can't easily capture it inside _process_token without more complexity
+            # So we peek here.
+            pass
+
+        new_index = _process_token(tokens[i], stack, tokens, i)
+
+        # If we just created the first node (stack size 1) and root_ref is empty
+        if len(stack) == 1 and not root_ref:
+            root_ref.append(stack[0])
+
+        i = new_index + 1
+
+    if not root_ref:
+        raise ValueError("Failed to parse PTB string: No root found.")
+
+    return root_ref[0]
 
 
 class LispParser:
     """
-    Universal converter from Penn Treebank (LISP-style) strings to AnyTree Nodes.
+    Legacy wrapper for backward compatibility with existing tests.
+    Delegates logic to the functional `from_ptb` implementation.
     """
 
     @staticmethod
-    def _create_pending_node(stack: list[SyntaxNode]) -> SyntaxNode:
-        node = SyntaxNode("PENDING", label=None, word=None, pos=None)
-        if stack:
-            node.parent = stack[-1]
-        return node
-
-    @staticmethod
-    def _process_content(stack: list[SyntaxNode], token: str) -> None:
-        if stack:
-            current_node = stack[-1]
-            if current_node.name == "PENDING":
-                current_node.name = token
-                current_node.label = token
-            else:
-                current_node.word = token
-                current_node.pos = current_node.label
-
-    @staticmethod
     def to_anytree(lisp_str: str) -> Optional[SyntaxNode]:
-        """
-        Parses a LISP-style constituent string into an anytree Node hierarchy.
-
-        Args:
-            lisp_str: String in PTB format, e.g., "(S (NP (NNP Juan)) (VP (VBD vino)))"
-
-        Returns:
-            The root Node of the tree.
-        """
-        if not lisp_str or not lisp_str.strip():
+        try:
+            return from_ptb(lisp_str)
+        except ValueError:
             return None
-
-        # Normalize whitespace
-        clean_str = re.sub(r"\s+", " ", lisp_str).strip()
-
-        # Tokenize: ensure parens are separated, then split
-        # Note: PTB usually escapes parens in text as -LRB- / -RRB-, so this is safe.
-        tokens = clean_str.replace("(", " ( ").replace(")", " ) ").split()
-
-        stack = []
-        root = None
-
-        for token in tokens:
-            if token == "(":
-                node = LispParser._create_pending_node(stack)
-                if not stack:
-                    root = node
-                stack.append(node)
-
-            elif token == ")":
-                if stack:
-                    stack.pop()
-
-            else:
-                LispParser._process_content(stack, token)
-
-        return root

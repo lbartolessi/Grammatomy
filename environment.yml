@@ -16,6 +16,11 @@ dependencies:
   - streamlit
   - python-graphviz
   - nltk
+  - fastapi
+  - uvicorn
+  - python-multipart
+  - httpx
+  - pyyaml
   - pip:
     - benepar
     - protobuf  # Often required for some NLP models
@@ -24,3 +29,4 @@ dependencies:
     - accelerate # For optimizing PyTorch models, often used with transformers
     - huggingface_hub
     - langdetect
+    - PyQt6

@@ -1,0 +1,23 @@
+FROM python:3.10-slim
+
+# Install system dependencies required for visualization
+RUN apt-get update && apt-get install -y \
+    graphviz \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Install project dependencies
+RUN pip install --no-cache-dir .
+
+# Note: For the API, we usually mount the 'models/' directory as a volume 
+# instead of baking them into the image, to keep the container lightweight.
+
+# Expose the default FastAPI port
+EXPOSE 8000
+
+# Start the API server
+CMD ["uvicorn", "grammatomy.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

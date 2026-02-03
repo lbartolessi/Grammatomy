@@ -1,0 +1,40 @@
+es:
+  - "El gato rápido come pescado."
+  - "La cigüeña tocaba el saxofón detrás del palenque de paja."
+  - "Tengo 200 buenas razones para no necesitar 1346 argumentos el 98,9% de las veces."
+  - "Ayer vi a Juan con los prismáticos."
+  - "Se venden pisos en la zona norte de Madrid."
+  - "El análisis de constituyentes identifica frases jerárquicas."
+  - "Mientras los niños estudiaban el mapa permanecía en la vitrina."
+  - "A los alumnos saludó el profesor en el pasillo."
+  - "Luis saludó a María y Antonia a Juan Carlos."
+  - "(S (sn (spec (DET El)) (grup.nom (NOUN gato))) (grup.verb (VERB come) (sn (grup.nom (NOUN pescado)))))"
+
+en:
+  - "The quick brown fox jumps over the lazy dog."
+  - "Colorless green ideas sleep furiously."
+  - "I saw the man with the telescope."
+  - "Time flies like an arrow; fruit flies like a banana."
+  - "The complex houses married and single soldiers and their families."
+  - "Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo."
+
+fr:
+  - "Longtemps, je me suis couché de bonne heure."
+  - "Le petit chat boit du lait dans la cuisine."
+  - "Je pense, donc je suis."
+  - "C'est la vie, mon ami."
+
+it:
+  - "Nel mezzo del cammin di nostra vita mi ritrovai per una selva oscura."
+  - "La madre prepara la cena in cucina per tutta la famiglia."
+  - "Mangio la pizza con i funghi e il formaggio."
+
+pt:
+  - "O poeta é um fingidor que finge tão completamente."
+  - "As armas e os barões assinalados, que da ocidental praia lusitana."
+  - "Eu gosto de jogar futebol na praia com os meus amigos."
+
+de:
+  - "Die Katze schläft auf dem Sofa."
+  - "Wir gehen heute ins Kino, um einen neuen Film zu sehen."
+  - "Der Hund bellt laut im Garten."

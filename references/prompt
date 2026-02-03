@@ -1,0 +1,65 @@
+Actúa como Experto en Lingüística Computacional y Arquitecto de Software para NLP.
+
+Contexto del Proyecto: Estamos desarrollando "Grammatomy", un editor y validador de árboles sintácticos. Hemos realizado pruebas de estrés ("stress testing") sobre los modelos SOTA actuales (Stanza y Benepar) y hemos descubierto que no siguen estrictamente los manuales académicos. En su lugar, generan estructuras híbridas y pragmáticas.
+
+Objetivo: Generar una especificación técnica exhaustiva en formato YAML que defina las reglas metasintácticas de relación jerárquica (padre-hijo) para Español (ES), Inglés (EN), Italiano (IT) y Portugués (PT).
+
+Conocimiento Empírico a Integrar (CRÍTICO): Tu especificación debe legalizar los siguientes fenómenos observados en los modelos:
+
+Hibridación de Etiquetas: Uso de estructura de constituyentes (PTB/AnCora) en niveles superiores, pero etiquetas Universal Dependencies (UD) en las hojas (ej: grup.nom conteniendo NOUN en lugar de n).
+Especificidades por Idioma:
+Español (AnCora): Recursividad de S dentro de grup.nom.
+Portugués (CINTIL): Estructura X-Bar (N', V', P') mezclada con UD.
+Italiano (VIT): Estructuras planas (sp -> DET + NOUN directo) y etiquetas específicas (spd, sa, savv).
+Inglés (PTB): Estándar Penn Treebank II.
+Formato de Salida Obligatorio (YAML): Devuelve un único bloque YAML. Para cada nodo, debes detallar la estructura exacta siguiendo este esquema enriquecido:
+
+```yaml
+
+especificacion_multilingue:
+  version: "3.1-Hybrid-SOTA-Detailed"
+  
+idiomas:
+  es:
+    modelo_base: "AnCora (Hybrid UD)"
+    nodos:
+      - id: "grup.nom"
+        descripcion: "Grupo Nominal (Núcleo léxico del SN)"
+        padres_permitidos: ["sn", "S", "sp"] # Lista exhaustiva
+        hijos_permitidos:
+          obligatorios: ["NOUN", "PROPN", "PRON"] # Elementos nucleares (al menos uno)
+          opcionales: ["s.a", "sp", "sn", "grup.z", "NUM", "S", "SBAR", "DET", "PUNCT"]
+        restricciones:
+          cardinalidad: 
+            min: 1
+            max: null # null para infinito
+          orden_preferido: ["DET", "NOUN", "s.a"] # Orden canónico (informativo)
+          restricciones_contextuales: 
+            - "Permite recursividad vía S (oraciones subordinadas)"
+            - "Puede contener estructura plana UD en modelos Stanza"
+          prohibiciones: ["VP", "grup.verb"] # Nodos que NUNCA deben aparecer aquí
+
+  pt:
+    modelo_base: "CINTIL (X-Bar)"
+    nodos:
+      - id: "NP"
+        descripcion: "Noun Phrase"
+        padres_permitidos: ["S", "VP", "PP"]
+        hijos_permitidos:
+          obligatorios: ["N'", "NOUN", "PROPN"]
+          opcionales: ["DET", "ADJ", "PP", "PUNCT"]
+        restricciones:
+          cardinalidad: {min: 1, max: null}
+          orden_preferido: ["DET", "N'"]
+          restricciones_contextuales: ["Usa proyección intermedia N'"]
+          prohibiciones: ["V'"]
+
+  # Repetir estructura completa para 'it' (VIT) y 'en' (PTB)
+```
+
+Instrucciones de Análisis:
+
+Padres e Hijos: Sé exhaustivo. Diferencia claramente entre lo que debe estar (núcleo) y lo que puede estar (adjuntos).
+Prohibiciones: Identifica errores estructurales graves (ej: una oración principal S dentro de un determinante DET).
+Coordinación: Define reglas específicas para nodos coord o estructuras de coordinación plana según el idioma.
+
