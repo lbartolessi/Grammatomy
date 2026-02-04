@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseño Estructural Accesible</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            // "class" permite que nosotros controlemos el modo oscuro manualmente
+            darkMode: 'class', 
+            theme: {
+                extend: {
+                    colors: {
+                        base: { dark: '#161616', light: '#F4F4F4' },
+                        ibm: { blue: '#648FFF', purple: '#785EF0' },
+                        wong: { orange: '#E69F00', sky: '#56B4E9', green: '#009E73' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        /* Tipografía limpia y espaciado generoso */
+        body {
+            @apply bg-base-light text-base-dark transition-colors duration-200 ease-in-out font-sans antialiased;
+        }
+        .dark body {
+            @apply bg-base-dark text-base-light;
+        }
+        /* Estética de líneas y recuadros */
+        .border-base {
+            @apply border border-base-dark/20 dark:border-base-light/20;
+        }
+        .spacing-huge { @apply py-20 px-10; }
+    </style>
+</head>
+<body class="spacing-huge">
+
+    <div class="fixed top-6 right-10">
+        <button onclick="document.documentElement.classList.toggle('dark')" 
+                class="border-2 border-base-dark dark:border-base-light px-4 py-1 text-xs uppercase font-bold tracking-widest hover:bg-base-dark hover:text-base-light dark:hover:bg-base-light dark:hover:text-base-dark transition-all">
+            Alternar Contraste
+        </button>
+    </div>
+
+    <header class="max-w-4xl mx-auto mb-24">
+        <h1 class="text-5xl font-light tracking-tighter mb-4">Arquitectura de Información</h1>
+        <div class="h-1 w-20 bg-ibm-blue"></div>
+    </header>
+
+    <main class="max-w-4xl mx-auto space-y-20">
+        
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="col-span-1">
+                <span class="text-xs font-bold uppercase tracking-widest opacity-50">01 / Concepto</span>
+            </div>
+            <div class="col-span-2">
+                <p class="text-2xl leading-relaxed font-light">
+                    El diseño eficaz no es la ausencia de elementos, sino la presencia de <span class="border-b-2 border-ibm-purple">orden</span>. 
+                    Utilizamos líneas de 1px para definir límites sin saturar la retina.
+                </p>
+            </div>
+        </section>
+
+        <section class="border-base p-10 space-y-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest">Métricas de Rendimiento</h3>
+            <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-full bg-gray-200 dark:bg-gray-800 h-2">
+                        <div class="bg-wong-sky h-full" style="width: 85%"></div>
+                    </div>
+                    <span class="text-xs tabular-nums">85%</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-full bg-gray-200 dark:bg-gray-800 h-2">
+                        <div class="bg-wong-orange h-full" style="width: 42%"></div>
+                    </div>
+                    <span class="text-xs tabular-nums">42%</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="flex flex-col md:flex-row gap-6">
+            <div class="border-base p-8 flex-1">
+                <h4 class="font-bold mb-4">Confirmar Proceso</h4>
+                <button class="bg-ibm-blue text-white px-6 py-3 text-sm font-bold uppercase">Ejecutar</button>
+            </div>
+            <div class="border-base p-8 flex-1">
+                <h4 class="font-bold mb-4">Revisar Logs</h4>
+                <button class="border-2 border-ibm-purple text-ibm-purple dark:text-ibm-purple px-6 py-3 text-sm font-bold uppercase">Ver historial</button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="max-w-4xl mx-auto mt-40 pt-10 border-t border-base-dark/10 dark:border-base-light/10 text-[10px] uppercase tracking-[0.2em] opacity-40">
+        Diseño optimizado para legibilidad universal. 2024.
+    </footer>
+
+</body>
+</html>

@@ -41,32 +41,28 @@
   - [x] Endpoint: /render/json (Raw Tree)
   - [x] Endpoint: /render/lisp (Penn Treebank)
   - [x] Unit Tests (TestClient) [DONE]
-- [x] Hugging Face Space Deployment [DONE]
-  - [x] Configure Dockerfile for Streamlit
-  - [x] Add Space Metadata (YAML)
 - [ ] Release Engineering & Documentation [NEXT SESSION]
   - [x] Define Architectural Objectives & Personas [DONE]
   - [x] Define Frontend Stack (Lit/TS) [DONE]
-  - [ ] Monorepo Restructuring [IMMEDIATE ACTION]
-    - [ ] Create folder structure (core, api, web, studio)
-    - [ ] Migrate existing Python logic to `src/core`
-    - [ ] Initialize `src/web` with Lit boilerplate
   - [x] Monorepo Restructuring [DONE]
     - [x] Create folder structure (core, api, web, studio)
     - [x] Define per-module dependencies (pyproject.toml/package.json)
     - [ ] Migrate existing Python logic to `src/core` [USER ACTION REQUIRED]
   - [ ] Hugging Face Space Deployment (v2: Stateless Web App) [NEW TARGET]
     - [ ] Archive Legacy Streamlit Demo
-    - [ ] Deploy FastAPI Backend (Docker)
-    - [ ] Deploy Static Frontend (Lit Build)
+    - [x] Deploy FastAPI Backend (Docker)
+    - [x] Deploy Static Frontend (Lit Build)
   - [ ] Code Quality Audit (Pylint/SonarQube cleanup)
   - [ ] Standard Logging Implementation (Replace print statements)
   - [ ] PyPI Packaging Strategy (Library vs Demo separation)
   - [ ] ReadTheDocs Integration (MkDocs setup)
-  - [ ] Grammatomy Studio (Desktop/Qt) [NEW STRATEGY]
-    - [ ] Qt/PySide6 Skeleton with QWebEngineView
-    - [ ] Cytoscape.js Integration for Tree Visualization
-    - [ ] Hybrid Client Logic (Local Engine vs API Client)
+  - [ ] Grammatomy Studio (Web Client) [PIVOTED FROM DESKTOP]
+    - [x] Editor Layout & Chrome (Toolbar, Sidebar) [DONE]
+    - [x] Cytoscape.js Integration (Basic)
+    - [x] PTB-based State Management (Client-Side Parsing) [DONE]
+    - [ ] Rule-Based Editing Logic (Validation) [IN PROGRESS]
+      - [ ] Connect Inspector Dropdown to Backend Rules
+      - [ ] Implement Graph Mutation Logic (Move/Delete)
   - [ ] Distribution & Deployment Ecosystem [NEW STRATEGY]
     - [ ] "Invisible Python" Build Pipeline (Nuitka/PyInstaller)
     - [ ] Windows Installer (Inno Setup / MSI)

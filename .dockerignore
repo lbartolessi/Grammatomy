@@ -1,0 +1,12 @@
+.git
+.vscode
+.mnemosyne
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+node_modules
+dist
+models
+venv
+.env

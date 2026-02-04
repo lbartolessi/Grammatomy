@@ -3,31 +3,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "grammatomy"
+name = "grammatomy-workspace"
 version = "0.1.0"
-description = "Universal Constituent Parser (AnyTree Wrapper)"
+description = "Monorepo for the Grammatomy Project"
 authors = [{name = "Wayfarer", email = "wayfarer@mnemosyne.net"}]
 readme = "Readme.md"
 requires-python = ">=3.10"
-dependencies = [
-    "stanza",
-    "spacy",
-    "benepar",
-    "anytree",
-    "transformers>=4.30.0", # For HuggingFace models, often used with Benepar/Stanza
-    "torch", # Explicit dependency often needed for Stanza/Benepar if not pulled automatically
-    "accelerate", # For optimizing PyTorch models, often used with transformers
-    "streamlit",
-    "graphviz",
-    "nltk",
-    "huggingface_hub",
-    "protobuf",
-    "langdetect",
-    "fastapi",
-    "uvicorn[standard]",
-    "python-multipart",
-    "PyYAML",
-]
+# Dependencies are now managed in their respective sub-projects (src/core, src/api, etc.)
 
 [project.optional-dependencies]
 dev = [
@@ -38,18 +20,9 @@ dev = [
     "pylint",
     "httpx"
 ]
-gui = [
-    "PyQt6"
-]
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[project.scripts]
-grammatomy-studio = "grammatomy.tools.studio:main"
 
 [tool.pylint.main]
-source-roots = ["src"]
+source-roots = ["src/core", "src/api", "src/studio"]
 extension-pkg-allow-list = ["PyQt6"]
 
 [tool.pylint."messages control"]

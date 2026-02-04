@@ -1,0 +1,179 @@
+# Grammatomy Meta-Syntactic Rules Specification
+# Idiomas: ES, EN, IT, PT
+# Versión: 2.0.4 (Stress-Tested for Stanza/Benepar)
+# Source: references/Especificación YAML de Árboles Sintácticos Híbridos.md
+
+rules:
+  # --- SECCIÓN ESPAÑOL (ANCORA HYBRID) ---
+  - id: ES_SN_VALIDATOR
+    tag: sn
+    descripcion: Validación de Sintagma Nominal con soporte para MWE y UD.
+    hijos_permitidos:
+      obligatorios: [grup.nom]
+      opcionales:
+        - spec
+        - sp
+        - s.a
+        - f0
+        - conj
+        - dt
+        - sn
+        - prep
+        - relatiu
+        - NP
+        - NNS
+        - NN
+        - PROPN
+        - PRON
+        - DET
+        - N'
+        - CCONJ
+        - VERB
+        - ADV
+        - spd
+        - sa
+        - savv
+        - NOUN
+        - SCONJ
+        - PUNCT
+    restricciones:
+      cardinalidad: { grup.nom: "1..*" }
+      orden: [spec, grup.nom]
+
+  - id: ES_GRUP_NOM_RECURSION
+    tag: grup.nom
+    descripcion: Soporte para recursividad de S y estructuras complejas AnCora.
+    hijos_permitidos:
+      opcionales:
+        - n
+        - nc
+        - np
+        - propn
+        - pron
+        - s.a
+        - sp
+        - sn
+        - f0
+        - w
+        - NOUN
+        - relatiu
+        - S
+        - PROPN
+        - PRON
+        - grup.nom
+        - conj
+        - num
+        - NUM
+        - CCONJ
+        - SCONJ
+    restricciones:
+      recursividad: true
+
+  - id: ES_GRUP_VERB_HYBRID
+    tag: grup.verb
+    descripcion: Grupo verbal con soporte para expansión de clíticos y UPOS.
+    hijos_permitidos:
+      opcionales:
+        - v
+        - vb
+        - vbd
+        - sn
+        - sp
+        - sadv
+        - neg
+        - morfema.pronominal
+        - morfema.verbal
+        - f
+        - gerundio
+        - gerundi
+        - participio
+        - infinitivo
+        - infinitiu
+        - f0
+        - VERB
+        - AUX
+        - s.a
+    restricciones:
+      cardinalidad: { v: "1", VERB: "1" }
+
+  # --- SECCIÓN INGLÉS (PTB II + NML) ---
+  - id: EN_NP_PTB_STANDARD
+    tag: NP
+    descripcion: Noun Phrase del Penn Treebank con soporte para NML y NX.
+    hijos_permitidos:
+      opcionales: [DT, NN, NNS, NNP, NNPS, JJ, ADJP, PP, SBAR, PRP, NP, CC, CD, RB, PUNCT, ., ",", DET, NOUN, PROPN, PRON, CCONJ, VERB, ADV, N', ADJ, NUM]
+    restricciones:
+      cardinalidad: { NN: "1..*", NOUN: "1..*" }
+
+  - id: EN_VP_HIERARCHICAL
+    tag: VP
+    descripcion: Verb Phrase jerárquico para modelos Benepar/Stanza.
+    hijos_permitidos:
+      opcionales: [VB, VBD, VBG, VBN, VBP, VBZ, MD, NP, PP, ADJP, SBAR, ADVP, PRT, VP, CC, PUNCT, ., ",", V', VERB, AUX, ADJ]
+    restricciones:
+      recursividad: true
+
+  - id: EN_SBAR_CONSTRAINTS
+    tag: SBAR
+    descripcion: Cláusulas subordinadas con restricciones de etiquetas funcionales.
+    hijos_permitidos:
+      opcionales: [IN, DT, S, SQ, SINV, WHNP, WHADVP]
+    prohibiciones: [VP, grup.verb]
+
+  # --- SECCIÓN ITALIANO (VIT FLAT) ---
+  - id: IT_IBAR_CORE
+    tag: IBAR
+    descripcion: Núcleo verbal tensed de VIT.
+    hijos_permitidos:
+      opcionales: [neg, pron, aux, morf, vt, vi]
+    prohibiciones: [sn, sp, NP]
+
+  - id: IT_SPD_SPECIALIZED
+    tag: spd
+    descripcion: Frase preposicional específica de VIT para "di".
+    hijos_permitidos:
+      opcionales: [partd, sn]
+    prohibiciones: [v, vt]
+
+  # --- UNIVERSAL / HYBRID ROOT ---
+  - id: UNIVERSAL_S
+    tag: S
+    descripcion: Oración Universal (Hybrid AnCora/PTB/VIT).
+    hijos_permitidos:
+      opcionales:
+        - sn
+        - grup.verb
+        - sp
+        - f0
+        - conj
+        - sn.suj
+        - sn.cd
+        - inc
+        - interjeccio
+        - neg
+        - morfema.pronominal
+        - infinitiu
+        - relatiu
+        - gerundi
+        - participio
+        - participi
+        - morfema.verbal
+        - s.a
+        - sadv
+        - S
+        - NP
+        - VP
+        - ADVP
+        - PP
+        - SBAR
+        - PRN
+        - PUNCT
+        - .
+        - ","
+        - INTJ
+        - SCONJ
+        - CCONJ
+        - IBAR
+        - IR_INFL
+        - spd
+        - sa

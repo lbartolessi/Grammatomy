@@ -1,0 +1,29 @@
+# GRAMMATOMY CONFIGURATION
+# Principle: Model Sovereignty (Local Persistence)
+
+system:
+  model_sovereignty: true
+  resources_path: "models"  # Relative to project root
+  log_level: "INFO"
+
+engines:
+  stanza:
+    enabled: true
+    languages:
+      es:
+        - "combined_bertin-roberta" # SOTA (Transformer)
+        - "combined_charlm"         # Fast
+      en:
+        - "ptb3-revised_electra-large"
+      it:
+        - "vit_charlm"
+      pt:
+        - "cintil_charlm"
+
+  spacy:
+    enabled: false
+    languages:
+      en:
+        - "benepar_en3"
+      fr:
+        - "benepar_fr2"

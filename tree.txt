@@ -1,0 +1,252 @@
+.
+├── archive
+│   └── demo
+│       ├── app.py
+│       ├── examples.yaml
+│       └── github-octocat-svgrepo-com.svg
+├── default.conf
+├── docker-compose.yml
+├── Dockerfile
+├── Dockerfile.api
+├── docs
+│   ├── Architectural_Objectives.md
+│   ├── Design_Guidelines.md
+│   ├── Frontend_Architecture.md
+│   ├── package.json
+│   ├── pyproject.toml
+│   └── User_Personas.md
+├── environment.yml
+├── Grammatomy.code-workspace
+├── __init__.py
+├── models
+│   ├── benepar
+│   │   └── models
+│   │       ├── benepar_de2
+│   │       │   ├── benepar_model.bin
+│   │       │   ├── config.json
+│   │       │   ├── sentencepiece.bpe.model
+│   │       │   ├── special_tokens_map.json
+│   │       │   └── tokenizer_config.json
+│   │       └── benepar_de2.zip
+│   ├── spacy_dist
+│   │   ├── de_core_news_lg-3.8.0-py3-none-any.whl
+│   │   ├── en_core_web_lg-3.8.0-py3-none-any.whl
+│   │   ├── en_core_web_md-3.8.0-py3-none-any.whl
+│   │   ├── es_core_news_lg-3.8.0-py3-none-any.whl
+│   │   ├── fr_core_news_lg-3.8.0-py3-none-any.whl
+│   │   └── fr_core_news_md-3.8.0-py3-none-any.whl
+│   └── stanza
+│       ├── de
+│       │   ├── backward_charlm
+│       │   │   └── newswiki.pt
+│       │   ├── constituency
+│       │   │   └── spmrl_charlm.pt
+│       │   ├── forward_charlm
+│       │   │   └── newswiki.pt
+│       │   ├── mwt
+│       │   │   └── combined.pt
+│       │   ├── pos
+│       │   │   └── combined_charlm.pt
+│       │   ├── pretrain
+│       │   │   └── conll17.pt
+│       │   └── tokenize
+│       │       └── combined.pt
+│       ├── en
+│       │   ├── backward_charlm
+│       │   │   └── 1billion.pt
+│       │   ├── constituency
+│       │   │   ├── ptb3-revised_charlm.pt
+│       │   │   └── ptb3-revised_electra-large.pt
+│       │   ├── forward_charlm
+│       │   │   └── 1billion.pt
+│       │   ├── mwt
+│       │   │   └── combined.pt
+│       │   ├── pos
+│       │   │   └── combined_charlm.pt
+│       │   ├── pretrain
+│       │   │   └── conll17.pt
+│       │   └── tokenize
+│       │       └── combined.pt
+│       ├── es
+│       │   ├── backward_charlm
+│       │   │   └── newswiki.pt
+│       │   ├── constituency
+│       │   │   ├── combined_bertin-roberta.pt
+│       │   │   └── combined_charlm.pt
+│       │   ├── forward_charlm
+│       │   │   └── newswiki.pt
+│       │   ├── mwt
+│       │   │   └── combined.pt
+│       │   ├── pos
+│       │   │   ├── combined_bertin-roberta.pt
+│       │   │   └── combined_charlm.pt
+│       │   ├── pretrain
+│       │   │   └── conll17.pt
+│       │   └── tokenize
+│       │       └── combined.pt
+│       ├── it
+│       │   ├── backward_charlm
+│       │   │   └── conll17.pt
+│       │   ├── constituency
+│       │   │   └── vit_charlm.pt
+│       │   ├── forward_charlm
+│       │   │   └── conll17.pt
+│       │   ├── mwt
+│       │   │   └── combined.pt
+│       │   ├── pos
+│       │   │   ├── combined_charlm.pt
+│       │   │   └── vit_charlm.pt
+│       │   ├── pretrain
+│       │   │   └── conll17.pt
+│       │   └── tokenize
+│       │       └── combined.pt
+│       ├── pt
+│       │   ├── backward_charlm
+│       │   │   └── oscar2023.pt
+│       │   ├── constituency
+│       │   │   └── cintil_charlm.pt
+│       │   ├── forward_charlm
+│       │   │   └── oscar2023.pt
+│       │   ├── mwt
+│       │   │   └── bosque.pt
+│       │   ├── pos
+│       │   │   ├── bosque_charlm.pt
+│       │   │   └── cintil_charlm.pt
+│       │   ├── pretrain
+│       │   │   └── conll17.pt
+│       │   └── tokenize
+│       │       └── bosque.pt
+│       └── resources.json
+├── nginx
+│   └── default.conf
+├── pyproject.toml
+├── Readme.md
+├── references
+│   ├── Análisis Constituyente Español SOTA.md
+│   ├── Análisis Sintáctico Constituyente Español.md
+│   ├── Banco de Pruebas Sintácticas Españolas.md
+│   ├── Correcciones al Análisis Constituyente Español SOTA.md
+│   ├── Especificación YAML de Árboles Sintácticos Híbridos.md
+│   ├── Guía_de_documentación.md
+│   ├── prompt
+│   ├── Prueba Color.html
+│   └── Rigor_Linguistico.md
+├── src
+│   ├── api
+│   │   └── app
+│   │       ├── __init__.py
+│   │       ├── main.py
+│   │       ├── pyproject.toml
+│   │       └── schemas.py
+│   ├── core
+│   │   ├── grammatomy
+│   │   │   ├── assets
+│   │   │   │   ├── examples.yaml
+│   │   │   │   └── rules
+│   │   │   │       └── es_ancora.yaml
+│   │   │   ├── engines
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── __init__.cpython-313.pyc
+│   │   │   │   │   ├── spacy_engine.cpython-313.pyc
+│   │   │   │   │   └── stanza_engine.cpython-313.pyc
+│   │   │   │   ├── spacy_engine.py
+│   │   │   │   └── stanza_engine.py
+│   │   │   ├── exporters
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── json_exporter.py
+│   │   │   │   ├── ptb_exporter.py
+│   │   │   │   └── __pycache__
+│   │   │   │       ├── __init__.cpython-313.pyc
+│   │   │   │       ├── json_exporter.cpython-313.pyc
+│   │   │   │       └── ptb_exporter.cpython-313.pyc
+│   │   │   ├── glossary.py
+│   │   │   ├── grammar.py
+│   │   │   ├── __init__.py
+│   │   │   ├── logger.py
+│   │   │   ├── parsers
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── lisp_parser.py
+│   │   │   │   └── __pycache__
+│   │   │   │       ├── __init__.cpython-313.pyc
+│   │   │   │       └── lisp_parser.cpython-313.pyc
+│   │   │   ├── __pycache__
+│   │   │   │   ├── glossary.cpython-313.pyc
+│   │   │   │   ├── grammar.cpython-313.pyc
+│   │   │   │   ├── __init__.cpython-313.pyc
+│   │   │   │   ├── logger.cpython-313.pyc
+│   │   │   │   └── validation.cpython-313.pyc
+│   │   │   ├── ui
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── __init__.cpython-313.pyc
+│   │   │   │   │   └── syntax_editor.cpython-313.pyc
+│   │   │   │   └── syntax_editor.py
+│   │   │   ├── validation.py
+│   │   │   └── visualization
+│   │   │       ├── ascii_renderer.py
+│   │   │       ├── graphviz_renderer.py
+│   │   │       ├── __init__.py
+│   │   │       ├── json_renderer.py
+│   │   │       ├── lisp_renderer.py
+│   │   │       └── __pycache__
+│   │   │           ├── ascii_renderer.cpython-313.pyc
+│   │   │           ├── graphviz_renderer.cpython-313.pyc
+│   │   │           ├── __init__.cpython-313.pyc
+│   │   │           ├── json_renderer.cpython-313.pyc
+│   │   │           └── lisp_renderer.cpython-313.pyc
+│   │   └── pyproject.toml
+│   ├── grammatomy.egg-info
+│   │   ├── dependency_links.txt
+│   │   ├── entry_points.txt
+│   │   ├── PKG-INFO
+│   │   ├── requires.txt
+│   │   ├── SOURCES.txt
+│   │   └── top_level.txt
+│   ├── grammatomy_workspace.egg-info
+│   │   ├── dependency_links.txt
+│   │   ├── PKG-INFO
+│   │   ├── requires.txt
+│   │   ├── SOURCES.txt
+│   │   └── top_level.txt
+│   ├── studio
+│   │   └── pyproject.toml
+│   └── web
+│       └── package.json
+├── studio.py
+├── tests
+│   ├── benchmark.py
+│   ├── __pycache__
+│   │   ├── test_api.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_exporter.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_lisp_parser.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_ptb_conversion.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_spacy_engine.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_stanza_engine.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_validation_ghosts.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_validation_lexicon.cpython-313-pytest-9.0.2.pyc
+│   │   └── test_validation_metasyntax.cpython-313-pytest-9.0.2.pyc
+│   ├── settings.json
+│   ├── test_api.py
+│   ├── test_exporter.py
+│   ├── test_lisp_parser.py
+│   ├── test_ptb_conversion.py
+│   ├── test_spacy_engine.py
+│   ├── test_stanza_engine.py
+│   ├── test_validation_ghosts.py
+│   ├── test_validation_lexicon.py
+│   └── test_validation_metasyntax.py
+├── tools
+│   ├── batch_validation.py
+│   ├── check_model.py
+│   ├── inventory_models.py
+│   ├── manage_models.py
+│   ├── poc_transformers.py
+│   ├── probe_multilingual.py
+│   ├── __pycache__
+│   │   └── test_validation_ghosts.cpython-313-pytest-9.0.2.pyc
+│   ├── run_tests.py
+│   └── studio.py
+└── tree.txt
+
+78 directories, 172 files

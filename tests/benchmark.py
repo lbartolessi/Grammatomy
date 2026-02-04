@@ -1,9 +1,15 @@
 import logging
+import sys
 import time
+from pathlib import Path
 
 import spacy
 
-from grammatomy import get_syntax_tree
+# Ensure src/core is in path for direct execution
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.append(str(PROJECT_ROOT / "src" / "core"))
+
+from grammatomy import config, get_syntax_tree
 from grammatomy.engines.spacy_engine import SpacyEngine
 from grammatomy.engines.stanza_engine import StanzaEngine
 
@@ -42,64 +48,6 @@ SENTENCES = {
     "pt": "As armas e os barões assinalados, que da ocidental praia lusitana, por mares nunca de antes navegados, passaram ainda além da Taprobana.",
 }
 
-# Configuration Matrix based on Inventory Findings
-CONFIGS = [
-    # Spanish: Stanza is the only viable option (PlanTL failed, Benepar is fallback)
-    {
-        "engine": "stanza",
-        "lang": "es",
-        "model_package": "combined_bertin-roberta",
-        "desc": "Stanza (Transformer)",
-    },
-    {
-        "engine": "stanza",
-        "lang": "es",
-        "model_package": "combined_charlm",
-        "desc": STANZA_CHARLM_DESC,
-    },
-    # English: Comparison ground
-    {
-        "engine": "stanza",
-        "lang": "en",
-        "model_package": "ptb3-revised_electra-large",
-        "desc": "Stanza (Electra)",
-    },
-    {
-        "engine": "spacy",
-        "lang": "en",
-        "model_package": "benepar_en3",
-        "desc": "Benepar (Official)",
-    },
-    # French: Benepar is critical (Stanza lacks constituency)
-    {
-        "engine": "spacy",
-        "lang": "fr",
-        "model_package": "benepar_fr2",
-        "desc": "Benepar (Official)",
-    },
-    # Italian: Stanza strong suit (Using CharLM to fit in VRAM)
-    {
-        "engine": "stanza",
-        "lang": "it",
-        "model_package": "vit_charlm",
-        "desc": STANZA_CHARLM_DESC,
-    },
-    # Portuguese: Stanza strong suit (Using CharLM to fit in VRAM)
-    {
-        "engine": "stanza",
-        "lang": "pt",
-        "model_package": "cintil_charlm",
-        "desc": STANZA_CHARLM_DESC,
-    },
-    # German: Switched to Stanza due to Benepar incompatibility
-    {
-        "engine": "stanza",
-        "lang": "de",
-        "model_package": "spmrl_charlm",
-        "desc": STANZA_CHARLM_DESC,
-    },
-]
-
 SPACY_BASE_MODELS = {
     "en": "en_core_web_lg",
     "fr": "fr_core_news_lg",
@@ -125,55 +73,59 @@ def run_benchmark():
     )
     print(f"{'-'*95}")
 
-    for cfg in CONFIGS:
-        lang = cfg["lang"]
-        desc = cfg["desc"]
-        text = SENTENCES.get(lang, SENTENCES["en"])
+    # Iterate dynamically over configured engines
+    # This respects Model Sovereignty defined in config.yaml
+    engines_conf = config._data.get("engines", {})
 
-        # Prepare params
-        params = {
-            "engine": cfg["engine"],
-            "lang": lang,
-            "model_package": cfg["model_package"],
-            "use_gpu": True,  # Try GPU if available
-        }
+    for engine_name, engine_data in engines_conf.items():
+        if not engine_data.get("enabled", False):
+            continue
 
-        try:
-            # Clear memory before each run to avoid OOM on 4GB VRAM
-            StanzaEngine.clear_cache()
-            SpacyEngine.clear_cache()
+        for lang, models in engine_data.get("languages", {}).items():
+            for model_package in models:
+                desc = f"{engine_name.capitalize()} ({model_package})"
+                text = SENTENCES.get(lang, SENTENCES["en"])
 
-            # Ensure dependencies for Benepar are met
-            if cfg["engine"] == "spacy":
-                ensure_spacy_model(lang)
+                params = {
+                    "engine": engine_name,
+                    "lang": lang,
+                    "model_package": model_package,
+                    "use_gpu": True,
+                }
 
-            # 1. Cold Start: Includes model loading/downloading
-            start_time = time.time()
-            # Note: StanzaEngine caches pipelines, so we rely on the script being a fresh process
-            # or the key being unique.
-            root = get_syntax_tree(text, params=params)
-            cold_time = time.time() - start_time
+                try:
+                    # Clear memory before each run
+                    StanzaEngine.clear_cache()
+                    SpacyEngine.clear_cache()
 
-            if not root:
-                raise ValueError("No tree returned")
+                    if engine_name == "spacy":
+                        ensure_spacy_model(lang)
 
-            # 2. Warm Start: Inference only (pipeline cached)
-            start_time = time.time()
-            root = get_syntax_tree(text, params=params)
-            warm_time = time.time() - start_time
+                    # 1. Cold Start
+                    start_time = time.time()
+                    root = get_syntax_tree(text, params=params)
+                    cold_time = time.time() - start_time
 
-            status = "✅ OK"
+                    if not root:
+                        raise ValueError("No tree returned")
 
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            cold_time = 0.0
-            warm_time = 0.0
-            status = "❌ FAIL"
-            print(f"   >>> Debug Error: {e}")
+                    # 2. Warm Start
+                    start_time = time.time()
+                    root = get_syntax_tree(text, params=params)
+                    warm_time = time.time() - start_time
 
-            print(
-                f"{lang.upper():<5} | {desc:<35} | {cold_time:<15.4f} | "
-                f"{warm_time:<15.4f} | {status:<8}"
-            )
+                    status = "✅ OK"
+
+                except Exception as e:  # pylint: disable=broad-exception-caught
+                    cold_time = 0.0
+                    warm_time = 0.0
+                    status = "❌ FAIL"
+                    # print(f"   >>> Debug Error: {e}") # Uncomment for debug
+
+                print(
+                    f"{lang.upper():<5} | {desc:<35} | {cold_time:<15.4f} | "
+                    f"{warm_time:<15.4f} | {status:<8}"
+                )
 
     print(f"{'='*95}\n")
 
