@@ -1,179 +1,239 @@
-# Grammatomy Meta-Syntactic Rules Specification
-# Idiomas: ES, EN, IT, PT
-# Versión: 2.0.4 (Stress-Tested for Stanza/Benepar)
-# Source: references/Especificación YAML de Árboles Sintácticos Híbridos.md
+tree_config:
+  language: "es"
+  standard: "AnCora / Universal Dependencies"
+  description: "Matriz de relaciones jerárquicas para procesamiento de constituyentes en español"
+  version: "2.5.0-Expert"
 
-rules:
-  # --- SECCIÓN ESPAÑOL (ANCORA HYBRID) ---
-  - id: ES_SN_VALIDATOR
-    tag: sn
-    descripcion: Validación de Sintagma Nominal con soporte para MWE y UD.
-    hijos_permitidos:
-      obligatorios: [grup.nom]
-      opcionales:
-        - spec
-        - sp
-        - s.a
-        - f0
-        - conj
-        - dt
-        - sn
-        - prep
-        - relatiu
-        - NP
-        - NNS
-        - NN
-        - PROPN
-        - PRON
-        - DET
-        - N'
-        - CCONJ
-        - VERB
-        - ADV
-        - spd
-        - sa
-        - savv
-        - NOUN
-        - SCONJ
-        - PUNCT
-    restricciones:
-      cardinalidad: { grup.nom: "1..*" }
-      orden: [spec, grup.nom]
+nodes:
+  - id: "ROOT"
+    description: "Raíz del árbol"
+    is_terminal: false
+    root_allowed: true
+    allowed_parents: []
+    allowed_children:
+      mandatory: []
+      optional: ["S", "sentence", "sq", "sinv", "frag", "sn", "interjeccio"]
 
-  - id: ES_GRUP_NOM_RECURSION
-    tag: grup.nom
-    descripcion: Soporte para recursividad de S y estructuras complejas AnCora.
-    hijos_permitidos:
-      opcionales:
-        - n
-        - nc
-        - np
-        - propn
-        - pron
-        - s.a
-        - sp
-        - sn
-        - f0
-        - w
-        - NOUN
-        - relatiu
-        - S
-        - PROPN
-        - PRON
-        - grup.nom
-        - conj
-        - num
-        - NUM
-        - CCONJ
-        - SCONJ
-    restricciones:
-      recursividad: true
+  - id: "S"
+    description: "Nodo oracional (Sentence) o cláusula subordinada"
+    is_terminal: false
+    root_allowed: true
+    allowed_parents: ["ROOT", "grup.nom", "sp", "S", "sentence"]
+    allowed_children:
+      mandatory: ["grup.verb"]
+      optional: ["sn", "sn.suj", "sn.cd", "sn.ci", "sp", "sadv", "s.a", "NUM", "conj", "morfema.verbal", "neg", "PUNCT", "fc", "fp", ",", "."]
+    functional_variants: ["sentence", "S.relatiu", "S.completiva"]
 
-  - id: ES_GRUP_VERB_HYBRID
-    tag: grup.verb
-    descripcion: Grupo verbal con soporte para expansión de clíticos y UPOS.
-    hijos_permitidos:
-      opcionales:
-        - v
-        - vb
-        - vbd
-        - sn
-        - sp
-        - sadv
-        - neg
-        - morfema.pronominal
-        - morfema.verbal
-        - f
-        - gerundio
-        - gerundi
-        - participio
-        - infinitivo
-        - infinitiu
-        - f0
-        - VERB
-        - AUX
-        - s.a
-    restricciones:
-      cardinalidad: { v: "1", VERB: "1" }
+  - id: "sn"
+    description: "Sintagma Nominal (Noun Phrase)"
+    is_terminal: false
+    root_allowed: true
+    allowed_parents: ["S", "sentence", "sp", "grup.verb", "grup.nom"]
+    allowed_children:
+      mandatory: ["grup.nom"]
+      optional: ["spec", "s.a", "sp", "sn", "NUM", "conj", "DET", "PUNCT"]
+    functional_variants: ["sn.suj", "sn.cd", "sn.ci", "sn.cc", "sn.atr", "sn.creg", "sn.cpred", "sn.cag"]
 
-  # --- SECCIÓN INGLÉS (PTB II + NML) ---
-  - id: EN_NP_PTB_STANDARD
-    tag: NP
-    descripcion: Noun Phrase del Penn Treebank con soporte para NML y NX.
-    hijos_permitidos:
-      opcionales: [DT, NN, NNS, NNP, NNPS, JJ, ADJP, PP, SBAR, PRP, NP, CC, CD, RB, PUNCT, ., ",", DET, NOUN, PROPN, PRON, CCONJ, VERB, ADV, N', ADJ, NUM]
-    restricciones:
-      cardinalidad: { NN: "1..*", NOUN: "1..*" }
+  - id: "grup.nom"
+    description: "Grupo Nominal (Núcleo léxico del SN)"
+    is_terminal: false
+    allowed_parents: ["sn"]
+    allowed_children:
+      mandatory: ["NOUN", "PROPN", "PRON"]
+      optional: ["s.a", "sp", "S", "grup.nom", "conj", "CCONJ", "NUM", "PUNCT"]
 
-  - id: EN_VP_HIERARCHICAL
-    tag: VP
-    descripcion: Verb Phrase jerárquico para modelos Benepar/Stanza.
-    hijos_permitidos:
-      opcionales: [VB, VBD, VBG, VBN, VBP, VBZ, MD, NP, PP, ADJP, SBAR, ADVP, PRT, VP, CC, PUNCT, ., ",", V', VERB, AUX, ADJ]
-    restricciones:
-      recursividad: true
+  - id: "sp"
+    description: "Sintagma Preposicional (Prepositional Phrase)"
+    is_terminal: false
+    allowed_parents: ["grup.nom", "grup.verb", "s.a", "sadv"]
+    allowed_children:
+      mandatory: ["ADP", "prep"]
+      optional: ["sn", "S", "sadv", "grup.adv"]
+    functional_variants: ["sp.creg", "sp.cc", "sp.cd", "sp.ci", "sp.atr", "sp.cag", "sp.cn"]
 
-  - id: EN_SBAR_CONSTRAINTS
-    tag: SBAR
-    descripcion: Cláusulas subordinadas con restricciones de etiquetas funcionales.
-    hijos_permitidos:
-      opcionales: [IN, DT, S, SQ, SINV, WHNP, WHADVP]
-    prohibiciones: [VP, grup.verb]
+  - id: "grup.verb"
+    description: "Grupo Verbal (Núcleo de la predicación)"
+    is_terminal: false
+    allowed_parents: ["S", "sentence"]
+    allowed_children:
+      mandatory: ["VERB", "AUX"]
+      optional: ["morfema.pronominal", "neg", "sadv", "sn", "sp", "infinitivo", "gerundio", "participio", "NUM", "PUNCT"]
 
-  # --- SECCIÓN ITALIANO (VIT FLAT) ---
-  - id: IT_IBAR_CORE
-    tag: IBAR
-    descripcion: Núcleo verbal tensed de VIT.
-    hijos_permitidos:
-      opcionales: [neg, pron, aux, morf, vt, vi]
-    prohibiciones: [sn, sp, NP]
+  - id: "s.a"
+    description: "Sintagma Adjetival"
+    is_terminal: false
+    allowed_parents: ["grup.nom", "sn"]
+    allowed_children:
+      mandatory: ["grup.a", "ADJ"]
+      optional: ["sadv", "sp", "NUM", "conj"]
+    functional_variants: ["sa.atr", "sa.cpred", "sa.cn"]
 
-  - id: IT_SPD_SPECIALIZED
-    tag: spd
-    descripcion: Frase preposicional específica de VIT para "di".
-    hijos_permitidos:
-      opcionales: [partd, sn]
-    prohibiciones: [v, vt]
+  - id: "grup.a"
+    description: "Grupo Adjetival"
+    is_terminal: false
+    allowed_parents: ["s.a"]
+    allowed_children:
+      mandatory: ["ADJ"]
+      optional: ["sadv", "sp"]
 
-  # --- UNIVERSAL / HYBRID ROOT ---
-  - id: UNIVERSAL_S
-    tag: S
-    descripcion: Oración Universal (Hybrid AnCora/PTB/VIT).
-    hijos_permitidos:
-      opcionales:
-        - sn
-        - grup.verb
-        - sp
-        - f0
-        - conj
-        - sn.suj
-        - sn.cd
-        - inc
-        - interjeccio
-        - neg
-        - morfema.pronominal
-        - infinitiu
-        - relatiu
-        - gerundi
-        - participio
-        - participi
-        - morfema.verbal
-        - s.a
-        - sadv
-        - S
-        - NP
-        - VP
-        - ADVP
-        - PP
-        - SBAR
-        - PRN
-        - PUNCT
-        - .
-        - ","
-        - INTJ
-        - SCONJ
-        - CCONJ
-        - IBAR
-        - IR_INFL
-        - spd
-        - sa
+  - id: "sadv"
+    description: "Sintagma Adverbial"
+    is_terminal: false
+    allowed_parents: ["grup.verb", "sp", "s.a"]
+    allowed_children:
+      mandatory: ["grup.adv", "ADV"]
+      optional: ["sp", "sadv", "NUM"]
+
+  - id: "grup.adv"
+    description: "Grupo Adverbial"
+    is_terminal: false
+    allowed_parents: ["sadv"]
+    allowed_children:
+      mandatory: ["ADV"]
+      optional: ["sp"]
+
+  - id: "spec"
+    description: "Especificador"
+    is_terminal: false
+    allowed_parents: ["sn"]
+    allowed_children:
+      mandatory: ["DET"]
+      optional: ["NUM"]
+
+  - id: "coord"
+    description: "Nodo de coordinación"
+    is_terminal: false
+    allowed_parents: ["grup.nom", "S", "sentence"]
+    allowed_children:
+      mandatory: []
+      optional: ["conj", "CCONJ", "PUNCT"]
+
+  # --- TERMINALES (POS UD) ---
+  - id: "VERB"
+    description: "Verbo"
+    is_terminal: true
+    allowed_parents: ["grup.verb"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "AUX"
+    description: "Verbo Auxiliar"
+    is_terminal: true
+    allowed_parents: ["grup.verb"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "NOUN"
+    description: "Sustantivo"
+    is_terminal: true
+    allowed_parents: ["grup.nom"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "PROPN"
+    description: "Nombre Propio"
+    is_terminal: true
+    allowed_parents: ["grup.nom"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "PRON"
+    description: "Pronombre"
+    is_terminal: true
+    allowed_parents: ["grup.nom"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "ADP"
+    description: "Preposición"
+    is_terminal: true
+    allowed_parents: ["sp"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "DET"
+    description: "Determinante"
+    is_terminal: true
+    allowed_parents: ["spec"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "ADJ"
+    description: "Adjetivo"
+    is_terminal: true
+    allowed_parents: ["grup.a", "s.a"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "ADV"
+    description: "Adverbio"
+    is_terminal: true
+    allowed_parents: ["grup.adv", "sadv"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "NUM"
+    description: "Numeral"
+    is_terminal: true
+    allowed_parents: ["grup.nom", "spec"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "CCONJ"
+    description: "Conjunción Coordinante"
+    is_terminal: true
+    allowed_parents: ["coord", "grup.nom", "S", "sentence"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  - id: "conj"
+    description: "Conjunción (AnCora)"
+    es_terminal: false
+    allowed_parents: ["coord", "grup.nom", "S", "sentence", "sn", "s.a"]
+    allowed_children:
+      mandatory: ["CCONJ"]
+      optional: []
+
+  - id: "PUNCT"
+    description: "Puntuación"
+    is_terminal: true
+    allowed_parents: ["S", "sentence", "sn", "grup.nom", "grup.verb"]
+    allowed_children:
+      mandatory: []
+      optional: []
+
+  # Ghost Nodes
+  - id: "👻Node"
+    description: "Ghost Phrasal Node"
+    is_terminal: false
+    allowed_parents: []
+    allowed_children:
+      mandatory: ["👻POS"]
+      optional: []
+
+  - id: "👻POS"
+    description: "Ghost POS Node"
+    is_terminal: true
+    allowed_parents: ["👻Node"]
+    allowed_children:
+      mandatory: ["👻Word"]
+      optional: []
+
+  - id: "👻Word"
+    description: "Ghost Terminal"
+    is_terminal: true
+    allowed_parents: ["👻POS"]
+    allowed_children:
+      mandatory: []
+      optional: []

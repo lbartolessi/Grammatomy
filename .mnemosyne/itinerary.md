@@ -60,13 +60,32 @@
     - [x] Editor Layout & Chrome (Toolbar, Sidebar) [DONE]
     - [x] Cytoscape.js Integration (Basic)
     - [x] PTB-based State Management (Client-Side Parsing) [DONE]
-    - [ ] Rule-Based Editing Logic (Validation) [IN PROGRESS]
-      - [ ] Connect Inspector Dropdown to Backend Rules
-      - [ ] Implement Graph Mutation Logic (Move/Delete)
-  - [ ] Distribution & Deployment Ecosystem [NEW STRATEGY]
-    - [ ] "Invisible Python" Build Pipeline (Nuitka/PyInstaller)
-    - [ ] Windows Installer (Inno Setup / MSI)
-    - [ ] Linux AppImage Generation
+    - [x] Rule-Based Editing Logic (Validation) [DONE]
+      - [x] Connect Inspector Dropdown to Backend Rules (Context-Aware)
+      - [x] Implement Graph Mutation Logic (Move/Delete/Ghost Nodes)
+    - [ ] Core Editing Features [PRIORITY]
+      - [ ] Verify Ghost Node Logic (Recursive Delete / Auto-Spawn Child) [NEXT]
+      - [ ] Implement Undo/Redo Stack (State History) [NEW]
+      - [ ] Implement Drag-and-Drop Node Moving (Cytoscape) [NEW]
+      - [ ] Implement Copy/Paste for Subtrees [NEW]
+    - [ ] IO & Persistence (Local-First) [NEW]
+      - [ ] Implement File Open (Text/PTB) from Local Disk
+      - [ ] Implement Browser-based Auto-Save (LocalStorage/IndexedDB)
+      - [ ] Implement Export Menu (SVG, PNG, PTB, JSON)
+    - [ ] Configuration & Controls [NEW]
+      - [ ] Implement Language Selection Dropdown (ES/EN/IT/PT)
+      - [ ] Implement Parsing Mode Toggle (Constituency vs Universal Dependencies)
+    - [ ] UX Refinement
+      - [ ] Implement Sliding ASCII Tree Sidebar
+      - [ ] Responsive Design Stress Test
+      - [ ] Welcome Screen & Help Page
+  - [ ] Algorithmic Tooling [NEW]
+    - [ ] Implement Tree Edit Distance (Tree Levenshtein) for comparison
+  - [ ] Pedagogical App (Component Validation) [NEW]
+    - [ ] Scaffold simple "Student vs Solution" app reusing Editor Component
+  - [ ] Telemetry System (Data Flywheel) [NEW]
+    - [ ] Design data schema (SQLite) and FastAPI endpoint
+    - [ ] Implement user consent UI in Studio
+    - [ ] Implement data collection logic on tree edit/save
 - [ ] Linguistic Edge-Case Suite (Native/Non-Translated) [POSTPONED]
-- [ ] Scientific Limitations Report (Model Characterization) [TO BE DEFINED]
-- [ ] Scientific Limitations Report (Model Characterization) [TO BE DEFINED]
+- [x] Scientific Limitations Report (Model Characterization) [DONE: references/Auditoría Estructural Modelos Parsing Español.md]

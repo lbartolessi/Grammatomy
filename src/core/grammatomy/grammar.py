@@ -26,32 +26,30 @@ def load_grammar_rules(lang: str = "es") -> Tuple[Dict[str, List[str]], Dict[str
 
     # Determine path relative to this file
     base_path = Path(__file__).parent / "assets" / "rules"
-    # Fallback to 'es_ancora' for Spanish or default
-    filename = "es_ancora.yaml" if lang == "es" else f"{lang}_ptb.yaml"
-    file_path = base_path / filename
+    # Unified rules file (Hybrid)
+    file_path = base_path / "hybrid_rules.yaml"
 
     if not file_path.exists():
-        # Fallback if specific lang file doesn't exist, try es_ancora as default base
-        file_path = base_path / "es_ancora.yaml"
-        if not file_path.exists():
-            logger.warning(
-                "Grammar rules file not found at %s. Using empty rules.", file_path
-            )
-            return {}, {}
+        logger.warning(
+            "Grammar rules file not found at %s. Using empty rules.", file_path
+        )
+        return {}, {}
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
-        for node in data.get("nodos", []):
-            node_id = node["id"]
-            children = node.get("hijos_permitidos", {})
-            # Flatten obligatory and optional for the basic validator
-            allowed = children.get("obligatorios", []) + children.get("opcionales", [])
-            rules[node_id] = allowed
-
-            if "descripcion" in node:
-                descriptions[node_id] = node["descripcion"]
+        # Handle new dictionary structure: rules: { TAG: { allowed: [...] } }
+        raw_nodes = data.get("nodes", [])
+        for node in raw_nodes:
+            tag = node["id"]
+            children_config = node.get("allowed_children", {})
+            allowed = (children_config.get("mandatory", []) or []) + (
+                children_config.get("optional", []) or []
+            )
+            rules[tag] = allowed
+            if "description" in node:
+                descriptions[tag] = node["description"]
 
     except (OSError, yaml.YAMLError) as e:
         logger.error("Error loading grammar rules: %s", e)

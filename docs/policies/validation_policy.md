@@ -48,9 +48,10 @@ El validador aplicará perfiles de reglas dinámicos según el idioma detectado.
 
 Para facilitar la edición humana en *Grammatomy Studio* sin romper la validación en tiempo real:
 
-1.  **Ghost Nodes (👻):** Al crear una estructura nueva, el sistema inserta nodos temporales marcados como `👻`.
-2.  **Estado de Cuarentena:** Un árbol que contiene `👻` es válido para *guardado temporal* pero **inválido para exportación**.
-3.  **Resolución:** El usuario debe reemplazar todos los fantasmas con etiquetas válidas antes de finalizar.
+1.  **Ghost Nodes (👻):** Son marcadores de posición que actúan siempre como **hojas terminales**. Mantienen el árbol "cerrado" mientras se construye.
+2.  **Crecimiento Automático:** Si a un nodo fantasma se le asigna una etiqueta de Grupo (No-Terminal), el sistema genera automáticamente un nuevo hijo fantasma para satisfacer la regla de que "todo grupo debe tener hijos".
+3.  **Borrado Recursivo:** La eliminación de un nodo implica la eliminación inmediata e irreversible de todo su subárbol descendente. Se confía en el sistema de *Undo/Redo* para la seguridad del usuario.
+4.  **Estado de Plantilla:** Un árbol con fantasmas se considera un "Árbol Abstracto" o plantilla; es sintácticamente válido (no viola reglas de paternidad) pero semánticamente incompleto.
 
 ---
 

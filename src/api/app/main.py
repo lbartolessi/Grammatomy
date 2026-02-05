@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 sys.path.append(str(Path(__file__).resolve().parents[2] / "core"))
 
 from grammatomy import get_syntax_tree, to_ptb
-from grammatomy.validation import METASYNTAX_RULES
+from grammatomy.validation import router as validation_router
 
 from .schemas import ParseRequest, ParseResponse
 
@@ -27,6 +27,9 @@ app = FastAPI(
     description="RESTful service for constituency parsing.",
     version="0.1.0",
 )
+
+# Register Validation Router
+app.include_router(validation_router, prefix="/api")
 
 
 @app.post("/api/parse", response_model=ParseResponse)
@@ -58,14 +61,6 @@ def parse_text(request: ParseRequest):
         # Log full traceback to console for debugging
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/rules")
-def get_validation_rules():
-    """
-    Returns the active metasyntactic rules for the frontend editor.
-    """
-    return METASYNTAX_RULES
 
 
 # --- Static File Serving (Production) ---

@@ -1,156 +1,127 @@
-"""
-Validation Module for Grammatomy.
-
-Implements the core validation logic for the syntax tree:
-1. Safety (Ghost Nodes): Strict checks for incomplete editing.
-2. Structural Integrity (Metasyntax): Flexible checks for parent-child rules.
-"""
-
-import logging
 from pathlib import Path
+from typing import Any, Dict, List
 
-import yaml
-from anytree import Node, PreOrderIter
+import grammatomy
+from fastapi import APIRouter, Body, HTTPException
+from grammatomy.validation_engine import ValidationEngine
+from pydantic import BaseModel
 
-from .grammar import validate_leaf_consistency
+router = APIRouter(prefix="/validation", tags=["validation"])
 
-__all__ = [
-    "validate_ghosts",
-    "validate_structure",
-    "validate_tree",
-    "validate_lexicon",
-    "validate_metasyntax",
-]
-
-logger = logging.getLogger(__name__)
-
-# --- CONSTANTS ---
-GHOST_MARKER = "👻"
+# Resolve rules path relative to the core package
+RULES_PATH = Path(grammatomy.__file__).parent / "assets" / "rules" / "hybrid_rules.yaml"
 
 
-def load_validation_rules() -> dict:
-    """
-    Loads validation rules from the YAML specification.
-    Returns a dictionary mapping tags to their rule definitions.
-    """
-    rules_map = {}
+def get_engine(lang: str = "es") -> ValidationEngine:
+    """Dependency/Helper to get the singleton engine instance."""
     try:
-        # Path relative to this file: assets/rules/hybrid_rules.yaml
-        rule_path = Path(__file__).parent / "assets" / "rules" / "hybrid_rules.yaml"
-        if not rule_path.exists():
-            logger.warning("Validation rules not found at %s", rule_path)
-            return {}
-
-        with open(rule_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-
-        for rule in data.get("rules", []):
-            tag = rule.get("tag")
-            if not tag:
-                continue
-
-            # Flatten allowed children
-            children = rule.get("hijos_permitidos", {})
-            allowed = set(
-                children.get("obligatorios", []) + children.get("opcionales", [])
-            )
-            prohibited = set(rule.get("prohibiciones", []))
-
-            rules_map[tag] = {
-                "allowed": allowed,
-                "prohibited": prohibited,
-                "id": rule.get("id"),
-            }
-
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error("Failed to load validation rules: %s", e)
-
-    return rules_map
-
-
-# Initialize rules on module load
-METASYNTAX_RULES = load_validation_rules()
-
-
-def validate_ghosts(root: Node) -> list[str]:
-    """
-    STRICT: Checks for temporary 'ghost' nodes.
-    Presence of ghosts implies the tree is unfinished.
-    """
-    errors = []
-    if not root:
-        return errors
-
-    for node in PreOrderIter(root):
-        # Check Node Name (Label)
-        if GHOST_MARKER in node.name:
-            errors.append(f"Ghost Node detected at: {node.name}")
-
-        # Check 'word' attribute if present (Leaf)
-        if hasattr(node, "word") and node.word and GHOST_MARKER in node.word:
-            errors.append(f"Ghost Word detected in node: {node.name}")
-
-    return errors
-
-
-def validate_structure(root: Node) -> dict[Node, str]:
-    """
-    FLEXIBLE: Checks parent-child relationships against standard rules.
-    Returns a dictionary mapping nodes to warning messages.
-    """
-    warnings = {}
-    if not root:
-        return warnings
-
-    for node in PreOrderIter(root):
-        if node.is_leaf:
-            continue
-
-        parent_label = node.name
-        # Handle functional tags (e.g., "sn.suj" -> check rules for "sn")
-        base_label = (
-            parent_label.split(".")[0]
-            if "." in parent_label and parent_label not in METASYNTAX_RULES
-            else parent_label
+        return ValidationEngine(str(RULES_PATH), lang)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load validation engine: {str(e)}"
         )
 
-        if base_label in METASYNTAX_RULES:
-            rule_def = METASYNTAX_RULES[base_label]
-            allowed = rule_def["allowed"]
-            prohibited = rule_def["prohibited"]
 
-            for child in node.children:
-                if child.is_leaf:
-                    continue  # Skip text leaves
-
-                child_label = child.name
-                child_base = child_label.split(".")[0]
-
-                # 1. Check Prohibitions (Explicitly Forbidden)
-                if child_label in prohibited or child_base in prohibited:
-                    warnings[child] = (
-                        f"Prohibited Structure: '{parent_label}' cannot contain '{child_label}' "
-                        f"(Rule: {rule_def['id']})"
-                    )
-                    continue
-
-                # Permissive check: exact match OR base match
-                if child_label not in allowed and child_base not in allowed:
-                    warnings[child] = (
-                        f"Unusual Structure: '{parent_label}' contains '{child_label}'"
-                    )
-
-    return warnings
+class MoveCheckRequest(BaseModel):
+    parent_tag: str
+    child_tag: str
+    lang: str = "es"
 
 
-# --- PUBLIC API EXPORTS ---
-validate_lexicon = validate_leaf_consistency
-validate_metasyntax = validate_structure
+class DeleteCheckRequest(BaseModel):
+    parent_tag: str
+    child_tag: str
+    sibling_tags: List[str]
+    lang: str = "es"
 
 
-def validate_tree(root: Node) -> dict[Node, str]:
+class ConversionCheckRequest(BaseModel):
+    current_tag: str
+    ancestor_tags: List[str]
+    children_tags: List[str]
+    lang: str = "es"
+
+
+class RequirementsCheckRequest(BaseModel):
+    tag: str
+    descendant_tags: List[str]
+    lang: str = "es"
+
+
+class ValidationResponse(BaseModel):
+    allowed: bool
+    reason: str
+
+
+@router.get("/tags", response_model=List[str])
+def get_all_tags(lang: str = "es"):
+    """Returns a sorted list of all valid tags for the dropdown."""
+    engine = get_engine(lang)
+    return engine.get_all_tags()
+
+
+@router.get("/rules/{tag}", response_model=Dict[str, Any])
+def get_tag_definition(tag: str, lang: str = "es"):
+    """Returns the raw rule definition for a specific tag (for UI inspection)."""
+    print(f"🔍 API Request: get_tag_definition for tag='{tag}'")
+    engine = get_engine(lang)
+    result = engine.get_definition(tag)
+    print(
+        f"   Result found: {bool(result)} (Keys: {list(result.keys()) if result else 'None'})"
+    )
+    return result
+
+
+@router.post("/check/move", response_model=ValidationResponse)
+def validate_move(req: MoveCheckRequest):
     """
-    Comprehensive validation wrapper.
-    Currently delegates to validate_metasyntax (structural rules).
+    Validates if a child node can be moved under a parent node.
     """
-    return validate_structure(root)
+    engine = get_engine(req.lang)
+    allowed, reason = engine.can_add_child(req.parent_tag, req.child_tag)
+    return ValidationResponse(allowed=allowed, reason=reason)
+
+
+@router.post("/check/conversion", response_model=List[str])
+def get_valid_conversions(req: ConversionCheckRequest):
+    """
+    Returns a list of valid tags that the current node can be converted to,
+    based on its parent and children constraints.
+    """
+    engine = get_engine(req.lang)
+    return engine.can_convert_node(
+        req.current_tag, req.ancestor_tags, req.children_tags
+    )
+
+
+@router.post("/check/requirements", response_model=ValidationResponse)
+def validate_requirements(req: RequirementsCheckRequest):
+    """
+    Validates if a node satisfies its internal mandatory requirements (based on descendants).
+    """
+    engine = get_engine(req.lang)
+    allowed, reason = engine.validate_requirements(req.tag, req.descendant_tags)
+    return ValidationResponse(allowed=allowed, reason=reason)
+
+
+@router.post("/check/delete", response_model=ValidationResponse)
+def validate_delete(req: DeleteCheckRequest):
+    """
+    Validates if a node can be deleted without violating mandatory child constraints of its parent.
+    """
+    engine = get_engine(req.lang)
+    allowed, reason = engine.can_delete_child(
+        req.parent_tag, req.child_tag, req.sibling_tags
+    )
+    return ValidationResponse(allowed=allowed, reason=reason)
+
+
+@router.post("/check/add_child", response_model=ValidationResponse)
+def validate_add_child(req: MoveCheckRequest):
+    """
+    Validates if a parent can accept a specific type of child.
+    Reuses MoveCheckRequest structure as arguments are identical.
+    """
+    engine = get_engine(req.lang)
+    allowed, reason = engine.can_add_child(req.parent_tag, req.child_tag)
+    return ValidationResponse(allowed=allowed, reason=reason)

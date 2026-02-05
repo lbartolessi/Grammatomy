@@ -64,17 +64,19 @@ export class GrammatomyApp extends LitElement {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 350);
   }
 
-  private handleEditorSave(e: CustomEvent) {
-    const newPtb = e.detail.ptb;
-    console.log("Tree Saved:", newPtb);
-    alert("Tree saved! (Check console for PTB string)");
+  private handleSave() {
+    if (this.editor) {
+        const ptb = this.editor.getCurrentPtb();
+        console.log("Tree Saved:", ptb);
+        alert("Tree saved! (Check console for PTB string)");
+    }
   }
 
   override render() {
     return html`
-      <div class="min-h-screen flex flex-col bg-base-light-dim">
+      <div class="h-screen w-screen flex flex-col bg-base-light-dim overflow-hidden">
         <!-- Header -->
-        <header class="bg-base-light border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm z-10">
+        <header class="bg-base-light border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm z-10 shrink-0">
             <div class="flex items-center gap-4">
                 <button @click=${this.toggleSidebar} class="text-gray-500 hover:text-ibm-blue transition-colors p-1 rounded-md hover:bg-gray-100" title="Toggle Sidebar">
                     <span class="material-symbols-outlined">menu</span>
@@ -88,7 +90,7 @@ export class GrammatomyApp extends LitElement {
         </header>
 
         <!-- Main Workspace -->
-        <main class="flex-1 w-full h-[calc(100vh-80px)] flex overflow-hidden">
+        <main class="flex-1 w-full flex overflow-hidden">
             
             <!-- Sidebar Controls (Collapsible) -->
             <aside class="${this.isSidebarOpen ? 'w-96 p-6 opacity-100' : 'w-0 p-0 opacity-0'} transition-all duration-300 ease-in-out flex flex-col overflow-hidden bg-base-light-dim border-r border-gray-200/0">
@@ -109,6 +111,13 @@ export class GrammatomyApp extends LitElement {
                         >
                             ${this.isLoading ? html`<span class="animate-spin">⏳</span> Processing...` : html`🚀 Analyze`}
                         </button>
+
+                        <button 
+                            @click=${this.handleSave}
+                            class="w-full py-3 bg-ibm-blue hover:bg-blue-600 text-white font-bold rounded-lg transition-colors flex justify-center items-center gap-2 mt-auto"
+                        >
+                            <span class="material-symbols-outlined">save</span> Save & Return
+                        </button>
                     </div>
                 </div>
             </aside>
@@ -118,13 +127,12 @@ export class GrammatomyApp extends LitElement {
                 <grammatomy-editor 
                     class="w-full h-full block"
                     .ptb=${this.currentPtb}
-                    @save=${this.handleEditorSave}
                 ></grammatomy-editor>
             </div>
         </main>
 
         <!-- Resource Loader / Diagnostics Footer -->
-        <footer class="px-6 py-2 text-center text-xs text-gray-400 border-t border-gray-200 bg-base-light">
+        <footer class="px-6 py-2 text-center text-xs text-gray-400 border-t border-gray-200 bg-base-light shrink-0">
             <span class="font-serif">Charis SIL (Phonetics)</span> | 
             <span class="font-mono">Roboto Mono (Data)</span> | 
             <span class="material-symbols-outlined align-middle text-sm">check_circle</span> Icons Ready

@@ -4,7 +4,7 @@
 
 /* --- THEME BASE --- */
 body {
-  @apply bg-base-light text-base-dark transition-colors duration-300 font-sans;
+  @apply bg-base-light text-base-dark transition-colors duration-300 font-sans h-screen w-screen overflow-hidden;
 }
 .dark body {
   @apply bg-base-dark text-base-light;

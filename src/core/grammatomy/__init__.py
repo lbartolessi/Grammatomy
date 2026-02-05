@@ -23,7 +23,6 @@ from .exporters.json_exporter import to_json
 from .exporters.ptb_exporter import to_ptb
 from .grammar import Grammar, get_syntax_tree
 from .parsers.lisp_parser import LispParser
-from .validation import validate_lexicon, validate_metasyntax, validate_tree
 from .visualization.ascii_renderer import render_ascii_colored
 from .visualization.graphviz_renderer import get_graphviz_dot
 from .visualization.json_renderer import render_json_colored
@@ -46,7 +45,4 @@ __all__ = [
     "get_graphviz_dot",
     "render_json_colored",
     "render_lisp_colored",
-    "validate_tree",
-    "validate_lexicon",
-    "validate_metasyntax",
 ]

@@ -21,9 +21,8 @@ El sistema distingue tres tipos de nodos y restringe sus relaciones parentales:
     *   *Prohibido:* No pueden tener hijos.
 
 ### B. Unidad Léxica (POS + Palabra)
-En la edición visual, una Categoría POS y su palabra asociada se tratan como una unidad atómica.
-*   Al arrastrar una palabra, el sistema mueve automáticamente su etiqueta POS padre.
-*   Al borrar una palabra, se elimina su etiqueta POS para evitar categorías vacías.
+En la edición visual, la jerarquía es estricta.
+*   **Borrado en Cascada:** Al borrar un nodo, se elimina todo su subárbol. No existen nodos huérfanos flotantes.
 
 ### C. Prevención de Orfandad
 *   No se permite eliminar o mover un nodo si es el **único hijo** de un Grupo. Esto evita la existencia de sintagmas vacíos (e.g., un `NP` sin núcleo ni determinantes) que romperían los parsers estándar.
@@ -74,8 +73,9 @@ La lógica de validación se ha extraído de las siguientes fuentes normativas:
 
 Para facilitar la creación de estructuras complejas sin violar las reglas de validación momentáneamente, Grammatomy utiliza **Nodos Fantasma**.
 
-*   Al crear un nuevo Grupo (e.g., `NP`), el sistema inserta automáticamente una estructura temporal válida: `NP -> 👻 (POS) -> 👻 (Word)`.
-*   Estos nodos son **inmutables** (no se pueden mover) y bloquean la exportación final hasta que el usuario los edita y les asigna valores reales válidos.
+*   **Naturaleza:** Los nodos fantasma son siempre hojas terminales (placeholders).
+*   **Expansión:** Al asignar una etiqueta no-terminal (e.g., `NP`) a un fantasma, se crea automáticamente un hijo fantasma debajo para mantener la validez estructural.
+*   **Estado:** Un árbol con fantasmas es un "Árbol Abstracto" válido para guardar pero incompleto para procesar.
 
 ---
 
