@@ -64,18 +64,24 @@
       - [x] Connect Inspector Dropdown to Backend Rules (Context-Aware)
       - [x] Implement Graph Mutation Logic (Move/Delete/Ghost Nodes)
     - [ ] Core Editing Features [PRIORITY]
-      - [ ] Verify Ghost Node Logic (Recursive Delete / Auto-Spawn Child) [NEXT]
-      - [ ] Implement Undo/Redo Stack (State History) [NEW]
+      - [x] Verify Ghost Node Logic (Recursive Delete / Auto-Spawn Child) [DONE]
+      - [x] Implement Sibling Node Reordering (Move Left/Right) [DONE - Visual Only]
+      - [x] Implement Undo/Redo Stack (State History) [DONE]
       - [ ] Implement Drag-and-Drop Node Moving (Cytoscape) [NEW]
-      - [ ] Implement Copy/Paste for Subtrees [NEW]
+      - [x] Implement Clipboard Operations (Cut/Copy/Paste Subtrees) [DONE]
+    - [ ] Testing & Stability [PRIORITY]
+      - [ ] Implement Decalogue Regression Suite (Editing Policy Validation) [NEXT]
+    - [ ] Architecture Refactoring [NEXT]
+      - [ ] Implement Language Plugin System (`plugins/{es,it,en,pt}`)
+      - [ ] Migrate `hybrid_rules.yaml` to per-language configuration
     - [ ] IO & Persistence (Local-First) [NEW]
       - [ ] Implement File Open (Text/PTB) from Local Disk
       - [ ] Implement Browser-based Auto-Save (LocalStorage/IndexedDB)
-      - [ ] Implement Export Menu (SVG, PNG, PTB, JSON)
+      - [ ] Implement Export Menu (SVG, PNG, PTB, JSON, LaTeX Forest, PDF)
     - [ ] Configuration & Controls [NEW]
-      - [ ] Implement Language Selection Dropdown (ES/EN/IT/PT)
       - [ ] Implement Parsing Mode Toggle (Constituency vs Universal Dependencies)
     - [ ] UX Refinement
+      - [x] Consolidate Toolbar into Inspector Panel [DONE]
       - [ ] Implement Sliding ASCII Tree Sidebar
       - [ ] Responsive Design Stress Test
       - [ ] Welcome Screen & Help Page

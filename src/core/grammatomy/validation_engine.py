@@ -42,6 +42,7 @@ class ValidationEngine:
         self.terminal_parents: Set[str] = (
             set()
         )  # Tags that allow terminals (empty allowed list)
+        self.root_allowed_tags: Set[str] = set()
 
         self._load_rules()
         self._validate_consistency()
@@ -96,6 +97,9 @@ class ValidationEngine:
                 if not self.allowed_children[tag]:
                     self.terminal_parents.add(tag)
 
+                if node.get("root_allowed", False):
+                    self.root_allowed_tags.add(tag)
+
                 # Register functional variants as aliases to the same rule
                 for variant in node.get("functional_variants", []) or []:
                     print(f"   🔗 Registering variant: '{variant}' -> '{tag}'")
@@ -103,6 +107,8 @@ class ValidationEngine:
                     self.allowed_children[variant] = self.allowed_children[tag]
                     self.allowed_parents[variant] = self.allowed_parents[tag]
                     self.mandatory_children[variant] = self.mandatory_children[tag]
+                    if tag in self.root_allowed_tags:
+                        self.root_allowed_tags.add(variant)
 
             # Build reverse index from 'allowed' lists for O(1) lookups
             for tag, children in self.allowed_children.items():
@@ -139,6 +145,47 @@ class ValidationEngine:
             logger.warning(
                 f"Validation Rules Inconsistencies found for {self.lang}: {inconsistencies}"
             )
+
+    def get_valid_substitutions(
+        self, parent: Optional[str], children: List[str]
+    ) -> List[str]:
+        """
+        Returns a list of candidate tags that are simultaneously compatible
+        with the given parent and existing children.
+        """
+        # 1. Get universe of tags
+        candidates = list(self.rules.keys())
+
+        valid_options = []
+
+        for tag in candidates:
+            # Rule 1: Upwards Compatibility
+            # Does the current parent allow 'tag' as a child?
+            if parent:
+                is_valid_child, _ = self.can_add_child(parent, tag)
+                if not is_valid_child:
+                    continue
+            else:
+                # Rule 1.1: Root Compatibility
+                # If no parent, is this tag allowed to be a root?
+                if tag not in self.root_allowed_tags:
+                    continue
+
+            # Rule 2: Downwards Compatibility
+            # Does the candidate 'tag' allow ALL current children?
+            children_compatible = True
+            for child in children:
+                if "👻" in child:
+                    continue
+                is_valid_grandchild, _ = self.can_add_child(tag, child)
+                if not is_valid_grandchild:
+                    children_compatible = False
+                    break
+
+            if children_compatible:
+                valid_options.append(tag)
+
+        return sorted(valid_options)
 
     # --- Métodos de Consulta (API Endpoints) ---
 

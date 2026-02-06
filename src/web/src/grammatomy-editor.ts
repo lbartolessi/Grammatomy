@@ -1,30 +1,49 @@
-import { LitElement, html, PropertyValueMap } from 'lit';
-import { customElement, query, state, property } from 'lit/decorators.js';
-import cytoscape from 'cytoscape';
-import { parsePtbToCytoscape, serializeCytoscapeToPtb } from './utils/ptb-utils';
-import dagre from 'cytoscape-dagre'; // <--- Importante
-cytoscape.use(dagre);                // <--- Importante
+import { LitElement, html, PropertyValueMap } from "lit";
+import { customElement, query, state, property } from "lit/decorators.js";
+import cytoscape from "cytoscape";
+import {
+  parsePtbToCytoscape,
+  serializeCytoscapeToPtb,
+  serializeNodeToPtb,
+  GraphNode
+} from "./utils/ptb-utils";
+import dagre from "cytoscape-dagre";
+cytoscape.use(dagre);
+import { GhostLogic } from "./lib/ghost-logic";
 
-@customElement('grammatomy-editor')
+const KNOWN_POS_TAGS = new Set([
+  "NOUN", "VERB", "DET", "ADJ", "ADV", "PRON", "ADP", "AUX", "CCONJ", "SCONJ", "NUM", "PART", "INTJ", "SYM", "PROPN",
+  "n", "v", "d", "a", "r", "p", "c", "w", "z", "f", "i",
+  "nc", "np", "aq", "rg", "rn", "sp"
+]);
+
+const PUNCTUATION_MARKS = [
+  ".", ",", ":", ";", "!", "?", "...", 
+  "-", "–", "—", 
+  "(", ")", "[", "]", "{", "}", 
+  "\"", "'", "«", "»", 
+  "¿", "¡"
+];
+
+@customElement("grammatomy-editor")
 export class GrammatomyEditor extends LitElement {
-  @query('#cy')
+  @query("#cy")
   private container!: HTMLElement;
 
   private cy!: cytoscape.Core;
 
   @property({ type: String })
-  ptb: string = '';
+  ptb: string = "";
 
   @state()
   private selectedNode: any = null;
 
   @state()
-  private feedbackMsg: string = '';
+  private feedbackMsg: string = "";
 
   @state()
-  private isMoveMode: boolean = false;
+  private pendingMoveNodeId: string | null = null;
 
-  // Replaces the monolithic 'rules' object
   @state()
   private availableTags: string[] = [];
   @state()
@@ -34,57 +53,116 @@ export class GrammatomyEditor extends LitElement {
   @state()
   private selectedNodeRule: any = {};
 
+  @state()
+  private pendingLabel: string = "";
+
+  @state()
+  private undoStack: string[] = [];
+
+  @state()
+  private redoStack: string[] = [];
+
+  @state()
+  private clipboard: string | null = null;
+
   private resizeObserver: ResizeObserver | null = null;
 
-  // Unified Layout Configuration (Single Source of Truth)
-  // Compact spacing ensures nodes appear larger when fitted to screen
   private readonly layoutConfig: any = {
-    name: 'dagre',
-    rankDir: 'TB', // Top-to-Bottom layout
+    name: "dagre",
+    rankDir: "TB",
     spacingFactor: 1.1,
     animate: true,
     animationDuration: 400,
-    fit: true
+    fit: true,
+    ranker: 'network-simplex',
+    // Sort based on global DFS index to ensure correct left-to-right order across branches
+    sort: (a: any, b: any) => {
+      return (a.data("globalIndex") ?? 0) - (b.data("globalIndex") ?? 0);
+    },
   };
 
-  // Switch to Light DOM to use global Tailwind styles
   override createRenderRoot() {
     return this;
   }
 
   override connectedCallback() {
     super.connectedCallback();
-    // Force the host component to fill the parent container (body)
-    this.classList.add('block', 'h-full', 'w-full');
+    this.classList.add("block", "h-full", "w-full");
+    window.addEventListener('keydown', this.handleKeyDown);
   }
 
-  override firstUpdated() {
-    this.initGraph();
-    this.fetchTags();
-
-    // Responsive: Auto-resize Cytoscape when container changes dimensions
-    if (this.container) {
-      this.resizeObserver = new ResizeObserver(() => {
-        this.cy?.resize();
-      });
-      this.resizeObserver.observe(this.container);
-    }
+  override async firstUpdated() {
+    // Wait for the first render to complete
+    await this.updateComplete;
+    this.attemptInitialization();
   }
 
-  override updated(changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>) {
-    if (changedProperties.has('ptb') && this.ptb) {
-      this.loadPtb(this.ptb);
+  override updated(
+    changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>,
+  ) {
+    if (this.cy && changedProperties.has("ptb") && this.ptb) {
+      this.loadPtb(this.ptb, true);
     }
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.resizeObserver?.disconnect();
+    window.removeEventListener('keydown', this.handleKeyDown);
+  }
+
+  private attemptInitialization() {
+      if (this.cy) return;
+      
+      // Direct query in Light DOM
+      let container = this.querySelector("#cy");
+      
+      // SELF-HEALING: If Lit failed to render the DOM, inject fallback structure manually
+      if (!container) {
+          console.warn("GrammatomyEditor: Container #cy not found via Lit. Injecting fallback DOM.");
+          this.innerHTML = `
+            <div class="flex flex-col h-full w-full bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm" style="min-height: 500px;">
+                <div class="flex flex-1 overflow-hidden relative min-h-0">
+                    <div class="flex-1 relative min-w-0">
+                        <div id="cy" class="absolute inset-0 bg-gray-50"></div>
+                    </div>
+                    <div id="inspector-slot" class="w-80 bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto hidden md:block shadow-inner">
+                        <!-- Inspector will be rendered here by Lit in next cycle if possible, or we rely on this structure -->
+                    </div>
+                </div>
+            </div>
+          `;
+          container = this.querySelector("#cy");
+      }
+      
+      if (container) {
+          console.log("GrammatomyEditor: Container #cy found. Initializing Cytoscape.");
+          this.initGraph(container as HTMLElement);
+          this.fetchTags();
+          this.setupResizeObserver(container as HTMLElement);
+          
+          if (this.ptb) {
+              console.log("GrammatomyEditor: Loading initial PTB data.");
+              this.loadPtb(this.ptb, true);
+          }
+      } else {
+          console.error("GrammatomyEditor: FATAL - Container #cy not found in DOM after updateComplete.");
+          console.log("Current innerHTML:", this.innerHTML);
+      }
+  }
+
+  private setupResizeObserver(container: HTMLElement) {
+      if (this.resizeObserver) return;
+      
+      this.resizeObserver = new ResizeObserver(() => {
+        this.cy?.resize();
+      });
+      this.resizeObserver.observe(container);
   }
 
   private async fetchTags() {
     try {
-      const response = await fetch('/api/validation/tags');
+      const response = await fetch("/api/validation/tags");
       if (response.ok) {
         this.availableTags = await response.json();
       }
@@ -93,530 +171,1138 @@ export class GrammatomyEditor extends LitElement {
     }
   }
 
-  private initGraph() {
+  private initGraph(container: HTMLElement) {
     this.cy = cytoscape({
-      container: this.container,
-      elements: [], // Start empty
+      container: container,
+      elements: [],
 
       style: [
         {
-          selector: 'node',
+          selector: "node",
           style: {
-            'background-color': '#E69F00', // Default: Phrasal (Bang Wong Orange)
-            'border-width': 2,
-            'border-color': 'rgba(0,0,0,0.1)', // Subtle border
-            'label': 'data(label)',
-            'color': '#161616', // Text Black (on Orange)
-            'shape': 'round-rectangle', // Adapts better to text than ellipse
-            'width': 'label',  // Required for dynamic sizing despite deprecation warning
-            'height': 'label', // Required for dynamic sizing despite deprecation warning
-            'padding': '8px',  // Breathing room
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'font-family': 'Roboto Mono',
-            'font-size': '12px',
-            'font-weight': 'bold'
-          }
+            "background-color": "#E69F00",
+            "border-width": 2,
+            "border-color": "rgba(0,0,0,0.1)",
+            label: "data(label)",
+            color: "#161616",
+            shape: "round-rectangle",
+            width: "label",
+            height: "label",
+            padding: "8px",
+            "text-valign": "center",
+            "text-halign": "center",
+            "font-family": "Roboto Mono",
+            "font-size": "12px",
+            "font-weight": "bold",
+          },
         },
         {
-          selector: 'node.pos',
+          selector: "node.pos",
           style: {
-            'background-color': '#56B4E9', // Bang Wong Sky
-            'color': '#161616' // Text Black
-          }
+            "background-color": "#56B4E9",
+            color: "#161616",
+          },
         },
         {
-          selector: 'node.leaf',
+          selector: "node.leaf",
           style: {
-            'background-color': '#009E73', // Bang Wong Green
-            'color': '#F4F4F4', // Text Bone White
-            'border-width': 0 // Leaves look cleaner without border
-          }
+            "background-color": "#009E73",
+            color: "#F4F4F4",
+            "border-width": 0,
+          },
         },
         {
-          selector: 'node.punctuation',
+          selector: "node.punctuation",
           style: {
-            'background-color': '#0072B2', // Bang Wong Blue
-            'color': '#F4F4F4', // Text Bone White
-            'shape': 'tag' // Distinct shape for punctuation
-          }
+            "background-color": "#0072B2",
+            color: "#F4F4F4",
+            shape: "tag",
+          },
         },
         {
-          selector: 'node.error',
+          selector: "node.error",
           style: {
-            'background-color': '#D55E00', // Bang Wong Vermilion
-            'color': '#F4F4F4', // Text Bone White
-            'shape': 'hexagon', // Standard shape to prevent rendering crashes
-            'border-width': 3,
-            'border-color': '#FFFFFF'
-          }
+            "background-color": "#D55E00",
+            color: "#F4F4F4",
+            shape: "hexagon",
+            "border-width": 3,
+            "border-color": "#FFFFFF",
+          },
         },
         {
-          selector: '.ghost',
+          selector: ".ghost",
           style: {
-            'background-opacity': 0.5,
-            'border-style': 'dashed',
-            'background-color': '#999999',
-            'color': '#161616'
-          }
+            "background-opacity": 0.5,
+            "border-style": "dashed",
+            "background-color": "#999999",
+            color: "#161616",
+          },
         },
         {
-          selector: 'edge',
+          selector: "node.ghost-node",
           style: {
-            'width': 1.5,
-            'line-color': '#A0A0A0',
-            'target-arrow-color': '#A0A0A0',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier' // Dagre works better with smooth curves
-          }
-        },
-        // State Styles
-        {
-          selector: ':selected',
-          style: {
-            'border-width': 4,
-            'border-color': '#D55E00', // Bang Wong Vermilion (High Contrast)
-          }
-        },
-        // Subtree Highlight (Negative/Inverted for Deep Structure Visualization)
-        {
-          selector: 'node.subtree-highlight',
-          style: {
-            'background-color': '#161616',
-            'color': '#E69F00',
-            'border-color': '#E69F00'
-          }
+            "background-opacity": 0.5,
+            "border-style": "dashed",
+            "background-color": "#ffffff",
+            "border-color": "#009E73",
+            color: "#009E73",
+          },
         },
         {
-          selector: 'node.pos.subtree-highlight',
+          selector: "node.ghost-node:selected",
           style: {
-            'background-color': '#161616',
-            'color': '#56B4E9',
-            'border-color': '#56B4E9'
-          }
+            "border-width": 4,
+            "border-color": "#D55E00",
+            "border-style": "dashed",
+          },
         },
         {
-          selector: 'node.leaf.subtree-highlight',
+          selector: ".cut-dimmed",
           style: {
-            'background-color': '#161616', // Carbon Black background
-            'color': '#F4F4F4',             // Bone White text
-            'border-width': 2,
-            'border-color': '#F4F4F4'      // Bone White border for contrast
-          }
+            "opacity": 0.4,
+          },
         },
         {
-          selector: 'node.punctuation.subtree-highlight',
+          selector: "edge",
           style: {
-            'background-color': '#F4F4F4',
-            'color': '#0072B2',
-            'border-width': 2,
-            'border-color': '#0072B2'
-          }
-        }
+            width: 1.5,
+            "line-color": "#A0A0A0",
+            "target-arrow-color": "#A0A0A0",
+            "target-arrow-shape": "triangle",
+            "curve-style": "bezier",
+          },
+        },
+        {
+          selector: ":selected",
+          style: {
+            "border-width": 4,
+            "border-color": "#D55E00",
+          },
+        },
+        {
+          selector: "node.subtree-highlight",
+          style: {
+            "background-color": "#161616",
+            color: "#E69F00",
+            "border-color": "#E69F00",
+          },
+        },
+        {
+          selector: "node.pos.subtree-highlight",
+          style: {
+            "background-color": "#161616",
+            color: "#56B4E9",
+            "border-color": "#56B4E9",
+          },
+        },
+        {
+          selector: "node.leaf.subtree-highlight",
+          style: {
+            "background-color": "#161616",
+            color: "#F4F4F4",
+            "border-width": 2,
+            "border-color": "#F4F4F4",
+          },
+        },
+        {
+          selector: "node.punctuation.subtree-highlight",
+          style: {
+            "background-color": "#F4F4F4",
+            color: "#0072B2",
+            "border-width": 2,
+            "border-color": "#0072B2",
+          },
+        },
+        {
+          selector: "node.ghost-node.subtree-highlight",
+          style: {
+            "background-color": "#ffffff",
+            "border-color": "#009E73",
+            color: "#009E73",
+            "border-style": "dashed",
+            "background-opacity": 0.5,
+          },
+        },
       ],
 
-      layout: this.layoutConfig
+      layout: this.layoutConfig,
     });
 
-    // Event Handling
-    this.cy.on('tap', 'node', (evt) => {
+    this.setupEventHandlers();
+  }
+
+  private setupEventHandlers() {
+    this.cy.on("tap", "node", (evt) => {
       const node = evt.target;
-
-      if (this.isMoveMode) {
-        // Execute Move Operation
-        this.handleMoveOperation(node);
-      } else {
-        // Select Node
-        this.selectNode(node);
-      }
+      this.selectNode(node);
     });
 
-    this.cy.on('tap', (evt) => {
+    this.cy.on("tap", (evt) => {
       if (evt.target === this.cy) {
         this.clearSelection();
+        this.cancelCut();
       }
     });
 
-    // Auto-layout on drag release to maintain tree structure
-    this.cy.on('dragfree', 'node', () => {
-      this.runLayout(false); // Preserve zoom/pan on interaction
+    this.cy.on("dragfree", "node", () => {
+      this.runLayout(false);
     });
   }
 
-  private async selectNode(node: any) {
-    // Visual: Highlight subtree in negative to isolate structural units
-    this.cy.elements().removeClass('subtree-highlight');
-    node.successors().addClass('subtree-highlight');
+  /**
+   * Recalculates a global index for every node based on a Depth-First Search (DFS)
+   * that respects the local sibling order. This ensures that layout algorithms
+   * like Dagre preserve the linear reading order of the sentence.
+   */
+  private recalculateGlobalIndices() {
+    const roots = this.cy.nodes().filter((n) => n.incomers().length === 0);
+    // Sort roots by their local index (if forest)
+    roots.sort((a, b) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
 
-    this.selectedNode = node.data();
-    this.validationErrors = []; // Reset errors
+    let counter = 0;
+    const traverse = (node: any) => {
+      node.data("globalIndex", counter++);
+      const children = node.outgoers("node").sort((a: any, b: any) => {
+        return (a.data("index") ?? 0) - (b.data("index") ?? 0);
+      });
+      children.forEach((child: any) => traverse(child));
+    };
 
-    // Contextual Validation for Dropdown
-    const nodeElement = this.cy.$id(this.selectedNode.id);
-    const isLeaf = !nodeElement.isParent() && nodeElement.outgoers().length === 0;
+    roots.forEach((root) => traverse(root));
+  }
 
-    // LEAF NODE POLICY:
-    // In the absence of a Lexicon Hook, all leaves (words) are considered valid content.
-    if (isLeaf) {
-        this.validConversionTags = []; 
-        // Ensure leaf is not marked as error unless it was explicitly marked
-        if (!this.selectedNode.label.includes('👻') && !this.selectedNode.label.includes('ERR')) {
-            nodeElement.removeClass('error');
+  private handleKeyDown = (e: KeyboardEvent) => {
+    // Ignore if focus is on an input/textarea
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        this.handleRedo();
+      } else {
+        this.handleUndo();
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      this.handleRedo();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.cancelCut();
+      this.clearSelection();
+    }
+  }
+
+  // --- Core Logic Methods ---
+
+  private loadPtb(ptbString: string, fit: boolean = true) {
+    if (!this.cy) return;
+
+    const elements = parsePtbToCytoscape(ptbString);
+
+    // Assign indices based on the strict order of the PTB string (insertion order)
+    const childCounts = new Map<string, number>();
+    const nodeMap = new Map<string, any>();
+    
+    // First pass: Index nodes by ID for quick lookup
+    for (const el of elements) {
+        if (!('source' in el.data)) {
+            nodeMap.set(el.data.id, el);
         }
-    } else {
-        // STRUCTURAL NODE POLICY
-        const ancestorLabels = nodeElement.predecessors('node').map(n => n.data('label'));
-        const childrenLabels = nodeElement.outgoers('node').map(n => n.data('label'));
-        const descendantLabels = nodeElement.successors('node').map(n => n.data('label'));
+    }
 
-        try {
-            const response = await fetch('/api/validation/check/conversion', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    current_tag: this.selectedNode.label,
-                    ancestor_tags: ancestorLabels,
-                    children_tags: childrenLabels
-                })
-            });
-            if (response.ok) {
-                this.validConversionTags = await response.json();
-                const isContextValid = this.validConversionTags.includes(this.selectedNode.label);
-                
-                if (!isContextValid) {
-                    this.validationErrors.push("Context Error: Tag not allowed by parent or incompatible with children.");
-                }
-
-                // Check 2: Internal Requirements (Mandatory Descendants)
-                let isStructureValid = true;
-                const reqResponse = await fetch('/api/validation/check/requirements', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tag: this.selectedNode.label,
-                        descendant_tags: descendantLabels
-                    })
-                });
-                if (reqResponse.ok) {
-                    const reqResult = await reqResponse.json();
-                    isStructureValid = reqResult.allowed;
-                    if (!isStructureValid) {
-                        this.validationErrors.push(reqResult.reason);
-                    }
-                }
-
-                if (!isContextValid || !isStructureValid) {
-                    nodeElement.addClass('error');
-                } else {
-                    if (!this.selectedNode.label.includes('👻') && !this.selectedNode.label.includes('ERR')) {
-                        nodeElement.removeClass('error');
-                    }
-                }
+    // Second pass: Process edges to assign indices to target nodes
+    // The 'elements' array preserves the order from the PTB string
+    for (const el of elements) {
+        if ('source' in el.data) {
+            const source = el.data.source;
+            const target = el.data.target;
+            
+            const currentIndex = childCounts.get(source) || 0;
+            childCounts.set(source, currentIndex + 1);
+            
+            const node = nodeMap.get(target);
+            if (node) {
+                node.data.index = currentIndex;
             }
-        } catch (e) {
-            console.error("Failed to fetch conversion options", e);
-            this.validConversionTags = [];
         }
     }
     
-    // Fetch specific rules for this node (for Inspector info and local checks like mandatory children)
-    try {
-        const encodedLabel = encodeURIComponent(this.selectedNode.label);
-        console.log(`Fetching rules for label: '${this.selectedNode.label}' -> URL: /api/validation/rules/`);
-        const response = await fetch(`/api/validation/rules/`);
-
-        if (response.ok) {
-            this.selectedNodeRule = await response.json();
-            console.log(`Rules for ${this.selectedNode.label}:`, this.selectedNodeRule);
-        } else {
-            this.selectedNodeRule = {};
+    // Handle Roots (nodes not targeted by any edge)
+    let rootIndex = 0;
+    for (const el of elements) {
+        if (!('source' in el.data)) {
+             // If index is undefined, it means no edge targets this node -> it's a root
+             if (el.data.index === undefined) {
+                 el.data.index = rootIndex++;
+             }
         }
-    } catch (e) {
-        console.error("Failed to fetch node rules", e);
-        this.selectedNodeRule = {};
     }
 
-    this.isMoveMode = false; // Cancel move mode if selecting
-    this.feedbackMsg = '';
-    // Force update because Cytoscape internal state isn't tracked by Lit
+    this.cy.elements().remove();
+    this.cy.add(elements);
+
+    this.classifyNodes();
+    this.recalculateGlobalIndices(); // Calculate global order before validation/layout
+    this.validateAllNodes();
+    
+    this.runLayout(fit);
+  }
+
+  public getCurrentPtb(): string {
+    if (!this.cy) return "";
+    return serializeCytoscapeToPtb(this.cy);
+  }
+
+  private pushState() {
+    const currentPtb = this.getCurrentPtb();
+    if (currentPtb) {
+      this.undoStack = [...this.undoStack, currentPtb];
+      this.redoStack = [];
+      if (this.undoStack.length > 50) {
+        this.undoStack.shift();
+      }
+    }
+  }
+
+  private async validateAllNodes() {
+    const nodesToValidate = this.cy.nodes().toArray();
+    const validationPromises = nodesToValidate.map((node) =>
+      this.validateNode(node),
+    );
+    try {
+      await Promise.all(validationPromises);
+      console.log("Initial tree validation complete.");
+    } catch (e) {
+      console.error("Error during initial batch validation:", e);
+    }
+  }
+
+  private async validateNode(
+    nodeElement: cytoscape.NodeSingular,
+  ): Promise<{ isValid: boolean; errors: string[]; validTags: string[] }> {
+    const nodeData = nodeElement.data();
+    const isLeaf = !nodeElement.isParent() && nodeElement.outgoers().length === 0;
+    const isGhost = nodeData.isGhost || nodeData.label.includes("👻");
+
+    nodeElement.removeClass("error");
+
+    if (isLeaf && !isGhost) {
+      return { isValid: true, errors: [], validTags: [] };
+    }
+
+    const incomingEdges = nodeElement.incomers("edge");
+    let parentTag: string | null = null;
+    if (incomingEdges.length > 0) {
+      const source = incomingEdges.source();
+      if (source && source.length > 0) {
+        parentTag = source.data("label");
+      }
+    }
+
+    const childrenNodes = nodeElement.outgoers("node");
+    const hasGhostChild = childrenNodes.some(
+      (n) => n.data("isGhost") || n.data("label").includes("👻"),
+    );
+    const cleanChildrenLabels = childrenNodes
+      .filter((n) => !n.data("isGhost") && !n.data("label").includes("👻"))
+      .map((n) => n.data("label"));
+    const descendantLabels = nodeElement
+      .successors("node")
+      .map((n) => n.data("label"));
+
+    let localValidTags: string[] = [];
+    let localErrors: string[] = [];
+    let isContextValid = false;
+    let isStructureValid = false;
+
+    const isRoot = nodeData.label === "ROOT" && !parentTag;
+
+    try {
+      const convResponse = await fetch("/api/validation/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parent_tag: parentTag,
+          current_tag: nodeData.label,
+          children_tags: cleanChildrenLabels,
+        }),
+      });
+      if (convResponse.ok) {
+        localValidTags = await convResponse.json();
+        
+        if (isRoot) {
+          isContextValid = true;
+          if (!localValidTags.includes("ROOT")) localValidTags.push("ROOT");
+        } else {
+          isContextValid = isGhost || localValidTags.includes(nodeData.label);
+        }
+      } else {
+        if (isRoot) isContextValid = true;
+        else {
+            isContextValid = false;
+            localErrors.push("Server error during context validation.");
+        }
+      }
+    } catch (e) {
+      console.error("Context validation failed", e);
+      if (isRoot) isContextValid = true;
+      else localErrors.push("Network error.");
+    }
+
+    if (!isContextValid) {
+        localErrors.push("Context Error: Tag incompatible with parent or current children.");
+    }
+
+    try {
+      const reqResponse = await fetch("/api/validation/check/requirements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tag: nodeData.label,
+          descendant_tags: descendantLabels,
+        }),
+      });
+      if (reqResponse.ok) {
+        const reqResult = await reqResponse.json();
+        isStructureValid = reqResult.allowed;
+        if (!isStructureValid) {
+          if (!hasGhostChild) {
+            localErrors.push(reqResult.reason);
+          } else {
+            isStructureValid = true;
+          }
+        }
+      } else {
+        isStructureValid = false;
+        localErrors.push("Server error during requirements validation.");
+      }
+    } catch (e) {
+      console.error("Requirements validation failed", e);
+      localErrors.push("Network error.");
+    }
+
+    const isValid = isContextValid && isStructureValid;
+    if (!isValid) {
+      nodeElement.addClass("error");
+    }
+
+    return { isValid, errors: localErrors, validTags: localValidTags };
+  }
+
+  private async validateAncestors(startNode: cytoscape.NodeSingular) {
+    let current = startNode;
+    while (current && current.length > 0) {
+      await this.validateNode(current);
+      const parent = current.incomers("edge").source();
+      if (parent && parent.length > 0) {
+        current = parent;
+      } else {
+        break;
+      }
+    }
+    this.classifyNodes();
     this.requestUpdate();
   }
 
+  private classifyNodes() {
+    this.cy.batch(() => {
+      this.cy.nodes().forEach((node) => {
+        const isLeaf = node.outdegree(false) === 0;
+        const label = node.data("label");
+
+        const hasError = node.hasClass("error");
+        node.classes([]);
+        if (hasError) node.addClass("error");
+
+        if (label.includes("👻") || label.includes("ERR") || node.data('isGhost')) {
+          if (label.includes("ERR")) {
+            node.addClass("error");
+          } else {
+            node.removeClass("error");
+          }
+          if (label.includes("👻") || node.data('isGhost')) node.addClass("ghost-node");
+          return;
+        }
+
+        const isPunctuation =
+          /^[\.,:;'"\(\)\[\]\{}\-–—\?!]+$/.test(label) ||
+          ["fp", "fc", "fg", "fz", "fs", "fd", "punct"].includes(label.toLowerCase());
+
+        if (isPunctuation) {
+          node.addClass("punctuation");
+          return;
+        }
+
+        if (isLeaf) {
+          node.addClass("leaf");
+        } else {
+          if (KNOWN_POS_TAGS.has(label) || KNOWN_POS_TAGS.has(label.toUpperCase())) {
+            node.addClass("pos");
+          }
+        }
+      });
+    });
+  }
+
+  // --- Interaction Methods ---
+
+  private async selectNode(node: any) {
+    this.cy.elements().removeClass("subtree-highlight");
+    node.successors().addClass("subtree-highlight");
+
+    this.selectedNode = node.data();
+    this.pendingLabel = this.selectedNode.label;
+    this.validationErrors = [];
+    
+    this.requestUpdate();
+
+    try {
+      const nodeElement = this.cy.$id(this.selectedNode.id);
+      const isLeaf = !nodeElement.isParent() && nodeElement.outgoers().length === 0;
+      const isGhost = this.selectedNode.isGhost || this.selectedNode.label.includes("👻");
+
+      if (isLeaf && !isGhost) {
+        this.validConversionTags = [];
+        if (!this.selectedNode.label.includes("👻") && !this.selectedNode.label.includes("ERR")) {
+          nodeElement.removeClass("error");
+        }
+      } else {
+        const validationResult = await this.validateNode(nodeElement);
+        this.validConversionTags = validationResult.validTags;
+        this.validationErrors = validationResult.errors;
+      }
+
+      try {
+        const encodedLabel = encodeURIComponent(this.selectedNode.label);
+        const response = await fetch(`/api/validation/rules/${encodedLabel}`);
+        if (response.ok) {
+          this.selectedNodeRule = await response.json();
+        } else {
+          this.selectedNodeRule = {};
+        }
+      } catch (e) {
+        console.error("Failed to fetch node rules", e);
+        this.selectedNodeRule = {};
+      }
+    } catch (err) {
+      console.error("Error in selectNode async flow:", err);
+    } finally {
+      this.feedbackMsg = "";
+      this.requestUpdate();
+    }
+  }
+
   private clearSelection() {
-    this.cy.elements().removeClass('subtree-highlight');
+    this.cy.elements().removeClass("subtree-highlight");
     this.selectedNode = null;
     this.selectedNodeRule = {};
     this.validConversionTags = [];
     this.validationErrors = [];
-    this.isMoveMode = false;
-    this.feedbackMsg = '';
+    this.feedbackMsg = "";
     this.requestUpdate();
   }
 
-  private handleLabelChange(e: Event) {
-    const newLabel = (e.target as HTMLSelectElement).value;
-    if (!this.selectedNode || newLabel === this.selectedNode.label) return;
+  private handlePendingLabelChange(e: Event) {
+    const target = e.target as HTMLSelectElement | HTMLInputElement;
+    this.pendingLabel = target.value;
+  }
 
-    const node = this.cy.$id(this.selectedNode.id);
-    node.data('label', newLabel);
+  private async applyLabelChange() {
+    if (!this.selectedNode || this.pendingLabel === this.selectedNode.label) return;
 
-    // Update the state for the inspector to re-render with the new label
-    this.selectedNode = node.data();
+    this.pushState();
 
-    // Re-classify to apply new styles if the node type changed
+    if (this.selectedNode.isGhost || this.selectedNode.label.includes("👻")) {
+       GhostLogic.resolveGhost(this.cy, this.selectedNode.id, this.pendingLabel);
+       this.runLayout(false);
+    } else {
+       this.cy.$id(this.selectedNode.id).data("label", this.pendingLabel);
+    }
+    
+    this.selectedNode = this.cy.$id(this.selectedNode.id).data();
+    this.pendingLabel = this.selectedNode.label;
+    
+    await this.validateAncestors(this.cy.$id(this.selectedNode.id));
     this.classifyNodes();
 
-    this.feedbackMsg = `Node label changed to ''.`;
-    // No layout change needed, just a UI update for the inspector
+    this.feedbackMsg = `Node label changed to '${this.selectedNode.label}'.`;
     this.requestUpdate();
   }
 
-  private async handleMoveOperation(targetParent: any) {
+  private handleReorder(direction: "left" | "right") {
     if (!this.selectedNode) return;
+    const nodeToMove = this.cy.$id(this.selectedNode.id);
+    const parent = nodeToMove.incomers("edge").source();
+
+    if (parent.empty()) {
+      this.feedbackMsg = "Cannot reorder ROOT or orphan nodes.";
+      return;
+    }
+
+    // Sort by logical index, NOT visual position
+    const children = parent.outgoers("node").sort((a, b) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
     
-    // FIX: Revert selection change caused by the click on target
-    // Ensure the visual selection stays on the source node
-    this.cy.nodes().unselect();
-    this.cy.$id(this.selectedNode.id).select();
+    if (children.length <= 1) return;
 
-    let nodeToMove = this.cy.$id(this.selectedNode.id);
-    const newParent = targetParent;
+    // Normalize indices to 0, 1, 2... to prevent collisions/gaps
+    children.forEach((child, i) => child.data("index", i));
 
-    // 0. Atomic Unit Handling: Treat POS+Leaf or Punctuation+Sign as a single unit.
-    // If selecting a leaf that belongs to a POS/Punctuation parent, move the parent.
-    if (nodeToMove.outdegree(false) === 0) {
-        const parent = nodeToMove.incomers('edge').source();
-        if (parent.length > 0 && (parent.hasClass('pos') || parent.hasClass('punctuation'))) {
-             nodeToMove = parent;
-        }
-    }
+    const currentIndex = children.findIndex((n) => n.id() === nodeToMove.id());
+    if (currentIndex === -1) return;
 
-    // 0.0 ROOT Protection: ROOT cannot be moved.
-    // It has no parent to detach from, so moving it would create a cycle or duplicate root.
-    if (nodeToMove.data('label') === 'ROOT' || nodeToMove.incomers().length === 0) {
-         this.feedbackMsg = "Operation cancelled: Cannot move the ROOT node.";
-         this.isMoveMode = false;
-         this.requestUpdate();
-         return;
-    }
+    const newIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= children.length) return;
 
-    // 0.1 Orphan Prevention (Cannot leave old parent empty)
-    const oldParent = nodeToMove.incomers('edge').source();
-    if (oldParent.length > 0 && oldParent.outgoers('node').length === 1) {
-         this.feedbackMsg = "Operation cancelled: Cannot move the only child (Parent would be empty).";
-         this.isMoveMode = false;
-         this.requestUpdate();
-         return;
-    }
-
-    // 1. Integrity Checks (Topology)
-    if (nodeToMove.id() === newParent.id()) {
-        this.feedbackMsg = "Operation cancelled: Cannot move a node to itself.";
-        this.isMoveMode = false;
-        this.requestUpdate();
-        return;
-    }
-
-    if (nodeToMove.successors().contains(newParent)) {
-        this.feedbackMsg = "Operation cancelled: Cannot move a node into its own descendant (Cycle detected).";
-        this.isMoveMode = false;
-        this.requestUpdate();
-        return;
-    }
-
-    // 2. Rule Validation (Metasyntax)
-    const parentLabel = newParent.data('label');
-    const childLabel = nodeToMove.data('label');
+    const neighborNode = children[newIndex];
     
-    // Server-side validation
-    try {
-        const response = await fetch('/api/validation/check/move', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ parent_tag: parentLabel, child_tag: childLabel })
-        });
-        const result = await response.json();
-        if (!result.allowed) {
-            this.feedbackMsg = `Validation Error: ${result.reason}`;
-            this.isMoveMode = false;
-            this.requestUpdate();
-            return;
-        }
-    } catch (e) {
-        console.error("Validation check failed", e);
-        this.feedbackMsg = "Server error during validation.";
-        return;
-    }
+    // Swap indices
+    nodeToMove.data("index", newIndex);
+    neighborNode.data("index", currentIndex);
 
-    // Block moving into POS, Leaf, or Punctuation (Terminals/Atomic units)
-    if (newParent.hasClass('pos') || newParent.hasClass('leaf') || newParent.hasClass('punctuation')) {
-        this.feedbackMsg = `Validation Error: Cannot move nodes into '' (Terminal/POS).`;
-        this.isMoveMode = false;
-        this.requestUpdate();
-        return;
-    }
-    
-    // 3. Execution (Graph Mutation)
-    this.cy.batch(() => {
-        nodeToMove.incomers('edge').remove(); // Detach from old parent
-        this.cy.add({ group: 'edges', data: { source: newParent.id(), target: nodeToMove.id() } }); // Attach to new
-    });
-
-    this.feedbackMsg = `Success: Moved '' to ''.`;
-    this.isMoveMode = false;
-    this.classifyNodes(); // Re-calculate styles (e.g. parent might become leaf)
-    
-    // Re-apply highlight to the moved subtree (classifyNodes wipes classes)
-    if (this.selectedNode) {
-       this.cy.$id(this.selectedNode.id).successors().addClass('subtree-highlight');
-    }
-
-    this.runLayout(false); // Update layout preserving zoom
+    this.recalculateGlobalIndices(); // Update global order after swap
+    this.feedbackMsg = `Node reordered.`;
+    this.runLayout(false);
     this.requestUpdate();
-  }
-
-  // --- Actions ---
-
-  private startMoveMode() {
-    this.isMoveMode = true;
-    this.feedbackMsg = "Select the new parent node...";
   }
 
   private handleAddChild() {
     if (!this.selectedNode) return;
 
-    const parentId = this.selectedNode.id;
-    const parentLabel = this.selectedNode.label;
-    const allowedChildren = this.selectedNodeRule.allowed || [];
+    const label = this.selectedNode.label;
+    const isPunctuation = 
+      /^[\.,:;'"\(\)\[\]\{}\-–—\?!]+$/.test(label) || 
+      ["fp", "fc", "fg", "fz", "fs", "fd", "punct", "PUNCT"].includes(label.toLowerCase());
+    
+    const isPos = KNOWN_POS_TAGS.has(label) || KNOWN_POS_TAGS.has(label.toUpperCase());
 
-    // Heuristic: Does this node allow POS tags directly?
-    // We check if any allowed child is a known POS or if the list is empty (leaves only)
-    // For this implementation, we assume if it allows 'NOUN', 'VERB', etc., it allows POS.
-    // A simpler check: If it allows children that are NOT in the rules keys (terminals) or are standard POS.
-    const commonPosTags = ['NOUN', 'VERB', 'ADJ', 'ADV', 'PRON', 'DET', 'ADP', 'NUM', 'CONJ', 'PRT', 'n', 'v', 'a', 'd', 'p', 'r', 'c'];
-    const admitsPosDirectly = allowedChildren.some((tag: string) => commonPosTags.includes(tag) || tag.toUpperCase() === tag);
+    // Calculate next index safely (max + 1) to avoid collisions with existing siblings
+    const children = this.cy.$id(this.selectedNode.id).outgoers("node");
+    let maxIndex = -1;
+    children.forEach(child => {
+        const idx = child.data("index");
+        if (typeof idx === 'number' && idx > maxIndex) maxIndex = idx;
+    });
+    const nextIndex = maxIndex + 1;
 
+    this.pushState();
     this.cy.batch(() => {
-        const ghostWordId = `ghost_word_${Date.now()}`;
-        const ghostPosId = `ghost_pos_${Date.now()}`;
+      if (isPunctuation) {
+        const leafId = `punct_${Date.now()}`;
+        this.cy.add({
+          group: "nodes",
+          data: { id: leafId, label: ".", index: nextIndex },
+          classes: "punctuation leaf"
+        });
+        this.cy.add({
+          group: "edges",
+          data: { source: this.selectedNode.id, target: leafId }
+        });
+        this.feedbackMsg = "Punctuation leaf added.";
+      } else if (isPos) {
+        const leafId = `leaf_${Date.now()}`;
+        this.cy.add({
+          group: "nodes",
+          data: { id: leafId, label: "∅", index: nextIndex },
+          classes: "leaf"
+        });
+        this.cy.add({
+          group: "edges",
+          data: { source: this.selectedNode.id, target: leafId }
+        });
+        this.feedbackMsg = "Leaf node added.";
+      } else {
+        GhostLogic.spawnGhost(this.cy, this.selectedNode.id);
+        this.feedbackMsg = "Ghost node added.";
         
-        // Create the Leaf (Word) - Always needed
-        this.cy.add({ group: 'nodes', data: { id: ghostWordId, label: '👻Word' }, classes: 'leaf ghost' });
-
-        if (admitsPosDirectly) {
-            // Scenario A: Parent -> 👻POS -> 👻Word
-            this.cy.add({ group: 'nodes', data: { id: ghostPosId, label: '👻POS' }, classes: 'pos ghost' });
-            this.cy.add({ group: 'edges', data: { source: parentId, target: ghostPosId } });
-            this.cy.add({ group: 'edges', data: { source: ghostPosId, target: ghostWordId } });
-        } else {
-            // Scenario B: Parent -> 👻Node -> 👻POS -> 👻Word
-            const ghostNodeId = `ghost_node_${Date.now()}`;
-            this.cy.add({ group: 'nodes', data: { id: ghostNodeId, label: '👻Node' }, classes: 'ghost' });
-            this.cy.add({ group: 'nodes', data: { id: ghostPosId, label: '👻POS' }, classes: 'pos ghost' });
-            
-            this.cy.add({ group: 'edges', data: { source: parentId, target: ghostNodeId } });
-            this.cy.add({ group: 'edges', data: { source: ghostNodeId, target: ghostPosId } });
-            this.cy.add({ group: 'edges', data: { source: ghostPosId, target: ghostWordId } });
-        }
+        // Assign index to the newly spawned ghost (it's the one we just added)
+        const children = this.cy.$id(this.selectedNode.id).outgoers("node");
+        children.forEach(child => { if (child.data("index") === undefined) child.data("index", nextIndex); });
+      }
     });
 
-    this.feedbackMsg = "Ghost structure added. Please edit labels.";
+    this.recalculateGlobalIndices(); // New nodes added
     this.classifyNodes();
     this.runLayout(false);
     this.requestUpdate();
   }
 
+  private reindexChildren(parentNode: any) {
+    if (!parentNode || parentNode.empty()) return;
+    
+    const children = parentNode.outgoers("node").sort((a: any, b: any) => {
+        const idxA = a.data('index');
+        const idxB = b.data('index');
+        
+        // Primary sort: Structural Index
+        if (idxA !== undefined && idxB !== undefined && idxA !== idxB) {
+            return idxA - idxB;
+        }
+        
+        // Secondary sort: Visual X Position (Tie-breaker)
+        // This prevents swapping if indices are lost or collided before layout
+        return a.position('x') - b.position('x');
+    });
+    
+    children.forEach((child: any, i: number) => child.data('index', i));
+  }
+
   private async deleteSelected() {
     if (!this.selectedNode) return;
-    
-    const nodeElement = this.cy.$id(this.selectedNode.id);
-    const isLeaf = nodeElement.outgoers().length === 0;
 
-    if (isLeaf || nodeElement.hasClass('pos') || nodeElement.hasClass('punctuation')) {
-        // 1:1 Relationship: Deleting a leaf or POS implies deleting the POS unit
-        // If leaf, target parent. If POS, target self.
-        const target = isLeaf ? nodeElement.incomers('edge').source() : nodeElement;
-        
-        if (target.length > 0) {
-            target.successors().remove(); // Remove children (Leaf)
-            target.remove(); // Remove POS
-            this.feedbackMsg = "POS Unit (Category + Word) deleted.";
-        }
-    } else {
-        // Phrasal Node Deletion (Recursive / Subtree)
-        const incoming = nodeElement.incomers('edge');
-        
-        // 1. Mandatory Child Check (Parent Rules)
-        if (incoming.length > 0) {
-            const parent = incoming.source();
-            const parentLabel = parent.data('label');
-            const childLabel = this.selectedNode.label;
-            
-            // Get siblings EXCLUDING the current node to check if any other valid child remains
-            const siblingTags = parent.outgoers('node')
-                .filter(n => n.id() !== this.selectedNode.id)
-                .map(n => n.data('label'));
-
-            try {
-                const response = await fetch('/api/validation/check/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ parent_tag: parentLabel, child_tag: childLabel, sibling_tags: siblingTags })
-                });
-                const result = await response.json();
-                if (!result.allowed) {
-                    this.feedbackMsg = `Validation Error: ${result.reason}`;
-                    this.requestUpdate();
-                    return;
-                }
-            } catch (e) {
-                console.error("Validation check failed", e);
-                this.feedbackMsg = "Server error during validation.";
-                return;
-            }
-        }
-
-        // 2. Execution: Delete the node and its entire subtree ("Kill the family")
-        this.cy.batch(() => {
-            nodeElement.successors().remove(); // Remove all descendants
-            nodeElement.remove();              // Remove the head
-        });
-        
-        this.feedbackMsg = "Subtree deleted.";
+    // If deleting the node currently marked for move, cancel the move state
+    if (this.selectedNode.id === this.pendingMoveNodeId) {
+        this.cancelCut();
     }
+
+    if (!confirm("Are you sure you want to delete this node?")) return;
+
+    const nodeElement = this.cy.$id(this.selectedNode.id);
+    if (nodeElement.empty()) return;
+
+    if (nodeElement.data("label") === "ROOT") {
+      this.feedbackMsg = "Cannot delete ROOT.";
+      return;
+    }
+
+    const isLeaf = nodeElement.outgoers().length === 0;
+    const isGhost = this.selectedNode.isGhost || this.selectedNode.label.includes("👻");
+
+    let targetToDelete = nodeElement;
+
+    if (
+      (isLeaf && !isGhost) ||
+      nodeElement.hasClass("pos") ||
+      nodeElement.hasClass("punctuation")
+    ) {
+      if (isLeaf) {
+        const parent = nodeElement.incomers("edge").source();
+        if (parent.length > 0) targetToDelete = parent;
+      }
+    }
+
+    const parentOfDeleted = targetToDelete.incomers("edge").source();
+
+    this.pushState();
+
+    const branch = targetToDelete.successors().union(targetToDelete);
+    branch.remove();
+
+    this.feedbackMsg = "Node deleted.";
+
+    if (parentOfDeleted.length > 0 && parentOfDeleted.inside()) {
+      if (parentOfDeleted.outgoers("node").length === 0) {
+        const ghostId = GhostLogic.spawnGhost(this.cy, parentOfDeleted.id());
+        this.cy.$id(ghostId).data("index", 0);
+        this.feedbackMsg += " Parent was empty, ghost added.";
+        
+        // Ensure the parent itself maintains its index relative to its siblings
+        // (No change needed for parentOfDeleted, but good to know)
+        this.runLayout(false);
+      }
+      
+      try {
+        await this.validateAncestors(parentOfDeleted);
+      } catch (e) {
+        console.error("Ancestor validation failed after delete:", e);
+      }
+    }
+
+    // Reindex siblings of the deleted node (if any remain) to close gaps
+    // If parentOfDeleted is valid, reindex its children
+    if (parentOfDeleted.length > 0) this.reindexChildren(parentOfDeleted);
+    this.recalculateGlobalIndices(); // Topology changed
 
     this.clearSelection();
     this.runLayout(false);
+  }
+
+  // --- Clipboard Operations ---
+
+  private copySelected() {
+    if (!this.selectedNode) return;
+    let node = this.cy.$id(this.selectedNode.id);
+
+    // Auto-select parent if leaf (Word/Sign) to ensure POS+Word unit
+    const isLeaf = node.outdegree(false) === 0;
+    const isGhost = node.data("isGhost") || node.data("label").includes("👻");
+    if (isLeaf && !isGhost) {
+        const parent = node.incomers("edge").source();
+        if (parent.length > 0) node = parent;
+    }
+
+    this.clipboard = serializeNodeToPtb(node);
+    this.feedbackMsg = "Subtree copied to clipboard.";
+    this.requestUpdate();
+  }
+
+  private cancelCut() {
+    if (this.pendingMoveNodeId) {
+      const node = this.cy.$id(this.pendingMoveNodeId);
+      node.successors().union(node).removeClass("cut-dimmed");
+      this.pendingMoveNodeId = null;
+      this.feedbackMsg = "Cut operation cancelled.";
+      this.requestUpdate();
+    }
+  }
+
+  private cutSelected() {
+    if (!this.selectedNode) return;
+    
+    // If there was a previous cut, cancel it (restore visuals)
+    if (this.pendingMoveNodeId) {
+        this.cancelCut();
+    }
+
+    let node = this.cy.$id(this.selectedNode.id);
+
+    // Auto-select parent if leaf (Word/Sign) to ensure POS+Word unit
+    const isLeaf = node.outdegree(false) === 0;
+    const isGhost = node.data("isGhost") || node.data("label").includes("👻");
+    if (isLeaf && !isGhost) {
+        const parent = node.incomers("edge").source();
+        if (parent.length > 0) node = parent;
+    }
+
+    this.pendingMoveNodeId = node.id();
+    // Apply visual style to subtree
+    node.successors().union(node).addClass("cut-dimmed");
+    
+    this.feedbackMsg = "Node marked for move. Select destination and click 'Move Here'.";
+    this.requestUpdate();
+  }
+
+  private async pasteFromClipboard() {
+    if (!this.clipboard) return;
+    if (!this.selectedNode) return;
+
+    let targetNode = this.cy.$id(this.selectedNode.id);
+    const isGhost = targetNode.data("isGhost") || targetNode.data("label").includes("👻");
+    const isTerminal = targetNode.hasClass("pos") || targetNode.hasClass("punctuation") || targetNode.hasClass("leaf");
+    
+    if (isTerminal) {
+        this.feedbackMsg = "Cannot paste into a Terminal/POS/Leaf node.";
+        return;
+    }
+
+    this.pushState();
+
+    // Parse clipboard content into elements
+    const elements = parsePtbToCytoscape(this.clipboard);
+    
+    // Find the root of the pasted tree (node with no source in the elements list)
+    const targets = new Set(elements.filter(e => 'source' in e.data).map(e => e.data.target));
+    const rootElement = elements.find(e => !('source' in e.data) && !targets.has(e.data.id));
+    
+    if (!rootElement) {
+        this.feedbackMsg = "Invalid clipboard content.";
+        return;
+    }
+
+    // Generate unique IDs for pasted elements to avoid collisions
+    const idMap = new Map<string, string>();
+    const timestamp = Date.now();
+    elements.forEach((el, i) => {
+        const oldId = el.data.id;
+        if (!('source' in el.data)) {
+            const newId = `paste_${timestamp}_${i}`;
+            idMap.set(oldId, newId);
+            el.data.id = newId;
+        }
+    });
+
+    // Update edges with new IDs
+    elements.forEach(el => {
+        if ('source' in el.data) {
+            el.data.source = idMap.get(el.data.source) || el.data.source;
+            el.data.target = idMap.get(el.data.target) || el.data.target;
+        }
+    });
+
+    try {
+        this.cy.batch(() => {
+            // If target is Ghost, replace it
+            if (isGhost) {
+                const parent = targetNode.incomers("edge").source();
+                const ghostIndex = targetNode.data("index") || 0;
+                
+                // Add new elements
+                this.cy.add(elements);
+                
+                // Link parent to new root
+                if (parent.length > 0) {
+                    this.cy.add({
+                        group: "edges",
+                        data: { source: parent.id(), target: rootElement.data.id }
+                    });
+                    // Assign index to new root
+                    this.cy.$id(rootElement.data.id).data("index", ghostIndex);
+                }
+                
+                // Remove ghost
+                targetNode.remove();
+                this.feedbackMsg = "Pasted: Replaced ghost node.";
+            } else {
+                // Append as last child
+                const children = targetNode.outgoers("node");
+                let maxIndex = -1;
+                children.forEach(child => {
+                    const idx = child.data("index");
+                    if (typeof idx === 'number' && idx > maxIndex) maxIndex = idx;
+                });
+                const nextIndex = maxIndex + 1;
+
+                // Add new elements
+                this.cy.add(elements);
+                
+                // Link target to new root
+                this.cy.add({
+                    group: "edges",
+                    data: { source: targetNode.id(), target: rootElement.data.id }
+                });
+                
+                // Assign index
+                this.cy.$id(rootElement.data.id).data("index", nextIndex);
+                this.feedbackMsg = "Pasted: Appended as child.";
+            }
+        });
+
+        this.classifyNodes();
+        this.recalculateGlobalIndices(); // Topology changed (paste)
+        this.runLayout(false);
+        
+        // Validate the modified branch
+        const newRootId = rootElement.data.id;
+        if (newRootId) {
+            const newRoot = this.cy.$id(newRootId);
+            const parent = newRoot.incomers("edge").source();
+            if (parent.length > 0) await this.validateAncestors(parent);
+        }
+    } catch (e) {
+        console.error("Paste failed:", e);
+        this.feedbackMsg = "Error pasting content. Check console.";
+        // Ensure we recover UI state
+        this.runLayout(false);
+    }
+    
+    this.requestUpdate();
+  }
+
+  private async completeMove() {
+    if (!this.selectedNode || !this.pendingMoveNodeId) return;
+    
+    let targetNode = this.cy.$id(this.selectedNode.id);
+    const isGhost = targetNode.data("isGhost") || targetNode.data("label").includes("👻");
+    const isTerminal = targetNode.hasClass("pos") || targetNode.hasClass("punctuation") || targetNode.hasClass("leaf");
+    
+    if (isTerminal) {
+        this.feedbackMsg = "Cannot move into a Terminal/POS/Leaf node.";
+        return;
+    }
+
+    const nodeToMove = this.cy.$id(this.pendingMoveNodeId);
+    
+    if (nodeToMove.empty()) { this.cancelCut(); return; }
+    if (nodeToMove.id() === targetNode.id()) { this.feedbackMsg = "Cannot move to self."; return; }
+    if (nodeToMove.successors().contains(targetNode)) { this.feedbackMsg = "Cannot move into descendant."; return; }
+
+    // Handle Ghost Target Replacement for Move
+    if (isGhost) {
+        const ghostParent = targetNode.incomers("edge").source();
+        if (ghostParent.length > 0) {
+            GhostLogic.deleteSubtree(this.cy, targetNode.id());
+            targetNode = ghostParent;
+        }
+    }
+
+    const oldParent = nodeToMove.incomers("edge").source();
+
+    this.pushState();
+    this.cy.batch(() => {
+        nodeToMove.incomers("edge").remove();
+        this.cy.add({
+            group: "edges",
+            data: { source: targetNode.id(), target: nodeToMove.id() }
+        });
+    });
+
+    // Cleanup visual state
+    nodeToMove.successors().union(nodeToMove).removeClass("cut-dimmed");
+    this.pendingMoveNodeId = null;
+
+    this.feedbackMsg = "Node moved successfully.";
+    this.classifyNodes();
+    this.recalculateGlobalIndices();
+    
+    this.validateAncestors(targetNode);
+    if (oldParent.length > 0) this.validateAncestors(oldParent);
+    
+    this.runLayout(false);
+    this.requestUpdate();
+  }
+
+  private handleUndo() {
+    if (this.undoStack.length === 0) return;
+
+    const currentPtb = this.getCurrentPtb();
+    const previousPtb = this.undoStack.pop();
+    
+    if (previousPtb) {
+      this.redoStack = [...this.redoStack, currentPtb];
+      this.undoStack = [...this.undoStack];
+      this.loadPtb(previousPtb, false);
+      this.feedbackMsg = "Undo successful.";
+    }
+  }
+
+  private handleRedo() {
+    if (this.redoStack.length === 0) return;
+
+    const currentPtb = this.getCurrentPtb();
+    const nextPtb = this.redoStack.pop();
+
+    if (nextPtb) {
+      this.undoStack = [...this.undoStack, currentPtb];
+      this.redoStack = [...this.redoStack];
+      this.loadPtb(nextPtb, false);
+      this.feedbackMsg = "Redo successful.";
+    }
   }
 
   private runLayout(fit: boolean = true) {
     if (!this.cy) return;
 
     this.cy.resize();
-    // Merge config with dynamic fit option
     this.cy.layout({ ...this.layoutConfig, fit: fit }).run();
-  }
-
-  public getCurrentPtb(): string {
-    if (!this.cy) return '';
-    return serializeCytoscapeToPtb(this.cy);
   }
 
   private renderValidationIssues(errors: string[]) {
     if (errors.length === 0) return html``;
     return html`
-      <div class="bg-red-50 border-l-2 border-red-500 p-2 rounded-r mb-4 text-xs">
-          <div class="font-bold text-red-700 mb-1 flex items-center gap-1">
-              <span class="material-symbols-outlined text-[16px]">error</span> Validation Issues
-          </div>
-          <ul class="list-disc list-inside text-red-600 space-y-1 leading-tight">
-              ${errors.map(e => html`<li></li>`)}
-          </ul>
+      <div
+        class="bg-red-50 border-l-2 border-red-500 p-2 rounded-r mb-4 text-xs"
+      >
+        <div class="font-bold text-red-700 mb-1 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">error</span>
+          Validation Issues
+        </div>
+        <ul class="list-disc list-inside text-red-600 space-y-1 leading-tight">
+          ${errors.map((e) => html`<li>${e}</li>`)}
+        </ul>
       </div>
     `;
   }
 
-  private renderInspector() {
+  private renderEditControl(
+    canEditLabel: boolean,
+    isGhostLeaf: boolean,
+    isWordLeaf: boolean,
+    isPunctuationLeaf: boolean,
+    isCurrentTagValid: boolean,
+    isDropdownDisabled: boolean,
+    validTags: string[],
+  ) {
+    if (!canEditLabel) {
+      return html`
+        <div
+          class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-gray-500 font-mono italic text-center"
+        >
+          Immutable
+        </div>
+      `;
+    }
+
+    if (isWordLeaf) {
+      return html`
+        <input
+          type="text"
+          class="w-full p-2 bg-white border border-gray-300 rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold"
+          .value=${this.pendingLabel}
+          @input=${this.handlePendingLabelChange}
+          placeholder="Type word..."
+        />
+      `;
+    }
+
+    if (isPunctuationLeaf) {
+      return html`
+        <select
+          class="w-full p-2 bg-white border border-gray-300 rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold"
+          @change=${this.handlePendingLabelChange}
+        >
+          ${PUNCTUATION_MARKS.map(mark => html`
+            <option value="${mark}" ?selected=${mark === this.pendingLabel}>${mark}</option>
+          `)}
+        </select>
+      `;
+    }
+
+    return html`
+      <select
+        class="w-full p-2 bg-white border ${isCurrentTagValid
+          ? "border-gray-300"
+          : "border-red-500 bg-red-50"} rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        @change=${this.handlePendingLabelChange}
+        ?disabled=${isDropdownDisabled}
+      >
+        ${isGhostLeaf
+          ? html`<option value="" disabled selected>Select tag...</option>`
+          : html``}
+        ${validTags.map(
+          (tag) => html`
+            <option value="${tag}" ?selected=${tag === this.pendingLabel}>
+              ${tag}
+            </option>
+          `,
+        )}
+      </select>
+    `;
+  }
+
+  private renderApplyButton(canEditLabel: boolean) {
+    if (!canEditLabel) return html``;
+    
+    const hasChanged = this.pendingLabel !== this.selectedNode.label;
+    
+    return html`
+      <button
+        @click=${this.applyLabelChange}
+        class="w-full mt-2 py-1 px-2 bg-ibm-blue text-white rounded text-xs font-bold uppercase tracking-wide hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        ?disabled=${!hasChanged}
+      >
+        Confirm Change
+      </button>
+    `;
+  }
+
+  private renderToolbar() {
+    return html`
+      <div class="flex gap-2 justify-end">
+        <button
+          @click=${this.handleUndo}
+          class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Undo (Ctrl+Z)"
+          ?disabled=${this.undoStack.length === 0}
+        >
+          <span class="material-symbols-outlined text-[18px]">undo</span>
+        </button>
+        <button
+          @click=${this.handleRedo}
+          class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Redo (Ctrl+Y)"
+          ?disabled=${this.redoStack.length === 0}
+        >
+          <span class="material-symbols-outlined text-[18px]">redo</span>
+        </button>
+        <div class="flex-1"></div>
+        <button @click=${() => this.runLayout(true)} class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Fit View"><span class="material-symbols-outlined text-[18px]">fit_screen</span></button>
+      </div>
+    `;
+  }
+
+  private renderNodeInspector() {
     if (!this.selectedNode) {
       return html`
         <div class="h-full flex flex-col items-center justify-center text-gray-400 p-6 text-center">
@@ -627,256 +1313,221 @@ export class GrammatomyEditor extends LitElement {
     }
 
     const nodeElement = this.cy.$id(this.selectedNode.id);
-    const isLeaf = !nodeElement.isParent() && nodeElement.outgoers().length === 0;
-    const isPos = nodeElement.hasClass('pos');
-    const isPunctuation = nodeElement.hasClass('punctuation');
-    const canAddChild = !isLeaf && !isPos && !isPunctuation;
+    const isLeaf =
+      !nodeElement.isParent() && nodeElement.outgoers().length === 0;
+    const isPos = nodeElement.hasClass("pos");
+    const isPunctuation = nodeElement.hasClass("punctuation");
+    
+    let isWordLeaf = false;
+    let isPunctuationLeaf = false;
+    
+    if (isLeaf) {
+      const incoming = nodeElement.incomers("edge");
+      if (incoming.length > 0) {
+        const parent = incoming.source();
+        if (parent && parent.length > 0 && parent.hasClass("pos")) isWordLeaf = true;
+        if (parent && parent.length > 0 && parent.hasClass("punctuation")) isPunctuationLeaf = true;
+      }
+    }
 
-    // TODO: Check if it's a "Ghost" leaf based on data
-    const isGhost = this.selectedNode.label.includes('👻'); 
-    const canEditLabel = !isLeaf || isGhost;
+    const isGhost = this.selectedNode.isGhost || this.selectedNode.label.includes("👻");
+    const canEditLabel = true;
     const isGhostLeaf = isLeaf && isGhost;
+    const isTerminal = nodeElement.hasClass("pos") || nodeElement.hasClass("punctuation") || nodeElement.hasClass("leaf");
+    
+    const hasChildren = nodeElement.outgoers("node").length > 0;
+    const canAddChild = !isWordLeaf && !isPunctuationLeaf && !isGhost && !((isPos || isPunctuation) && hasChildren) && !isPunctuationLeaf;
 
-    // Use contextually valid tags instead of all tags
     const validTags = this.validConversionTags;
-    // Leaves are valid by definition (content), unless explicitly marked as error.
-    // Structural nodes must be in the validTags list.
-    const isCurrentTagValid = isLeaf ? true : validTags.includes(this.selectedNode.label);
+    let isCurrentTagValid = isLeaf
+      ? true
+      : validTags.includes(this.selectedNode.label);
+
+    if (this.selectedNode.label === "ROOT" && nodeElement.incomers().length === 0) {
+        isCurrentTagValid = true;
+    }
+
     const isDropdownDisabled = validTags.length === 0;
 
-    // Determine Header Style based on Node Type & Validity
-    let headerBg = '#E69F00'; // Default: Phrasal (Orange)
-    let headerText = '#161616';
-    let typeLabel = 'Phrasal Node';
+    let headerBg = "#E69F00";
+    let headerText = "#161616";
+    let typeLabel = "Phrasal Node";
 
-    if (!isCurrentTagValid || nodeElement.hasClass('error')) {
-        headerBg = '#D55E00'; // Error (Vermilion)
-        headerText = '#F4F4F4';
-        typeLabel = 'Invalid / Error';
+    if (!isCurrentTagValid || nodeElement.hasClass("error")) {
+      headerBg = "#D55E00";
+      headerText = "#F4F4F4";
+      typeLabel = "Invalid / Error";
     } else if (isPunctuation) {
-        headerBg = '#0072B2'; // Punctuation (Blue)
-        headerText = '#F4F4F4';
-        typeLabel = 'Punctuation';
+      headerBg = "#0072B2";
+      headerText = "#F4F4F4";
+      typeLabel = "Punctuation";
     } else if (isLeaf) {
-        headerBg = '#009E73'; // Leaf (Green)
-        headerText = '#F4F4F4';
-        typeLabel = 'Terminal (Leaf)';
+      headerBg = "#009E73";
+      headerText = "#F4F4F4";
+      typeLabel = "Terminal (Leaf)";
     } else if (isPos) {
-        headerBg = '#56B4E9'; // POS (Sky)
-        headerText = '#161616';
-        typeLabel = 'Syntactic Category';
+      headerBg = "#56B4E9";
+      headerText = "#161616";
+      typeLabel = "Syntactic Category";
     }
 
-    // Check for "Only Child" status (Prevention of Empty Parents)
-    // Logic updated for 1:1 POS-Leaf relationship:
-    // If it's a leaf, we check if its PARENT (POS) is an only child of the Grandparent.
     let nodeToCheck = nodeElement;
     if (isLeaf) {
-        const parent = nodeElement.incomers('edge').source();
-        if (parent.length > 0) nodeToCheck = parent;
+      const incoming = nodeElement.incomers("edge");
+      if (incoming.length > 0) {
+          const parent = incoming.source();
+          if (parent && parent.length > 0) nodeToCheck = parent;
+      }
     }
 
-    const incomingEdges = nodeToCheck.incomers('edge');
+    const incomingEdges = nodeToCheck.incomers("edge");
     let isOnlyChild = false;
     if (incomingEdges.length > 0) {
-        const parent = incomingEdges.source();
-        if (parent.outgoers('node').length === 1) {
-            isOnlyChild = true;
+      const parent = incomingEdges.source();
+      if (parent && parent.length > 0 && parent.outgoers("node").length === 1) {
+        isOnlyChild = true;
+      }
+    }
+
+    const parentEdges = nodeElement.incomers("edge");
+    const parent = parentEdges.length > 0 ? parentEdges.source() : null;
+    
+    let canMoveLeft = false;
+    let canMoveRight = false;
+    if (parent && parent.length > 0) {
+        // Use logical index for button state too
+        const children = parent.outgoers("node").sort((a, b) => (a.data('index') ?? 0) - (b.data('index') ?? 0));
+        const currentIndex = children.findIndex(n => n.id() === nodeElement.id());
+        if (currentIndex > 0) {
+            canMoveLeft = true;
+        }
+        if (currentIndex !== -1 && currentIndex < children.length - 1) {
+            canMoveRight = true;
         }
     }
 
     return html`
       <div class="flex flex-col gap-6">
-        
-        <!-- Node Identity Header -->
-        <div class="rounded-lg p-4 shadow-sm flex flex-col items-center justify-center gap-2 transition-colors duration-300" style="background-color: ${headerBg}; color: ${headerText};">
-            <div class="text-[10px] uppercase tracking-widest opacity-80 font-bold">${typeLabel}</div>
-            <div class="text-2xl font-mono font-bold tracking-tight">${this.selectedNode.label}</div>
+        <div
+          class="rounded-lg p-4 shadow-sm flex flex-col items-center justify-center gap-2 transition-colors duration-300"
+          style="background-color: ${headerBg}; color: ${headerText};"
+        >
+          <div
+            class="text-[10px] uppercase tracking-widest opacity-80 font-bold"
+          >
+            ${typeLabel}
+          </div>
+          <div class="text-2xl font-mono font-bold tracking-tight">
+            ${this.selectedNode.label}
+          </div>
         </div>
 
-        <!-- Header / Identity -->
         <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+          <label
+            class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
+          >
             Edit Label
           </label>
-          
-          ${this.renderEditControl(canEditLabel, isGhostLeaf, isCurrentTagValid, isDropdownDisabled, validTags)}
+
+          ${this.renderEditControl(
+            canEditLabel,
+            isGhostLeaf,
+            isWordLeaf,
+            isPunctuationLeaf,
+            isCurrentTagValid,
+            isDropdownDisabled,
+            validTags,
+          )}
+          ${this.renderApplyButton(canEditLabel)}
         </div>
 
         ${this.renderValidationIssues(this.validationErrors)}
 
         <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Actions</label>
+          <label
+            class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
+            >Actions</label
+          >
           
+          <!-- Row 1: Clipboard & Move (Family) -->
           <div class="grid grid-cols-4 gap-2 mb-2">
-            <button 
-              @click=${this.handleAddChild}
-              class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-ibm-blue disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400" 
-              title="${canAddChild ? 'Add Child' : 'Cannot add child to Terminal/POS'}"
-              ?disabled=${!canAddChild}
+            <button
+              @click=${this.cutSelected}
+              ?disabled=${isOnlyChild}
+              class="p-2 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+              title="Cut Subtree"
             >
-              <span class="material-symbols-outlined">add_circle</span>
+              <span class="material-symbols-outlined">content_cut</span>
             </button>
-            <button 
-              @click=${this.deleteSelected} 
-              ?disabled=
-              class="p-2 bg-white border border-gray-300 rounded hover:bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400" 
-              title="${isOnlyChild ? 'Cannot delete: Parent would be empty' : 'Delete Node'}"
+            <button
+              @click=${this.completeMove}
+              ?disabled=${!this.pendingMoveNodeId || isTerminal}
+              class="p-2 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+              title="Move Here"
             >
-              <span class="material-symbols-outlined">delete</span>
+              <span class="material-symbols-outlined">drive_file_move</span>
             </button>
-            <button class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600" title="Move Left">
-              <span class="material-symbols-outlined">arrow_back</span>
+            <button
+              @click=${this.copySelected}
+              class="p-2 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+              title="Copy Subtree"
+            >
+              <span class="material-symbols-outlined">content_copy</span>
             </button>
-            <button class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600" title="Move Right">
-              <span class="material-symbols-outlined">arrow_forward</span>
+            <button
+              @click=${this.pasteFromClipboard}
+              ?disabled=${!this.clipboard || isTerminal}
+              class="p-2 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+              title="Paste Subtree"
+            >
+              <span class="material-symbols-outlined">content_paste</span>
             </button>
           </div>
 
-          <button 
-            @click=${this.startMoveMode}
-            class="w-full py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors ${this.isMoveMode ? 'bg-ibm-orange text-white animate-pulse' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}"
-          >
-            <span class="material-symbols-outlined text-sm">open_with</span>
-            ${this.isMoveMode ? 'Click Target Parent...' : 'Move Subtree'}
-          </button>
+          <!-- Row 2: Structure & Reorder -->
+          <div class="grid grid-cols-4 gap-2 mb-2">
+            <button @click=${this.handleAddChild} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-ibm-blue disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${canAddChild ? "Add Child" : "Cannot add child to Terminal/POS"}" ?disabled=${!canAddChild}><span class="material-symbols-outlined">add_circle</span></button>
+            <button @click=${this.deleteSelected} ?disabled=${isOnlyChild} class="p-2 bg-white border border-gray-300 rounded hover:bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${isOnlyChild ? "Cannot delete: Parent would be empty" : "Delete Node"}"><span class="material-symbols-outlined">delete</span></button>
+            <button @click=${() => this.handleReorder("left")} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center" title="Move Left" ?disabled=${!canMoveLeft}><span class="material-symbols-outlined">arrow_back</span></button>
+            <button @click=${() => this.handleReorder("right")} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center" title="Move Right" ?disabled=${!canMoveRight}><span class="material-symbols-outlined">arrow_forward</span></button>
+          </div>
         </div>
-
-        <!-- Feedback Area -->
-        <div class="mt-auto min-h-[60px] p-3 rounded ${this.feedbackMsg ? 'bg-blue-50 border border-blue-100 text-ibm-blue' : 'bg-transparent'} text-xs transition-all">
-          ${this.feedbackMsg}
-        </div>
-
       </div>
     `;
-  }
-
-  private renderEditControl(canEditLabel: boolean, isGhostLeaf: boolean, isCurrentTagValid: boolean, isDropdownDisabled: boolean, validTags: string[]) {
-    if (!canEditLabel) {
-      return html`
-        <div class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-gray-500 font-mono italic text-center">
-          Immutable
-        </div>
-      `;
-    }
-
-    if (isGhostLeaf) {
-      return html`
-        <input 
-          type="text" 
-          class="w-full p-2 bg-white border border-gray-300 rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold"
-          .value=${this.selectedNode.label}
-          @change=${this.handleLabelChange}
-          placeholder="Type word here..."
-        />
-      `;
-    }
-
-    return html`
-      <select 
-        class="w-full p-2 bg-white border ${isCurrentTagValid ? 'border-gray-300' : 'border-red-500 bg-red-50'} rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-        @change=${this.handleLabelChange}
-        ?disabled=${isDropdownDisabled}
-      >
-        ${validTags.map(tag => html`
-          <option value="${tag}" ?selected=${tag === this.selectedNode.label}>
-            ${tag}
-          </option>
-        `)}
-      </select>
-    `;
-  }
-
-  private loadPtb(ptbString: string) {
-    if (!this.cy) return;
-    
-    const elements = parsePtbToCytoscape(ptbString);
-
-    this.cy.elements().remove();
-    this.cy.add(elements);
-    
-    this.classifyNodes();
-    this.runLayout(true); // Fit to screen on new tree load
-  }
-
-  private classifyNodes() {
-    this.cy.batch(() => {
-      this.cy.nodes().forEach(node => {
-        const isLeaf = node.outdegree(false) === 0;
-        const label = node.data('label');
-        
-        // Reset classes
-        node.classes([]);
-
-        // Check for Error/Ghost first
-        if (label.includes('👻') || label.includes('ERR')) {
-            node.addClass('error');
-            if (label.includes('👻')) node.addClass('ghost');
-            return;
-        }
-
-        // Punctuation Detection (Regex for common punctuation marks or tags like fp, fc)
-        const isPunctuation = /^[\.,:;'"\(\)\[\]\{}\-–—\?!]+$/.test(label) || 
-                              ['fp','fc','fg','fz','fs','fd'].includes(label.toLowerCase());
-
-        if (isPunctuation) {
-            node.addClass('punctuation');
-            return;
-        }
-
-        if (isLeaf) {
-            node.addClass('leaf');
-        } else {
-            // If all children are leaves, it's likely a POS tag.
-            // Use outgoers().nodes() because children() is for compound nodes.
-            const childrenAreLeaves = node.outgoers().nodes().every(child => child.outdegree(false) === 0);
-            if (childrenAreLeaves) {
-                node.addClass('pos');
-            }
-            // Otherwise, it remains default (Phrasal/Grouping)
-        }
-      });
-    });
   }
 
   override render() {
+    try {
     return html`
-      <div class="flex flex-col h-full w-full bg-base-light rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-        
-        <!-- Toolbar -->
-        <div class="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-base-light-dim text-sm">
-            <div class="flex gap-1">
-                <button class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Undo">
-                    <span class="material-symbols-outlined text-[18px]">undo</span>
-                </button>
-                <button class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Redo">
-                    <span class="material-symbols-outlined text-[18px]">redo</span>
-                </button>
-            </div>
-            <div class="w-px h-4 bg-gray-300 mx-1"></div>
-            <div class="flex gap-1">
-                <button class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Fit View">
-                    <span class="material-symbols-outlined text-[18px]">fit_screen</span>
-                </button>
-                <button class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Reset Layout">
-                    <span class="material-symbols-outlined text-[18px]">account_tree</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Workspace -->
+      <div
+        class="flex flex-col h-full w-full bg-base-light rounded-lg overflow-hidden border border-gray-200 shadow-sm"
+      >
         <div class="flex flex-1 overflow-hidden relative min-h-0">
-            <!-- Canvas Wrapper: Ensures #cy fills space absolutely without collapsing -->
-            <div class="flex-1 relative min-w-0">
-                <div id="cy" class="absolute inset-0 bg-base-light"></div>
-            </div>
+          <div class="flex-1 relative min-w-0">
+            <div id="cy" class="absolute inset-0 bg-base-light bg-gray-50"></div>
+          </div>
 
-            <!-- Inspector (Right Sidebar) -->
-            <div class="w-80 bg-base-light-dim border-l border-gray-200 p-4 overflow-y-auto hidden md:block shadow-inner">
-                ${this.renderInspector()}
+          <div
+            class="w-80 bg-base-light-dim border-l border-gray-200 flex flex-col hidden md:flex shadow-inner"
+          >
+            <div class="p-4 border-b border-gray-200 bg-white/50">
+                ${this.renderToolbar()}
             </div>
+            <div class="flex-1 p-4 overflow-y-auto">
+                ${this.renderNodeInspector()}
+            </div>
+            <div class="p-3 border-t border-gray-200 bg-white/50 min-h-[40px]">
+                 <div class="rounded ${this.feedbackMsg ? "bg-blue-50 border border-blue-100 text-ibm-blue p-2" : ""} text-xs transition-all">
+                    ${this.feedbackMsg}
+                 </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
+    } catch (e) {
+        console.error("GrammatomyEditor: Error in render()", e);
+        return html`<div class="text-red-500 p-4">Render Error: ${e}</div>`;
+    }
   }
 }

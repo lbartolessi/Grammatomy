@@ -44,3 +44,9 @@ class ParseResponse(BaseModel):
         ..., description="Execution metadata (time, engine used)"
     )
     error: Optional[str] = None
+
+
+class TagOptionsRequest(BaseModel):
+    parent_tag: Optional[str] = None
+    current_tag: str
+    children_tags: List[str] = []

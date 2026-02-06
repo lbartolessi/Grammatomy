@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import grammatomy
 from fastapi import APIRouter, Body, HTTPException
@@ -20,6 +20,12 @@ def get_engine(lang: str = "es") -> ValidationEngine:
         raise HTTPException(
             status_code=500, detail=f"Failed to load validation engine: {str(e)}"
         )
+
+
+class TagOptionsRequest(BaseModel):
+    parent_tag: Optional[str] = None
+    current_tag: str
+    children_tags: List[str] = []
 
 
 class MoveCheckRequest(BaseModel):
@@ -125,3 +131,15 @@ def validate_add_child(req: MoveCheckRequest):
     engine = get_engine(req.lang)
     allowed, reason = engine.can_add_child(req.parent_tag, req.child_tag)
     return ValidationResponse(allowed=allowed, reason=reason)
+
+
+@router.post("/options", response_model=List[str])
+def get_tag_options(payload: TagOptionsRequest):
+    """
+    Devuelve las etiquetas válidas para un nodo dado su contexto (padre e hijos).
+    """
+    engine = get_engine()  # Assumes default lang 'es' for now
+    return engine.get_valid_substitutions(
+        parent=payload.parent_tag,
+        children=payload.children_tags,
+    )

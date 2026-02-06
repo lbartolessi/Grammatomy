@@ -8,6 +8,7 @@ export interface GraphNode {
         id: string;
         label: string;
         parent?: string;
+        index?: number; // Added index support
     };
 }
 
@@ -61,12 +62,6 @@ export function parsePtbToCytoscape(ptb: string): (GraphNode | GraphEdge)[] {
             i++;
         } else {
             // It's a leaf word (e.g. "The") inside a node like (DT The)
-            // In our Cytoscape model, leaves are nodes too? 
-            // Or do we attach them to the current node?
-            // Standard approach: The POS tag is the parent, the word is a child node.
-            // But in the loop above, we already created the POS node.
-            // So this token is the *content* of the current node.
-            // Let's create a terminal node for the word.
             const wordId = `n${idCounter++}`;
             elements.push({ data: { id: wordId, label: token } });
             if (currentParentId) {
@@ -84,8 +79,15 @@ export function serializeCytoscapeToPtb(cy: any): string {
     const roots = cy.nodes().filter((n: any) => n.incomers().length === 0);
     if (roots.length === 0) return "";
 
+    // Sort roots by index if multiple (forest)
+    roots.sort((a: any, b: any) => (a.data('index') || 0) - (b.data('index') || 0));
+
     const traverse = (node: any): string => {
-        const children = node.outgoers().nodes();
+        // CRITICAL: Sort children by index to preserve structural order
+        const children = node.outgoers().nodes().sort((a: any, b: any) => {
+            return (a.data('index') || 0) - (b.data('index') || 0);
+        });
+
         const label = node.data('label');
         
         if (children.length === 0) {
@@ -97,4 +99,19 @@ export function serializeCytoscapeToPtb(cy: any): string {
     };
 
     return traverse(roots[0]);
+}
+
+export function serializeNodeToPtb(node: any): string {
+    const traverse = (n: any): string => {
+        const children = n.outgoers().nodes().sort((a: any, b: any) => {
+            return (a.data('index') || 0) - (b.data('index') || 0);
+        });
+
+        const label = n.data('label');
+        if (children.length === 0) return label;
+        
+        const childrenStr = children.map((child: any) => traverse(child)).join(' ');
+        return `(${label} ${childrenStr})`;
+    };
+    return traverse(node);
 }

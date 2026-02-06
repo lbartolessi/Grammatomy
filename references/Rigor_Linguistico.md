@@ -73,8 +73,9 @@ La lógica de validación se ha extraído de las siguientes fuentes normativas:
 
 Para facilitar la creación de estructuras complejas sin violar las reglas de validación momentáneamente, Grammatomy utiliza **Nodos Fantasma**.
 
-*   **Naturaleza:** Los nodos fantasma son siempre hojas terminales (placeholders).
-*   **Expansión:** Al asignar una etiqueta no-terminal (e.g., `NP`) a un fantasma, se crea automáticamente un hijo fantasma debajo para mantener la validez estructural.
+*   **Naturaleza:** Hoja terminal estéril. No admite hijos.
+*   **Mutación Estricta:** Solo acepta etiquetas validadas contra el padre inmediato.
+*   **Expansión:** Al asignar una etiqueta no-terminal (e.g., `NP`) a un fantasma, este se solidifica y engendra automáticamente un hijo fantasma.
 *   **Estado:** Un árbol con fantasmas es un "Árbol Abstracto" válido para guardar pero incompleto para procesar.
 
 ---
