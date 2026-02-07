@@ -22,6 +22,10 @@ export class GrammatomyApp extends LitElement {
   @state()
   private currentPtb: string = "";
 
+  @state()
+  private _selectedStrategy = 'lax';
+
+
   // Desactivamos Shadow DOM para usar Tailwind globalmente sin problemas
   override createRenderRoot() {
     return this;
@@ -127,6 +131,8 @@ export class GrammatomyApp extends LitElement {
                 <grammatomy-editor 
                     class="w-full h-full block"
                     .ptb=${this.currentPtb}
+                    .validationStrategy=${this._selectedStrategy}
+                    @strategy-change=${this._handleStrategyChangeEvent}
                 ></grammatomy-editor>
             </div>
         </main>
@@ -140,4 +146,9 @@ export class GrammatomyApp extends LitElement {
       </div>
     `;
   }
+  private _handleStrategyChangeEvent(e: CustomEvent) {
+    this._selectedStrategy = e.detail.strategy;
+    console.log(`[App] Validation strategy set to: ${this._selectedStrategy}`);
+  }
+  
 }

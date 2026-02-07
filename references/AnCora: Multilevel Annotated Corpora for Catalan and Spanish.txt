@@ -1,0 +1,594 @@
+AnCora: Multilevel Annotated Corpora for Catalan and Spanish
+
+Mariona Taul´e, M. Ant`onia Mart´ı, Marta Recasens
+
+CLiC, Centre de Llenguatge i Computaci´o
+
+Department of Linguistics
+
+University of Barcelona
+
+08007 Barcelona, Spain
+
+{mtaule, amarti, mrecasens}@ub.edu
+
+Abstract
+
+This paper presents AnCora, a multilingual corpus annotated at different linguistic levels consisting of 500,000 words in Catalan (AnCora-Ca) and in Spanish (AnCora-Es). At present AnCora is the largest multilayer annotated corpus of these languages freely available from http://clic.ub.edu/ancora. The two corpora consist mainly of newspaper texts annotated at different levels of linguistic description: morphological (PoS and lemmas), syntactic (constituents and functions), and semantic (argument structures, thematic roles, semantic verb classes, named entities, and WordNet nominal senses). All resulting layers are independent of each other, thus making easier the data management. The annotation was performed manually, semiautomatically, or fully automatically, depending on the encoded linguistic information. The development of these basic resources constituted a primary objective, since there was a lack of such resources for these languages. A second goal was the definition of a consistent methodology that can be followed in further annotations. The current versions of AnCora have been used in several international evaluation competitions
+
+
+
+1. Introduction tracted. The methodology and criteria guiding the anno-
+
+tation process are presented in Section 3. Section 4 is
+
+AnCora results from two different corpora: AnCora-Es, the
+
+split into three subsections, providing an overview of the
+
+Spanish corpus, and AnCora-Ca, the Catalan one. Both
+
+three levels of annotation –morphological, syntactic, and
+
+consist of half million words annotated at different lev-
+
+semantic– respectively. Section 5 provides a fully anno-
+
+els of linguistic description: morphological (PoS and lem-
+
+tated example. Finally, main conclusions are drawn in Sec-
+
+mas), syntactic (constituents and functions), and semantic
+
+tion 6.
+
+(argument structures, thematic roles, semantic verb classes,
+
+named entities, and WordNet nominal senses). How-ever, the two corpora find themselves at different annota- 2. AnCora: Sources
+
+tion stages: AnCora-Ca is fully annotated, whereas only AnCora was built in an incremental way from the previous
+
+187,000 words of AnCora-Es are at present completely an- 3LB (Civit and Mart´ı, 2004a) and CESS-ECE (Mart´ı and
+
+notated. Taul´e, 2008) corpora, which come mostly from newspaper
+
+The annotation process was carried out sequentially from and newswire articles. lower to upper layers of linguistic description: morphol- AnCora-Es contains 75,000 words from Lexesp –a Spanish
+
+ogy first; different levels of syntactic description next; and balanced 6-million-word corpus (Sebasti´an et al., 2000)–
+
+semantic annotation third. All resulting layers are indepen- 225,000 words from the EFE Spanish news agency 1, and
+
+dent of each other, thus making easier the data manage- 200.000 from the Spanish version of the El Peri´odico news-
+
+ment. The annotation was performed manually, semiauto- paper. AnCora-Ca consists of 75,000 words from the EFE
+
+matically, or fully automatically, depending on the encoded news agency, 225,000 words from the ACN Catalan news
+
+linguistic information. The development of these basic re- agency2, and 200,000 words from the Catalan version of
+
+sources constituted a primary objective, since there was a the El Peri´odico newspaper. The subset of 200,000 words
+
+lack of such resources for these languages. A second goal coming from El Peri´odico corresponds to the same news in
+
+was the definition of a consistent methodology that can be Catalan and Spanish, spanning from January to December
+
+followed in further annotations. 2000. AnCora is the largest multilayer annotated corpus of
+
+Spanish and Catalan freely available from 3. Methodology http:// clic.ub.edu/ancora . It is comparable to other cor- An incremental process guided the annotation of AnCora,
+
+pora which are being developed at present: the English since semantics depends on morphosyntax, and syntax re-
+
+OntoNotes (Hovy et al., 2006), and the Czech Prague De- lies on morphology. This procedure made it possible to
+
+pendency Treebank (Linh and Zabokrstsky, 2007). The check, correct and complete the previous annotations, thus
+
+current versions of AnCora have been used in several guaranteeing the final quality of the corpora and minimiz-
+
+international evaluation competitions such as CoNLL- ing the error rate. 2006, CoNLL-2007 and SemEval-2007, concerning differ- With respect to the degree of automation, we can distin-
+
+ent syntactic and semantic NLP tasks. guish three kinds of annotation processes: full automatic,
+
+This paper presents AnCora by summarizing the data re-
+
+sulting from each level of annotation. Section 2 describes 1 http://www.efe.es the sources from which the texts of AnCora were ex- 2 http://www.acn.cat
+
+96
+
+semiautomatic and manual. First, both corpora were mor- Frequency % Lemma phologically tagged and disambiguated using automatic 48,483 10.02 el (’the’) linguistic tools (Civit and Mart´ı, 2004b) and were later 30,178 6.24 de (’of’) manually revised throughout the syntactic annotation stage. 26,295 5.43 , Base constituents were recognized by means of an auto- 16,574 3.43 . matic shallow parser. Shallow parsing served as starting 12,364 2.56 que (’that’)
+
+11,739 2.43 i (’and’)
+
+point for handling the annotation at the full syntax level.
+
+The annotation of deep syntactic information (constituents 9,649 9,839 2.03 un (’a, an’) 1.99 a (’to’)
+
+and functions), strong and weak named entities (NEs), and 8,074 1.67 del (’of-the’) WordNet nominal synsets was carried out manually. Inter- 8,054 1.66 haver (’to have’) annotator agreement rates were computed for manual anno-
+
+tation in order to assess the quality of the annotation and, by Table 2: The top ten words in AnCora-Ca extension, the appropriateness of the annotation guidelines.
+
+The semantic annotation of verbal predicates was done
+
+semiautomatically (Mart´ı et al., 2007). Firstly thematic
+
+4.1. Morphological level
+
+roles were automatically associated with the syntactic func-
+
+tions on the basis of the verbal lexicons AnCora-Verb- This level distinguishes the part of speech (PoS) and mi-
+
+Es and Ancora-Verb-Ca. nor morphological categories such as gender, number, case, These lexicons make explicit
+
+the mapping between syntax and semantics (Aparicio et person, time, and mode. Each tag consists of a series of dig-
+
+al., 2008). A set of manually written rules automatically its: the first corresponds to the main category (e.g. noun),
+
+mapped part of the information declared in these verbal lex- and the second to the subcategory (e.g. common noun).
+
+icons onto the syntactic structure, which made it possible to Since all the possible tags are automatically assigned to
+
+tag the treebanks with thematic roles and semantic classes. each word, the morphological disambiguation tool RELAX
+
+The output from the automatic stage was either full –both (Padr´o, 1998) was used to obtain a single tag-lemma pair
+
+arguments and thematic roles– or partial –with either argu- for each word. Figure 1 shows the output of the morpho-
+
+ments or thematic roles. This level of annotation was finally logical disambiguation process for the Spanish sentence Si
+
+revised and completed by hand. trabajo bajo presi´on bajo el inter´es ’If (I) work under pres-
+
+sure (I) decrease the interest’.
+
+4. AnCora level-by-level
+
+Before proceeding to the description of AnCora on a level- Word Lemma PoS by-level basis, we present the general figures of both cor- Si si CS pora. On the one hand, AnCora-Ca contains 483,859 to- trabajo trabajar VMIP1S0
+
+bajo bajo SPS00
+
+kens (including punctuation marks); 39,258 types (differ-
+
+presi´on presi´on NCFS000
+
+ent word forms); and 27,977 lemmas. On the other hand,
+
+bajo bajar VMIP1S0
+
+Ancora-Es consists of 187,278 tokens; 25,349 types; and el el DA0MS0 16,867 lemmas. inter´es inter´es NCMS000 Tables 1 and 2 show the ten most frequent words in each . . Fp corpus. Notice that despite the difference in corpus size,
+
+the top ten words overlap to a great extent. All them are Figure 1: Output of the morphological annotation
+
+functional. The first noun does not appear until the 36th
+
+and 28th positions, being ’year’ both for Spanish (a˜no) and
+
+Catalan (any); and the first verb for Spanish is ser ’to be’ If we take into account the complete tag, AnCora has 280
+
+found in the 11th position, unlike Catalan haver ’to have’ different labels; whereas 47 tags if only the first two digits
+
+in the 10th position. are considered. Table 3 shows the relative frequencies of
+
+all categories and the most relevant subcategories: proper
+
+Frequency % Lemma and common nouns, definite articles and other determiners,
+
+18,284 9.74 el (’the’) auxiliary and main verbs, and the verb to be. This verb is 11,353 6.05 , set apart because in Spanish and Catalan it can function as 10,220 5.45 de (’of’) either auxiliary (passive voice) or main verb.
+
+5,844 3.11 .
+
+5,539 2.95 que (’that’) 4.2. Syntactic level
+
+4,318 The two AnCora treebanks result from this annotation level 2.30 4,619 2.46 en (’in’)
+
+y (’and’)
+
+3,599 on the basis of constituents and functions. Five main prin- 1.92 uno (’a, an’)
+
+2,992 ciples underlie the development of these treebanks: 1.59 a (’to’)
+
+2,972 1.58 ”
+
+• The only implicit information added was elliptical
+
+Table 1: The top ten words in AnCora-Es subjects.
+
+• Constituents were preferred to dependencies (these
+
+The following subsections present in detail each level of were obtained in a subsequent stage by a conversion
+
+annotation. process (Civit et al., 2006)).
+
+97
+
+PoS tag AnCora-Es (%) AnCora-Ca (%) amounts to 7.4% in AnCora-Es, and even more in AnCora-Adjective 7,25 6.10 Ca, 11%. From a linguistic point of view, finding expla-Conjunction 5,50 4.80 nations for these differences can cast light on constructions Definite article 9,74 10.02 which are more specific to one of the two languages. For Determiner 5,37 4.44 instance, inaccusativity. Punctuation mark 12,80 11.71 Word order is more flexible in Spanish and Catalan than it Common noun 17,87 18.34
+
+is in English. AnCora makes it evident that a large number
+
+Pronoun of different syntactic orders are possible: SV, SVO, SOV, 4,51 Proper noun 5,29 6.10
+
+4.63
+
+Adverb OSV, etc. The figures for AnCora-Ca are 27%, 28%, 2%, 3,86 3.19
+
+Preposition 2%, respectively. These figures are helpful both for theo- 15,19 15.73
+
+Auxiliary verb retical and computational linguistics. 0,92 2.91 Main verb 9,54 9.16 ser (’to be’) 4.3. Semantic level 1,27 0.95
+
+The AnCora corpora are annotated with different kinds
+
+Table 3: PoS tags in AnCora of semantic information: the argument structure of ver-
+
+bal predicates and their semantic class (4.3.1.), the the-
+
+matic role associated with each argument (4.3.2.), NEs both
+
+strong and weak (4.3.3.), and WordNet synsets for all nouns
+
+(4.3.4.).
+
+4.3.1. Arguments A semiautomatic process was followed to enrich syntac-
+
+tic functions with their semantic argument, distinguishing
+
+Arg0, Arg1, Arg2, Arg3, Arg4, ArgM, ArgA, and ArgL.
+
+The first five tags are numbered from less to more oblique-
+
+ness with respect to the verb; ArgM corresponds to ad-
+
+juncts; ArgA are external agents (e.g. Juan pasea al perro.
+
+’John takes the dog for a walk.’); and ArgL codes comple-
+
+ments of light verbs (very often lexicalised, e.g. dar un beso
+
+’to give a kiss’). Discourse elements and modality tags do
+
+not receive any semantic label. Hence, approximately 90%
+
+of syntactic tags have a semantic argument.
+
+Table 5 shows the possible functions that can realise each
+
+argument with the relative frequencies in each corpus.
+
+47 combinations of arguments and functions are possible,
+
+and 86 combinations of functions, arguments and thematic
+
+
+
+roles.
+
+Figure 2: Output of the syntactic annotation
+
+4.3.2. Thematic roles The list of thematic roles consists of 20 different la-
+
+• Arguments and adjuncts were not distinguised in the bels: AGT (Agent), AGI (Induced Agent), CAU (Cause),
+
+tree structure. They are all sister nodes. EXP (Experiencer), SCR (Source), PAT (Patient), TEM
+
+• (Theme), ATR (Attribute), BEN (Beneficiary), EXT (Ex-
+
+The surface order was maintained.
+
+tension), INS (Instrument), LOC (Locative), TMP (Time),
+
+• Theory neutral. MNR (Manner), ORI (Origin), DES (Goal), FIN (Purpose),
+
+EIN (Initial State), EFI (Final State), and ADV (Adver-
+
+A complete parse tree annotated with constituents and func- bial). Each argument position can map onto specific the-
+
+tions is illustrated in Figure 2 for the Spanish sentence La matic roles. By way of example, Arg0 can be AGT, CAU,
+
+declaraci´on propugn´o trabajar por la igualdad social ’The EXP or SRC; and Arg1 can be PAT, TEM or EXT. Figure 4
+
+declaration advocated working for the social equality’. The shows the treebank enriched with arguments and thematic
+
+syntactic annotation falls into three groups according to roles. its relation with the verb: verbal functions, external ver-
+
+bal complements (discourse elements), and verbal modi- 4.3.3. Named entities fiers (modality). Table 4 presents relative frequencies of The AnCora corpora were annotated with both strong and
+
+each tag. weak NEs (Borrega et al., 2007). We define strong NEs
+
+Interestingly enough, given that the two Romance lan- as corresponding to a word, a number, a date, or a string
+
+guages are pro-drop, a quarter of all subjects are elliptical of words that refer to a single individual entity in the real
+
+in AnCora-Ca, and more than half in AnCora-Es. The syn- world. From the point of view of the parse tree, strong
+
+tactic annotation makes it possible to obtain easily occur- NEs correspond to a linguistic unit with a PoS tag. Ex-
+
+rence frequencies of certain linguistic constructions, such amples of strong NEs are personal names and surnames,
+
+as the frequency of verbs with a postponed subject, which book titles, some geographical and country names, dates,
+
+98
+
+Syntactic type Syntactic tag Ancora-Es (%) Ancora-Ca (%)
+
+Attribute 5.20 4.39 Agent complement 0.98 1.08 Adverbial complement 27.49 23.80 Direct object 20.30 21.06
+
+Functions
+
+Indirect object 2.33 1.82 Predicative 1.34 1.70 Prepositional complement 3.80 5.23 Subject 30.46 30.43 Sentence adjunct 1.62 2.42
+
+Discourse
+
+Textual element 1.20 1.34
+
+elements Vocative 0.02 0.01
+
+Impersonal tag 0.32 0.39 Modality 3.54 3.40
+
+Modality
+
+Negation 0.01 0.03 Passive tag 1.34 2.87
+
+Table 4: Syntactic tags in AnCora
+
+
+
+Argument Syntactic function AnCora-Es (%) AnCora-Ca (%) Arg0 Agent complement, Direct object, Indirect object, Subject 16.72 17.18 Arg1 Adjunct, Direct object, Prep. comp., Subject 33.36 34.38 Arg2 Attribute, Adjunct, Direct object, Indirect object, Predicative, Prep. comp., Subject 13.70 13.45 Arg3 Adjunct, Indirect object, Predicative 0.54 0.41 Arg4 Adjunct 0.68 0.58 ArgM Adjunct, Predicative 25.80 23.05 ArgA Prep. comp., Subject 0.01 0.02 ArgL Adjunct, Direct object, Predicative, Prep. comp., Subject 0.49 0.42
+
+Table 5: Mapping from syntax to semantics
+
+
+
+etc. In these cases, we analysed and annotated the whole NE AnCora-Es (%) AnCora-Ca (%) string as a single element, thus enriching the PoS tag with Organization 29.84 29.81 information about the semantic class of the entity. Exam- Location 18.10 24.79
+
+ples from the AnCora-Ca corpus (Figure 3) include person Person 34.10 24.14 Strong Number 5.07 4.79 (np0000p), date (W), number (Z), number-currency (Zm), and number-percentage (Zp). Date 4.08 4.69
+
+Other 8.81 11.78
+
+Weak NEs consist of a noun phrase, being it simple or com- Organization 32.04 34.32
+
+plex. Therefore, they are syntactic elements. Weak NEs do Location 21.03 26.68
+
+Weak
+
+Person 35.85 25.69
+
+not necessarily have a strong NE within as a constituent.
+
+Other 9.00 12.31
+
+Some definite noun phrases whose head is a common noun
+
+may become a weak NE because of syntactic, semantic or Table 6: Strong and weak NEs pragmatic reasons. All definite noun phrases whose head
+
+is a trigger word complemented by either a national adjec-
+
+tive or a relational adjective derived from a proper noun are
+
+considered weak NEs. 4.3.4. WordNet
+
+The lexical semantic annotation consists in assigning a
+
+With regard to the semantic types assigned to each NE, six WordNet sense to each noun. This process was carried out
+
+basic semantic categories were distinguished (Table 6). manually. We used a steady version of Catalan and Span-
+
+ish EuroWordNets-1.6 (December 2005). Each noun was
+
+assigned either a WordNet sense or a label indicating a spe-
+
+cial circumstance:
+
+C2S: The word does not exist in WordNet.
+
+C3S: The word is part of a multiword lexical unit or a
+
+lexicalized inflected form.
+
+C4S: The word is part of a named entity.
+
+C5S: The tagger is strongly uncertain.
+
+
+
+C6S: The word was improperly lemmatized or PoS-tagged.
+
+Figure 3: Output of the NE annotation C7S: The word is wrongly used: a misspelling or a
+
+99
+
+loanword.
+
+A total amount of 76,307 nouns in AnCora-Ca received a
+
+WordNet synset. The number of C2S tokens is 30,078,
+
+which points out a need for enlarging the Catalan Eu-
+
+roWordNet. For Spanish no data are available as yet.
+
+5. A fully annotated example
+
+Figure 4 illustrates the multilevel annotated Catalan sen-
+
+tence:
+
+Rigol consider`a que en la definici´o d’aquest nou projecte
+
+no es pot oblidar ni passar per alt el nostre passat.
+
+’Rigol considered that in the definition of this new project
+
+we can neither forget nor ignore our past.’
+
+At the level below the sentence (S), we find the main con-
+
+stituents containing the type (e.g. sn [NP]), the syntac-
+
+tic function (e.g.-SUJ), the argument (e.g.-Arg0-), the the-
+
+matic role (e.g. -AGT). Phrases corresponding to a weak
+
+NE specify the class by adding its code at the end of the
+
+constituent label (e.g. snp for ’persons’). At word level,
+
+all tokens are preceded by their PoS and followed by their
+
+lemma. Nouns and verbs are additionally annotated:
+
+- Nouns: proper nouns have their PoS enriched with
+
+the NE class (e.g. np0000p). Common nouns re-
+
+ceive their WordNet synset following the lemma (e.g.
+
+05054071n).
+
+- Verbs: the semantic verb class is indicated after the
+
+lemma (e.g. -A2).
+
+
+
+6. Conclusions
+
+We have presented two new language resources for Cata-
+
+lan and Spanish: the AnCora corpora, a multilevel anno-
+
+tated corpus freely available from the Web. The systematic
+
+procedure followed in the annotation procedure and the lin-
+
+guistically well-founded coding schemes ensure the consis-
+
+
+
+tency and reliability of the different annotation levels.
+
+The AnCora corpora are useful resources both to train and Figure 4: Sentence with all the annotation levels.
+
+to test several NLP systems. The treebanks have been used to build two parsers for Spanish: (Cowan and Collins,
+
+2005) from the first 3LB treebank, and (Carreras et al., D´ıaz Cabrera, Silvia Garcia Casaseca, Raquel Hern´andez
+
+2006). Bitinas, Marina Lloberes Salvatella, Raquel Marcos, Difda
+
+In future work, we plan to enlarge the annotation of Monterde Puig, Borja Navarro Colorado, Aina Peris
+
+AnCora-Es up to 500,000 words, and to enrich both cor- Morant, Lourdes Puiggros Casals, Marta Recasens Potau,
+
+pora with coreference information as well as the argument Alba Rodr´ıguez Vidal, Rita Zaragoza Jove, and B`arbara So-
+
+structure of nominal predicates. riano Bautista.
+
+Acknowledgements 7. References
+
+The development of AnCora has been funded by the fol- J. Aparicio, M. Taul´e, and M.A. Mart´ı. 2008. Ancora-
+
+lowing projects: 3LB (FIT-150-500-2002-244), CESS- Verb: A lexical resource for the semantic annotation of ECE (HUM2004-21127), PRAXEM (HUM2006-27378- corpora. In Proceedings of the 6th International Con-
+
+E), and Lang2World (TIN2006-15265-C06-06, http:// ference on Language Resources and Evaluation (LREC
+
+gplsi.dlsi.ua.es/text-mess) from the Spanish 2008), Marrakech, Morocco. Ministry of Education and Science, and the funding given O. Borrega, M. Taul´e, and M.A. Mart´ı. 2007. What do we
+
+by the Catalan Secretary of Linguistic Policy. mean when we talk about named entities? In Proceed-
+
+We would also like to thank all the annotators: Joan Apari- ings of the 4th Corpus Linguistics Conference, Birming-
+
+cio Mera, Oriol Borrega Cepa, Isabel Briz Hern´andez, ham, UK. N´uria Buf´ı Cabrol, Montserrat Civit Torruella, Maria Jes´us X. Carreras, M. Surdeanu, and L. M`arquez. 2006. Projec-
+
+100
+
+tive dependency parsing with perceptron. In Proceedings
+
+of CoNLL-X Shared Task, New York.
+
+M. Civit and M.A. Mart´ı. 2004a. Building Cast3LB: a
+
+Spanish treebank. Research on Language and Compu-
+
+tation, 2(4):549–574.
+
+M. Civit and M.A. Mart´ı. 2004b. Est´andares de anotaci´on
+
+morfosint´actica para el espa˜nol. In Proceedings of the
+
+9th Ibero-American Workshop on Artificial Intelligence.
+
+Iberamia Conference, pages 217–224, Mexico.
+
+M. Civit, M.A. Mart´ı, and N. Buf´ı. 2006. Cat3LB and
+
+Cast3LB: From constituents to dependencies. In Ad-
+
+vances in Natural Language Processing. Lecture Notes
+
+in Computer Science, volume 4139, pages 141–152.
+
+Springer Verlag, Berlin.
+
+B. Cowan and M. Collins. 2005. Morphology and rerank-
+
+ing for the statistical parsing of Spanish. In Proceed-
+
+ings of the Human Language Technology Conference
+
+and Conference on Empirical Methods in Natural Lan-
+
+guage Processing (HLT-EMNLP2005), pages 795–802,
+
+Vancouver, Canada.
+
+E. Hovy, M. Marcus, M. Palmer, L. Ramshaw, and
+
+R. Weischedel. 2006. OntoNotes: the 90% solution. In
+
+Proceedings of the Human Language Technology Con-
+
+ference of the North American Chapter of the ACL (HLT-
+
+NAACL2006), pages 57–60.
+
+N.G. Linh and Z. Zabokrstsky. 2007. Rule-based approach
+
+to pronominal anaphora resolution applied on the Prague
+
+Dependency Treebank 2.0 Data. In Proceedings of the
+
+6th Discourse Anaphora and Anaphor Resolution Collo-
+
+quium (DAARC2007), pages 77–81, Lagos, Portugal.
+
+M.A. Mart´ı and M. Taul´e, editors. 2008. CESS-ECE
+
+TreeBanks, Barcelona. Publicacions de la Universitat de
+
+Barcelona.
+
+M.A. Mart´ı, M. Taul´e, M. Bertran, and L. M`arquez. 2007.
+
+Anotaci´on semiautom´atica con papeles tem´aticos de los
+
+corpus CESS-ECE. Procesamiento del Lenguaje Nat-
+
+ural, 38:67–76.
+
+L. Padr´o. 1998. A Hybrid Environment for Syntax–
+
+Semantic Tagging. Ph.D. thesis, Departament de Llen-
+
+guatges i Sistemes Inform`atics, Universitat Polit`ecnica
+
+de Catalunya.
+
+N. Sebasti´an, M.A. Mart´ı, M.F. Carreiras, and F. Cuetos.
+
+2000. LEXESP: L´exico Informatizado del Espa˜nol. Pub-
+
+licacions de la Universitat de Barcelona, Barcelona.
+
+
+
+101
+
+
+
+
+

@@ -1,4 +1,19 @@
 {
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    
+    "pylint.args": [
+        "--rcfile=${workspaceFolder}/.pylintrc"
+    ],
+    
+    "black-formatter.args": [
+        "--line-length",
+        "100"
+    ],
+    
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true,
@@ -6,10 +21,12 @@
             "source.organizeImports": "explicit"
         }
     },
-    "isort.args": [
-        "--profile",
-        "black"
-    ],
-    "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.ignore": ["**/lib/**", "**/site-packages/**"]
+    
+    "files.exclude": {
+        "**/.git": true,
+        "**/.mnemosyne": true,
+        "**/__pycache__": true,
+        "**/.mypy_cache": true,
+        "**/*.pyc": true
+    }
 }

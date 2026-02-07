@@ -1,0 +1,213 @@
+# Grammatomy Syntactic Rules - Spanish (AnCora/Hybrid)
+# Version: 2.1
+# PART 1 OF 2: Meta, Strategies, Sentence, Nominal & Verbal Groups
+
+meta:
+  language: es
+  default_strategy: lax
+
+strategies:
+  lax:
+    description: "Neural/SOTA. Tolerates collapsed hierarchies (e.g., sn -> NOUN) and UD tags."
+    allow_collapsed: true
+    strict_head_check: false
+  strict:
+    description: "AnCora Academic. Enforces X-Bar hierarchy (e.g., sn -> grup.nom -> NOUN)."
+    allow_collapsed: false
+    strict_head_check: true
+
+# Transparency Map: Normalizes tags for intersection algorithm
+label_transparency:
+  - id: NOUN_EQUIV
+    tags: [n, nc, np, NOUN, PROPN]
+  - id: VERB_EQUIV
+    tags: [v, vb, vbd, vbg, vbn, vbp, vbz, VERB]
+  - id: AUX_EQUIV
+    tags: [aux, AUX]
+  - id: ADP_EQUIV
+    tags: [prep, ADP]
+
+# Node Definitions
+# 'rules' key defines constraints. If a strategy is not specified, 'all' applies.
+
+nodes:
+  # --- ROOT & SENTENCE ---
+  ROOT:
+    type: group
+    rules:
+      all:
+        allowed_children: [S, sentence, frase] # 'sentence' sometimes used by Spacy
+
+  S:
+    type: group
+    description: "Oración / Sentence. Standard PTB Root or Subordinate Clause."
+    rules:
+      lax:
+        allowed_children: [S, grup.verb, sn, sp, grup.nom, morfema.pronominal, conj, f0, PUNCT, VERB, AUX, neg, "no"]
+      strict:
+        allowed_children: [S, grup.verb, sn, sp, grup.nom, morfema.pronominal, conj, PUNCT, neg, "no"]
+        # Strict requires a verbal group container
+        mandatory_children: [[grup.verb]] 
+
+  sentence:
+    type: group
+    description: "Oración / Sentence (AnCora XML Tag). Preferred Root node by models."
+    rules:
+      lax:
+        allowed_children: [S, grup.verb, sn, sp, grup.nom, morfema.pronominal, conj, f0, PUNCT, VERB, AUX, neg, "no"]
+      strict:
+        allowed_children: [S, grup.verb, sn, sp, grup.nom, morfema.pronominal, conj, PUNCT, neg, "no"]
+        mandatory_children: [[grup.verb]]
+
+  # --- NOMINAL PHRASE ---
+  sn:
+    type: group
+    description: "Sintagma Nominal"
+    rules:
+      lax:
+        allowed_children: [sn, grup.nom, spec, sp, s.a, f0, conj, NOUN, PROPN, PRON, DET, NUM]
+      strict:
+        allowed_children: [sn, grup.nom, spec, sp, s.a, PUNCT, conj]
+        # AnCora requires intermediate group
+        mandatory_children: [[grup.nom]]
+
+  grup.nom:
+    type: group
+    description: "Grupo Nominal"
+    rules:
+      all:
+        # S allowed for relative clauses (AnCora recursion)
+        allowed_children: [grup.nom, NOUN, PROPN, PRON, s.a, sp, S, sn, PUNCT, conj, NUM, n, nc, np]
+      strict:
+        # Paradigmatic Obligation (OR): Must have a nominal head.
+        mandatory_children: [[NOUN, PROPN, PRON, n, nc, np, NUM]]
+
+  spec:
+    type: group
+    description: "Especificador"
+    rules:
+      all:
+        allowed_children: [spec, DET, NUM, d, r, adv, PUNCT]
+
+  # --- VERBAL GROUP ---
+  grup.verb:
+    type: group
+    description: "Grupo Verbal"
+    rules:
+      all:
+        # Intersection of {VERB, v, ...} will yield VERB_EQUIV
+        allowed_children: [grup.verb, VERB, AUX, v, vb, vbd, vbg, vbn, vbp, vbz, gerundi, participi, infinitiu, neg, "no", morfema.pronominal, PUNCT]
+      strict:
+        # Paradigmatic Obligation (OR): Must have a verbal head.
+        mandatory_children: [[VERB, AUX, v, vb, vbd, vbg, vbn, vbp, vbz, gerundi, participi, infinitiu]]
+
+  morfema.pronominal:
+    type: group
+    description: "Morfema Pronominal (se/me/te...)"
+    rules:
+      all:
+        allowed_children: [PRON, p]
+
+# ... CONTINUES IN PART 2 ...
+
+  # --- PREPOSITIONAL PHRASE ---
+  sp:
+    type: group
+    description: "Sintagma Preposicional"
+    rules:
+      all:
+        allowed_children: [sp, ADP, prep, sn, S, s.a, sadv, grup.nom, grup.verb, PUNCT]
+      strict:
+        # Syntagmatic Obligation (AND): Requires [Preposition] AND [Term].
+        # The Term itself is a Paradigmatic choice (OR).
+        mandatory_children: [[ADP, prep], [sn, S, s.a, sadv, grup.nom, grup.verb, NOUN, PROPN, PRON]]
+
+  # --- ADJECTIVAL & ADVERBIAL PHRASES ---
+  s.a:
+    type: group
+    description: "Sintagma Adjetival"
+    rules:
+      all:
+        allowed_children: [s.a, grup.a, ADJ, a, spec, sadv, sp, S, conj, PUNCT]
+      strict:
+        # Strict AnCora: Must contain the intermediate group (grup.a)
+        mandatory_children: [[grup.a]]
+
+  grup.a:
+    type: group
+    description: "Grupo Adjetival (AnCora)"
+    rules:
+      all:
+        allowed_children: [ADJ, a, sp, S, sadv, conj, PUNCT]
+      strict:
+        mandatory_children: [[ADJ, a]]
+
+  sadv:
+    type: group
+    description: "Sintagma Adverbial"
+    rules:
+      all:
+        allowed_children: [sadv, grup.adv, ADV, r, spec, sp, PUNCT]
+      strict:
+        # Strict AnCora: Must contain the intermediate group (grup.adv)
+        mandatory_children: [[grup.adv]]
+
+  grup.adv:
+    type: group
+    description: "Grupo Adverbial (AnCora)"
+    rules:
+      all:
+        allowed_children: [ADV, r, sp, conj, PUNCT]
+      strict:
+        mandatory_children: [[ADV, r]]
+
+  # --- COORDINATION & MISC ---
+  conj:
+    type: group
+    description: "Conjunción"
+    rules:
+      all:
+        allowed_children: [CONJ, CCONJ, SCONJ, c, PUNCT]
+
+  neg:
+    type: group
+    description: "Negación"
+    rules:
+      all:
+        allowed_children: [ADV, r, "no"]
+
+  f0:
+    type: group
+    description: "Puntuación"
+    rules:
+      all:
+        allowed_children: [PUNCT, fp, fat, fc, fd, fe, fg, fh, fi, fm, fp, fs, fx, fz]
+
+  # --- LEAF NODES (PRE-TERMINALS) ---
+  # Universal Dependencies (UD) Tags - Used by Neural Models
+  NOUN: { type: leaf }
+  PROPN: { type: leaf }
+  VERB: { type: leaf }
+  AUX: { type: leaf }
+  ADJ: { type: leaf }
+  ADV: { type: leaf }
+  DET: { type: leaf }
+  PRON: { type: leaf }
+  ADP: { type: leaf }
+  CCONJ: { type: leaf }
+  SCONJ: { type: leaf }
+  NUM: { type: leaf }
+  PUNCT: { type: leaf }
+
+  # AnCora Native Tags (for completeness and strict validation)
+  n: { type: leaf }
+  nc: { type: leaf }
+  np: { type: leaf }
+  v: { type: leaf }
+  a: { type: leaf }
+  r: { type: leaf }
+  d: { type: leaf }
+  p: { type: leaf }
+  c: { type: leaf }
+  prep: { type: leaf }
+  fp: { type: leaf }

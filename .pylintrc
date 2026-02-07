@@ -1,0 +1,44 @@
+[MASTER]
+# Ignorar carpetas de metadatos y entornos virtuales
+ignore=.git,.mnemosyne,__pycache__,venv,env,node_modules,.mypy_cache,archive
+
+# Inyectar ./src en el path de Python para que Pylint encuentre los módulos locales (grammatomy, core, etc.)
+init-hook='import sys; sys.path.append("./src")'
+
+[MESSAGES CONTROL]
+disable=
+    C0114, ; missing-module-docstring (Podemos activarlo más adelante para documentación estricta)
+    C0115, ; missing-class-docstring (Idem)
+    C0116, ; missing-function-docstring (Idem)
+    R0903, ; too-few-public-methods (Incompatible con Pydantic/FastAPI models que son solo datos)
+    C0330, ; bad-continuation (Black/Ruff se encargan del formato, Pylint no debe opinar aquí)
+    C0326, ; bad-whitespace (Idem)
+    W0621, ; redefined-outer-name (Falso positivo crítico en tests que usan fixtures de Pytest)
+    E0611, ; no-name-in-module (Frecuente en importaciones dinámicas de Pydantic v2)
+    R0801, ; duplicate-code (A veces demasiado estricto con imports repetidos en __init__.py)
+    C0103, ; invalid-name (Relajamos para permitir variables matemáticas cortas como x, y, n, f)
+    W0511, ; fixme (Para que no falle si dejamos TODOs en el código)
+
+[FORMAT]
+# Aumentamos el límite para ser compatibles con pantallas modernas y Black (88 o 100)
+max-line-length=100
+
+[TYPECHECK]
+# Lista de miembros generados dinámicamente que Pylint no puede ver estáticamente
+# Esto soluciona la mayoría de los errores "E1101: Module has no member"
+generated-members=pydantic.*,stanza.*,torch.*,numpy.*,cv2.*
+
+# Módulos que Pylint debe importar para chequear, pero que a veces fallan al instalarse parcialmente
+ignored-modules=pydantic,fastapi,uvicorn
+
+[BASIC]
+# Permitir nombres de variables cortos (común en algoritmos de grafos/árboles: n, s, v)
+good-names=i,j,k,ex,Run,_,fp,id,n,s,v,df,x,y
+
+[DESIGN]
+# Aumentar ligeramente la complejidad permitida para algoritmos de parsing recursivo
+max-args=8
+max-attributes=10
+
+[SIMILARITIES]
+ignore-imports=yes

@@ -1,0 +1,7 @@
+# Instalar dependencias de desarrollo del workspace
+-e .[dev]
+
+# Instalar los sub-proyectos en modo editable
+-e ./src/core
+-e ./src/api
+-e ./src/studio

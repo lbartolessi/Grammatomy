@@ -2,9 +2,9 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-
-from grammatomy.api.main import app
 from grammatomy.parsers.lisp_parser import SyntaxNode
+
+from src.api.app.main import app
 
 client = TestClient(app)
 
@@ -24,7 +24,7 @@ MOCK_ROOT.raw_lisp = "(S (NP (Det El)) (VP (V come)))"
 @pytest.fixture
 def mock_parser():
     """Mocks the core parsing logic to avoid loading heavy models."""
-    with patch("grammatomy.api.main.get_syntax_tree") as mock:
+    with patch("src.api.app.main.get_syntax_tree") as mock:
         mock.return_value = MOCK_ROOT
         yield mock
 
@@ -33,7 +33,7 @@ def mock_parser():
 def mock_graphviz():
     """Mocks graphviz generation and piping."""
     with patch(
-        "grammatomy.api.main.get_graphviz_dot", return_value="digraph G {}"
+        "src.api.app.main.get_graphviz_dot", return_value="digraph G {}"
     ) as mock_dot:
         with patch(
             "graphviz.Source.pipe", return_value=b"\x89PNG\r\n\x1a\n"
@@ -49,7 +49,7 @@ def test_root_endpoint():
 
 def test_parse_endpoint_success(mock_parser):  # pylint: disable=redefined-outer-name
     payload = {"text": MOCK_TEXT, "engine": "stanza", "lang": "es"}
-    response = client.post("/parse", json=payload)
+    response = client.post("/api/parse", json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -71,7 +71,7 @@ def test_parse_endpoint_failure(mock_parser):  # pylint: disable=redefined-outer
     mock_parser.return_value = None
 
     payload = {"text": "Fail me"}
-    response = client.post("/parse", json=payload)
+    response = client.post("/api/parse", json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -84,21 +84,21 @@ def test_render_ascii(
     mock_parser,
 ):  # pylint: disable=redefined-outer-name, unused-argument
     payload = {"text": MOCK_TEXT}
-    response = client.post("/render/ascii", json=payload)
+    response = client.post("/api/render/ascii", json=payload)
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/plain")
     # Check for tree structure in text
     assert "S" in response.text
     assert "NP" in response.text
-    assert ": El" in response.text
+    assert "class='style-word'>\"El\"</span>" in response.text
 
 
 def test_render_json(
     mock_parser,
 ):  # pylint: disable=redefined-outer-name, unused-argument
     payload = {"text": MOCK_TEXT}
-    response = client.post("/render/json", json=payload)
+    response = client.post("/api/render/json", json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -112,7 +112,7 @@ def test_render_lisp(
     mock_parser,
 ):  # pylint: disable=redefined-outer-name, unused-argument
     payload = {"text": MOCK_TEXT}
-    response = client.post("/render/lisp", json=payload)
+    response = client.post("/api/render/lisp", json=payload)
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/plain")
@@ -123,7 +123,7 @@ def test_render_graphviz(
     mock_parser, mock_graphviz
 ):  # pylint: disable=redefined-outer-name, unused-argument
     payload = {"text": MOCK_TEXT}
-    response = client.post("/render/graphviz", json=payload)
+    response = client.post("/api/render/graphviz", json=payload)
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/png"
@@ -136,7 +136,7 @@ def test_render_lisp_missing_attr(mock_parser):  # pylint: disable=redefined-out
     mock_parser.return_value = mock_node_no_lisp
 
     payload = {"text": MOCK_TEXT}
-    response = client.post("/render/lisp", json=payload)
+    response = client.post("/api/render/lisp", json=payload)
 
     assert response.status_code == 404
     assert "Original LISP string not available" in response.json()["detail"]

@@ -5,6 +5,13 @@ import sys
 from pathlib import Path
 
 import yaml
+from anytree import PostOrderIter
+
+# Import Grammatomy Core
+from grammatomy import from_ptb, get_syntax_tree
+from grammatomy.logger import setup_logging
+from grammatomy.ui.syntax_editor import SyntaxEditor
+from grammatomy.validation import validate_ghosts
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
@@ -12,6 +19,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -24,11 +32,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-# Import Grammatomy Core
-from grammatomy import from_ptb, get_syntax_tree
-from grammatomy.logger import setup_logging
-from grammatomy.ui.syntax_editor import SyntaxEditor
-from grammatomy.validation import validate_ghosts, validate_structure
+# Add src/core to path to import ValidationEngine directly
+PROJECT_ROOT = Path(__file__).parents[1]
+sys.path.append(str(PROJECT_ROOT / "src" / "core"))
+from validation_engine import ValidationEngine
+
+RULES_PATH = PROJECT_ROOT / "src" / "core" / "rules_es.yaml"
 
 
 class QLogHandler(logging.Handler, QObject):
@@ -66,6 +75,9 @@ class GrammatomyStudio(QMainWindow):
             name="grammatomy_studio", log_file=None, console_level=logging.INFO
         )
         self.setup_gui_logging()
+
+        # Initialize Validator Engine
+        self.validator = ValidationEngine(str(RULES_PATH), strategy="lax")
 
         # Main Container
         main_widget = QWidget()
@@ -118,6 +130,16 @@ class GrammatomyStudio(QMainWindow):
         lang_layout.addWidget(lang_lbl)
         lang_layout.addWidget(self.combo_lang)
         sidebar_layout.addLayout(lang_layout)
+
+        # 3. Validation Strategy Selector
+        strat_group = QGroupBox("Estrategia de Validación")
+        strat_layout = QVBoxLayout()
+        self.combo_strategy = QComboBox()
+        self.combo_strategy.addItems(["lax", "strict"])
+        self.combo_strategy.currentTextChanged.connect(self.on_strategy_changed)
+        strat_layout.addWidget(self.combo_strategy)
+        strat_group.setLayout(strat_layout)
+        sidebar_layout.addWidget(strat_group)
 
         # Input Box
         input_lbl = QLabel("Entrada / Input:")
@@ -206,6 +228,12 @@ class GrammatomyStudio(QMainWindow):
                 self.logger.warning("Examples file not found at %s", path)
         except (OSError, yaml.YAMLError) as e:
             self.logger.error("Error loading examples: %s", e)
+
+    def on_strategy_changed(self, strategy):
+        """Updates the validation strategy and re-validates."""
+        self.validator.set_strategy(strategy)
+        self.logger.info(f"Estrategia cambiada a: {strategy.upper()}")
+        self.validate_current_tree(silent_success=False)
 
     def set_random_sentence(self):
         """Picks a random sentence for the selected language."""
@@ -304,9 +332,34 @@ class GrammatomyStudio(QMainWindow):
                 return
 
             # 2. Flexible Check: Structure
-            warnings = validate_structure(root)
-            for w in warnings.values():
-                self.logger.warning(w)
+            warnings = []
+
+            # Open log file for this validation session
+            with open("validation_debug.log", "w", encoding="utf-8") as log_file:
+                log_file.write(f"Validation Session for Root: {root.name}\n")
+                log_file.write("=" * 60 + "\n")
+
+                # Use PostOrderIter for Bottom-Up validation
+                for node in PostOrderIter(root):
+                    children = [c.name for c in node.children]
+                    descendants = [d.name for d in node.descendants]
+
+                    is_valid, node_errors, trace = self.validator.validate_node(
+                        node.name,
+                        children,
+                        descendants,
+                    )
+
+                    # Log trace to file
+                    if trace:
+                        log_file.write(f"\nNode: {node.name} (Valid: {is_valid})\n")
+                        for t in trace:
+                            log_file.write(f"    {t}\n")
+
+                    if not is_valid:
+                        for err in node_errors:
+                            warnings.append(f"[{node.name}] {err}")
+                            self.logger.warning(f"[{node.name}] {err}")
 
             if not ghosts and not warnings and not silent_success:
                 self.logger.info("Validation Passed: Tree is structurally sound.")

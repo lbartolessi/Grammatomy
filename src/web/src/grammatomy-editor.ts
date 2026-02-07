@@ -35,6 +35,9 @@ export class GrammatomyEditor extends LitElement {
   @property({ type: String })
   ptb: string = "";
 
+  @property({ type: String })
+  validationStrategy: string = "lax";
+
   @state()
   private selectedNode: any = null;
 
@@ -50,6 +53,8 @@ export class GrammatomyEditor extends LitElement {
   private validConversionTags: string[] = [];
   @state()
   private validationErrors: string[] = [];
+  @state()
+  private validationTrace: string[] = [];
   @state()
   private selectedNodeRule: any = {};
 
@@ -102,6 +107,10 @@ export class GrammatomyEditor extends LitElement {
   ) {
     if (this.cy && changedProperties.has("ptb") && this.ptb) {
       this.loadPtb(this.ptb, true);
+    }
+    if (this.cy && changedProperties.has("validationStrategy")) {
+      console.log(`[Editor] Revalidating with strategy: ${this.validationStrategy}`);
+      this.validateAllNodes().then(() => this.classifyNodes());
     }
   }
 
@@ -468,21 +477,39 @@ export class GrammatomyEditor extends LitElement {
   }
 
   private async validateAllNodes() {
-    const nodesToValidate = this.cy.nodes().toArray();
-    const validationPromises = nodesToValidate.map((node) =>
-      this.validateNode(node),
-    );
+    // Perform Bottom-Up Validation (Post-Order)
+    // 1. Get all nodes
+    const allNodes = this.cy.nodes();
+    
+    // 2. Sort by depth (deepest first) or topological sort
+    // A simple way is to use the fact that leaves have no outgoers in the tree structure (edges go Parent->Child)
+    // Cytoscape's topological sort gives parents before children. We reverse it.
+    const sortedNodes = allNodes.sort((a, b) => {
+        // Sort by depth descending
+        const depthA = this.getNodeDepth(a);
+        const depthB = this.getNodeDepth(b);
+        return depthB - depthA;
+    });
+
     try {
-      await Promise.all(validationPromises);
+      // Validate sequentially to propagate validity
+      for (let i = 0; i < sortedNodes.length; i++) {
+          await this.validateNode(sortedNodes[i]);
+      }
       console.log("Initial tree validation complete.");
     } catch (e) {
       console.error("Error during initial batch validation:", e);
     }
   }
 
+  private getNodeDepth(node: any): number {
+      // Calculate depth from root
+      return node.incomers("edge").length === 0 ? 0 : node.ancestors().length;
+  }
+
   private async validateNode(
     nodeElement: cytoscape.NodeSingular,
-  ): Promise<{ isValid: boolean; errors: string[]; validTags: string[] }> {
+  ): Promise<{ isValid: boolean; errors: string[]; validTags: string[]; trace: string[] }> {
     const nodeData = nodeElement.data();
     const isLeaf = !nodeElement.isParent() && nodeElement.outgoers().length === 0;
     const isGhost = nodeData.isGhost || nodeData.label.includes("👻");
@@ -490,7 +517,7 @@ export class GrammatomyEditor extends LitElement {
     nodeElement.removeClass("error");
 
     if (isLeaf && !isGhost) {
-      return { isValid: true, errors: [], validTags: [] };
+      return { isValid: true, errors: [], validTags: [], trace: [] };
     }
 
     const incomingEdges = nodeElement.incomers("edge");
@@ -515,6 +542,7 @@ export class GrammatomyEditor extends LitElement {
 
     let localValidTags: string[] = [];
     let localErrors: string[] = [];
+    let localTrace: string[] = [];
     let isContextValid = false;
     let isStructureValid = false;
 
@@ -531,13 +559,15 @@ export class GrammatomyEditor extends LitElement {
         }),
       });
       if (convResponse.ok) {
-        localValidTags = await convResponse.json();
+        const result = await convResponse.json();
+        localValidTags = result.options || [];
+        if (result.trace) localTrace.push(...result.trace);
         
         if (isRoot) {
           isContextValid = true;
           if (!localValidTags.includes("ROOT")) localValidTags.push("ROOT");
         } else {
-          isContextValid = isGhost || localValidTags.includes(nodeData.label);
+          isContextValid = isGhost || result.valid;
         }
       } else {
         if (isRoot) isContextValid = true;
@@ -553,7 +583,7 @@ export class GrammatomyEditor extends LitElement {
     }
 
     if (!isContextValid) {
-        localErrors.push("Context Error: Tag incompatible with parent or current children.");
+        localErrors.push(`Context Error: Tag '${nodeData.label}' is incompatible with parent '${parentTag || "ROOT"}'.`);
     }
 
     try {
@@ -562,12 +592,15 @@ export class GrammatomyEditor extends LitElement {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tag: nodeData.label,
+          children_tags: cleanChildrenLabels,
           descendant_tags: descendantLabels,
+          strategy: this.validationStrategy,
         }),
       });
       if (reqResponse.ok) {
         const reqResult = await reqResponse.json();
         isStructureValid = reqResult.allowed;
+        if (reqResult.trace) localTrace.push(...reqResult.trace);
         if (!isStructureValid) {
           if (!hasGhostChild) {
             localErrors.push(reqResult.reason);
@@ -589,7 +622,7 @@ export class GrammatomyEditor extends LitElement {
       nodeElement.addClass("error");
     }
 
-    return { isValid, errors: localErrors, validTags: localValidTags };
+    return { isValid, errors: localErrors, validTags: localValidTags, trace: localTrace };
   }
 
   private async validateAncestors(startNode: cytoscape.NodeSingular) {
@@ -673,6 +706,7 @@ export class GrammatomyEditor extends LitElement {
         const validationResult = await this.validateNode(nodeElement);
         this.validConversionTags = validationResult.validTags;
         this.validationErrors = validationResult.errors;
+        this.validationTrace = validationResult.trace;
       }
 
       try {
@@ -701,6 +735,7 @@ export class GrammatomyEditor extends LitElement {
     this.selectedNodeRule = {};
     this.validConversionTags = [];
     this.validationErrors = [];
+    this.validationTrace = [];
     this.feedbackMsg = "";
     this.requestUpdate();
   }
@@ -1143,6 +1178,15 @@ export class GrammatomyEditor extends LitElement {
     this.requestUpdate();
   }
 
+  private _dispatchStrategyChange(e: Event) {
+    const newValue = (e.target as HTMLSelectElement).value;
+    this.dispatchEvent(new CustomEvent('strategy-change', {
+      detail: { strategy: newValue },
+      bubbles: true,
+      composed: true
+    }));
+  }
+
   private handleUndo() {
     if (this.undoStack.length === 0) return;
 
@@ -1178,7 +1222,7 @@ export class GrammatomyEditor extends LitElement {
     this.cy.layout({ ...this.layoutConfig, fit: fit }).run();
   }
 
-  private renderValidationIssues(errors: string[]) {
+  private renderValidationIssues(errors: string[], trace: string[]) {
     if (errors.length === 0) return html``;
     return html`
       <div
@@ -1190,6 +1234,12 @@ export class GrammatomyEditor extends LitElement {
         </div>
         <ul class="list-disc list-inside text-red-600 space-y-1 leading-tight">
           ${errors.map((e) => html`<li>${e}</li>`)}
+        </ul>
+        <div class="mt-2 pt-2 border-t border-red-200">
+            <div class="font-bold text-red-800 mb-1 text-[10px] uppercase">Trace Log</div>
+            <ul class="font-mono text-[10px] text-gray-600 space-y-1">
+                ${trace.map(t => html`<li>${t}</li>`)}
+            </ul>
         </ul>
       </div>
     `;
@@ -1279,7 +1329,7 @@ export class GrammatomyEditor extends LitElement {
 
   private renderToolbar() {
     return html`
-      <div class="flex gap-2 justify-end">
+      <div class="flex gap-2 justify-end items-center">
         <button
           @click=${this.handleUndo}
           class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1296,6 +1346,14 @@ export class GrammatomyEditor extends LitElement {
         >
           <span class="material-symbols-outlined text-[18px]">redo</span>
         </button>
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-2">
+          <label for="strategy-select" class="text-xs text-gray-500 font-medium">Validation:</label>
+          <select id="strategy-select" class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" .value=${this.validationStrategy} @change=${this._dispatchStrategyChange}>
+            <option value="lax">Lax (Neural)</option>
+            <option value="strict">Strict (AnCora)</option>
+          </select>
+        </div>
         <div class="flex-1"></div>
         <button @click=${() => this.runLayout(true)} class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Fit View"><span class="material-symbols-outlined text-[18px]">fit_screen</span></button>
       </div>
@@ -1441,7 +1499,7 @@ export class GrammatomyEditor extends LitElement {
           ${this.renderApplyButton(canEditLabel)}
         </div>
 
-        ${this.renderValidationIssues(this.validationErrors)}
+        ${this.renderValidationIssues(this.validationErrors, this.validationTrace)}
 
         <div>
           <label

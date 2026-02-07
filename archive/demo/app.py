@@ -462,9 +462,7 @@ else:
         # Random Example Button
         def on_random_click(lang_code):
             # Get examples for current lang, fallback to English if missing
-            examples = BENCHMARK_SENTENCES.get(
-                lang_code, BENCHMARK_SENTENCES.get("en", [])
-            )
+            examples = BENCHMARK_SENTENCES.get(lang_code, BENCHMARK_SENTENCES.get("en", []))
             if examples:
                 st.session_state.input_text = random.choice(examples)
                 # Reset analysis state so user has to click Analyze (or we could auto-trigger)
@@ -488,9 +486,7 @@ else:
                 use_container_width=True,
             )
         with col_m2:
-            st.link_button(
-                "📚 Docs", "https://grammatomy.readthedocs.io", use_container_width=True
-            )
+            st.link_button("📚 Docs", "https://grammatomy.readthedocs.io", use_container_width=True)
         with col_m3:
             if st.button("🔌 API", use_container_width=True):
                 st.session_state.show_api = not st.session_state.show_api
@@ -603,9 +599,7 @@ else:
                     )
 
                 # Determine model for the (potentially new) target language
-                models_for_target = AVAILABLE_MODELS.get(engine, {}).get(
-                    target_lang, ["default"]
-                )
+                models_for_target = AVAILABLE_MODELS.get(engine, {}).get(target_lang, ["default"])
                 if target_lang == lang and model_package in models_for_target:
                     target_model = model_package
                 else:
@@ -653,14 +647,10 @@ else:
                 if "Could not detect" in st.session_state.status_msg_lang:
                     lang_status.warning(st.session_state.status_msg_lang)
                 else:
-                    lang_status.markdown(
-                        st.session_state.status_msg_lang, unsafe_allow_html=True
-                    )
+                    lang_status.markdown(st.session_state.status_msg_lang, unsafe_allow_html=True)
 
             if st.session_state.status_msg_result:
-                result_status.markdown(
-                    st.session_state.status_msg_result, unsafe_allow_html=True
-                )
+                result_status.markdown(st.session_state.status_msg_result, unsafe_allow_html=True)
 
                 # 2. Tabs
                 tabs = [
@@ -779,6 +769,4 @@ else:
             # Analyzed was true but no tree result (failed parsing)
             st.error("Could not parse the sentence.")
     else:
-        st.info(
-            "👈 Configure parameters and click **Analyze** in the sidebar to start."
-        )
+        st.info("👈 Configure parameters and click **Analyze** in the sidebar to start.")

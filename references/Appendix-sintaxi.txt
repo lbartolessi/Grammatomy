@@ -1,0 +1,99 @@
+Appendix
+
+
+
+
+October 20, 2009
+
+
+
+1 Determiner locutions
+
+We treat as determiner locutions those possessive forms such as el_nostre `ours', el_vostre `yours', el_seu `hers, his, theirs', as well as sequences like un_seguit_de `a series of', etc.
+
+
+
+2 Nominal locutions
+
+Those nominal expressions derived from verbal locutions are treated as nouns (posada_en_marxa, posada_en_funcionament `starting up'). In Spanish, the adjective ex is written separately from the noun it modies, for what sequences such as ex_ministro `former minister' are treated as multiwords, resulting in noun locutions. Some loaned expressions are also ana-lyzed as multiwords: basket_average, street_art, mass_media, escort_girl, web_cam etc.
+
+The following are other noun locutions found in our corpora (both in Catalan and Spanish):
+
+edad_media `Middle Ages', rayo_x `x-ray', guardia_civil `Civil Guard', causa_efecto `cause-eect', guerra_fría `cold war', alter_ego, sangre_fría `calmness and courage', cuarto_de_star `living room', mando_a_distancia `remote control', caldo_de_cultivo `culture medium', medi_ambient `environment', llei_de_estrangeria `immigration law', alts_i_baixos `ups and downs', tot_terreny `four wheels', junta_directiva, derechos_humanos `human rights', cuartos_de_nal `quarternals', ala_delta `hing-glider', cuerpo_a_cuerpo `hand-to-hand', ancho_de_banda `Band width', contra_reloj 1 `timed', cabeza_de_serie `seed', alto_el_fuego `cease re', futbol_sala `indoor soccer', renta_per_cápita `per capita income', cuenta_atrás `countdown', kilómetro_cuadrado `square kilometre', juegos_olímpicos `olimpic games', n_de_semana `weekend', patria_potestad `guardianship', tío_abuelo `great-uncle', pro-ducto_interior_bruto `gross domestic product', cabezas_rapadas `skinheads', sufragio_universal `universal surage', decreto_ley `order in council', telefonía móvil `mobile phones', artes_marciales `martial arts', sentido_común `common sense', células_madre `stem cells', visto_bueno `approval', materia_prima `raw material', hijo_de_puta `son of a bitch', seguridad_social `social security', unidad_de_cuidados_intensivos `intensive care unit', aire_acondicionado
+
+1 This word should be written altogether (contrarreloj ). In order to alter the less the original text, we
+
+treat these cases as multiwords.
+
+
+
+1
+
+`air conditioning', jaque_mate `checkmate', teniente_general `lieutenant general', cóc-tel_molotov `Molotov coctail', tabla_rasa `blank slate', cuenta_corriente `current ac-count', medio_de_comunicación `media', alta_mar `on the high seas', cadena_perpetua `life imprisonment', luna_de_miel `honeymoon', marcha_atrás `reverse', alzamiento_de_bienes `concealment of property', suspensión_de_pagos `temporary receivership', relaciones_públicas `public relations', rueda_de_prensa `press conference', junta_directiva `board of direc-tors', setmana_santa `Easter', ulleres_de_sol `sunglasses', alta_costura `haute couture', banda_sonora `sound track', capella_ardent `chapel of rest', compra_venda `buying and selling', oferta_demanda `supply and demand', saxo_tenor `tenor saxophone', columna_vertebral `spine', mà_d'obra `labor', pont_aeri `shuttle', pastor_alemany `German shepherd', ad-ministració_pública `public administration', música_de_cambra `chamber music', bomba_de_rellotgeria `time bomb', obra_mestra `masterpiece', or_i_nata `the crème de la crème', operació_sortida `summer (or yearly) exodus', societats_anònimes `public corporation'.
+
+
+
+3 Adjective locutions
+
+Adjective expressions derived from verbal locutions, are treated as adjectives: posat_en_marxa `started up', dut_a_terme `carried out', fet_malbé `broken down'.
+
+Other adjectival locutions taken from our corpus are the following:
+
+non_grato, per_càpita, dado_a_conocer `announced', en_viu `life', honoris_causa, ad_limina, on_line, en_cadena `simoultaneous', a_domicilio `door-to-door', a_corto_plazo `short-term', de_moda `in fashion', post_mortem, en_actiu `on active (service)', en_solitari `solo', d'emergència `emergency', en_efectiu `cash', de_facto, in_vitro, a_mitges `half complete', d'època `period'.
+
+
+
+4 Adverbial locutions
+
+We consider the following adverbial locutions (Catalan): abans_que_res `before any-thing', a_bord `on board', a_cappella, a_cavall `on horseback', a_continuació `next', a_corre_cuita `rush, in a hurry', a_favor `in favor', així_com `as well as', així_mateix `this way', a_l'alça `(upgrade) to the rise', a_la_llarga `in the long run', a_la_vegada `at the same time', al_capdavall `at the bottom/at the end of the day', al_capdavant `at the beginning/in front of', al_cap_i_a_la_ `after all', al_cent_per_cent `at one hundred per cent, completely', al_contrari `on the contrary', al_nal `at/in the end', a_l'instant `immediately', a_l'_inrevés `backwards', al_mateix_temps `at the same time', al_seu_torn `in its turn', al_voltant `around, about' a_més `moreover', a_més_a_més `moreover', a_mitges `go halves', a_penes `hardly', a_poc_a_poc `step by step', a_prop `close to', ara_bé `however', ara_com_ara `right now', a_soles `alone', a_tort_i_a_dret `abundantly', a_tot_arreu `everywhere', a_ull `approximately', a_vegades `sometimes', avui_dia `nowadays', ben_bé `right(emphatic)', cada_dos_per_tres `very often', com_a_conseqüència `as a consequence', com_a_màxim `at the most', com_a_mínim `at least', com_més_aviat_millor `the sooner the better', com_si_res `as if nothing happened', d'acord `all right', d'ara endavant `from now on', d'_aleshores_ençà `from then to now', de_bell_nou `again',
+
+
+
+2
+
+de_cop `suddenly', de_cop_i_volta `suddenly', de_fet `actually', de_la_mateixa_manera `in the same way', de_llarg `of lengt', del_tot `completely', demà_passat `the day after tomorrow', de_mica_en_mica, `little by little', de_moment `by the moment', de_nou `again', de_prop `close up', de_sobte `suddenly', de_tant_en_tant `from time to time', de_vegades `sometimes', d'_hora `soon', d'_immediat `immediately', d'_una_banda `on the one hand', d'_una_vegada_per_sempre `once and for all', d'_un_dia_per_l'_altre `overnight', en_absolut `not at all', en_acabat `once nished', en_canvi `on the other hand', en_cas_contrari `otherwise', en_comú `in common', en_concret `to be precise', en_contra `against', en_denitiva `summarizing, denitely, in short', enfront_de `in front of', en_general `in general', en_particular `in particular', en_rigor `strictly', en_total `in total', en_tot_cas `in any case', en_va `in vain', ns_a `to, untill', ns_i_tot `even', gens_ni_mica `not at all', hores_d'_ara `right now', juntament_amb `together with', mal-grat_tot `despite everything', més aviat `rather', més_del_compte `too much', més_o_menys `more or less', ni_de_bon_tros `no way, no chance', ni_més_ni_menys `no less', ni_tan_sols `not even', no_només `not only', no_obstant `despite', no_sols `not only', no_tan_sols `not only', per_contra `nevertheless', per_exemple `for example', per_ `nally', per_si_fos_poc `if that was not bad enough', per_sobre `over', per_sota `under', per_tant `therefore', poc_menys_que `little less than', prop_de `near', sí_que `emphatic particle', tan_sols `only', tot_arreu `everywhere', tot_i_així `even so', tot_i_amb_això `even so', tot_seguit `next', una_vegada `once', un_cop `once'.
+
+And the following are some Spanish adverbial locutions: a_buenas_horas `to be late', a_corto_plazo `at short-term', a_conciencia `conscientiously', a_dedo `to hitchhike', a_diario `daily', a_diestro_y_siniestro `left, right and centre', a_n_de_cuentas `in the end', a_fondo `in-depth', ahora_mismo `right now', al_acecho `lying in wait', a_la_deriva `adrift', a_la_ligera `lightly', al_pie_de_la_letra `to the letter', al_pie_del_cañón `with one's boots on', al_revés `the other way around', ante_todo `rst and foremost', a_pesar_de `despite', a_primera_vista `at rst sight', a_pie `on foot', a_punto `ready', a_ratos `from time to time', a_regañadientes `reluctantly, unwillingly', a_solas `lonely', a_su_vez `in its turn', a_tiempo `on time', a_toda_costa `at all costs, at any price', a_vida_o_muerte `a life or death matter', cara_a_cara `face to face', codo_a_codo `side by side', como_dios_manda `properly', con_creces `(to pay) dearly, to go too far', con_pies_de_plomo `to be careful around something', de_bruces `face down', de_buen_grado `willingly', de_capa_caída `(to be) low-spirited', de_carrerilla `run-up, by heart, parrot-fashion', de_dos_en_dos `two by two', de_entrada `right from the start', de_guardia `on duty or call', de_ida_y_vuelta `round-trip', de_lado `sideways', de_lleno `fully', de_buena/mala_fe `in good/bad faith', de_nuevo `again', de_ocio `state-appointed', de_oídas `by hearsay', de_paso `by the way', de_por_vida `for life', de_recibo `acceptable, obvious', de_repente `suddenly', desde_luego `of course', de_sobra `plenty, extra', de_tarde_en_tarde `not very often, from time to time', de_tu_a_tu `on equal terms', de_una_vez `in one go', de_una_vez_por_todas `once and for all', de_un_momento_a_otro `any minute now', de_verdad `really', (poner) de_vuelta_y_media `to insult', en_blanco `blank', en_breve `shortly, soon', en_cuerpo_y_alma `completely', en_falso `false', en_picado `nose-dive', en_privado `in private', en_seco `in-stantly', en_sus_trece `(to stand) one's grounds', en_un_abrir_y_cerrar_de_ojos `in the
+
+
+
+3
+
+twinkling of an eye', en_un_santiamén `in no time at all', fuera_de_sí `(to be) beside one-self', patas_arriba `in a mess', por_casualidad `by chance', por_encima_de_todo `above everything', por_todo_lo_alto `in style', sin_ir_más_lejos `for example', sin_lugar_a_dudas `undoubtedly', sobre_la_marcha `as one goes along'.
+
+
+
+5 Prepositional locutions
+
+Some Catalan prepositional locutions: a_banda_de `apart from', a_canvi_de `in ex-change from', a_càrrec_de `in charge of', a_causa_de `due to', a_conseqüència_de `as a consequence of', a_cop_de `to insist on something', a_diferència_de `unlike', a_favor_de `in favor of', a__de `in order to', a_nals_de `at the end of', a_la_vegada_que `at the same time that', a_la_vora_de `close to', al_capdavant_de `at the top of', a_l'entorn_de `around', a_l'hora_de `at the time of', al_marge_de `besides', al_voltant_de `round, around', amb_l'objectiu_de `in order to', a_mercè_de `at the mercy of', a_més_de `as well as, moreover', a_més_a_més_de `as well as, moreover', a_mitjans_de `in the mid of', a_propòsit_de `speaking of', a_punt_de `about to', arran_de `as a result of', cap_al `towards', d'_acord_amb `acoording to', darrere_de `behind', degut_a `due to', des_de `since', després_de `after', en_cas_de `in case of', en_direcció_a `towards', en_l'_àmbit_del `in the scope of', enlloc_de `instead of', enmig_de `in the middle of', en_qüestió_de `in a matter of', en_resposta_a `in response to', ns_a `untill', fruit_de `fruits of', gràcies_a `thanks to', lluny_de `far from', pel_que_fa_a `as regards to', pels_volts_de `around', per_mitjà_de `by means of', prop_de `close to', quant_a `regarding', tot_i `although', tret_de `except'.
+
+Spanish prepositional locutions: a_base_de `based in', a_bordo_de `on board', a_cambio_de `in exchange from', a_cargo_de `in charge of', a_comienzos_de `at the beginning of', a_costa_de `at the expense of', además_de `apart from', a_falta_de `in the absence of', a_fuerza_de `by', a_juicio_de `acoording to', a_juzgar_por `judging by', al_abrigo_de `sheltered from', al_cabo_de `after', al_lo_de `on the edge of', al_frente_de `at the top of', a_lo_largo_de `along', al_término_de `at the end of', a_mitad_de `in the middle of', a_partir_de `from', a_raíz_de `as a result of', a_tenor_de `acoording to', a_través_de `through, across', cerca_de, `close to', conforme_a `according to', con_tal_de `as long as', de_acuerdo_a `according to', dentro_de `within', en_cuanto_a `regarding', en_cuestión_de `in a matter of', en_función_de `depending on', en_lugar_de `instead of', en_materia_de `as regards', en_nombre_de `in behalf of', en_referencia_a `in refer-ence to', en_torno_a `around', en_vez_de `ìnstead of', en_virtud_de `in virtue of', gra-cias_a `thanks to', pese_a `in spite of', por_debajo_de `below', por_encima_de `above', respecto_a `as regards'.
+
+
+
+6 Verbal locutions
+
+Catalan: anar_a_parar `to end up', anar_per_llarg `to take a long time', anar-se'n_a_fer_punyetes `(to tell sb) to go to hell; to break down', baixar_la_guàrdia `to
+
+
+
+4
+
+lower one's guard', deixar_de_banda `to leave sth aside', deixar_de_costat `to leave sth aside', donar_a_conèixer `to announce', donar_a_entendre `to imply sth', donar_cabuda `to hold', donar_d'_alta `to subscribe', donar_de_baixa `to unsusbscribe', donar_la_gana `to want', donar_lloc `to make sth happen', donar_llum_verd `to give the green light', donar_pas `to give way', donar_peu `to give cause for', donar_resposta `to give response', donar_sortida `to check out', donar_suport `to give support', donar_testimoni `to bear witness', dur_a_terme `to carry out', entrar_en_contacte `to come into contact', en-trar_en_funcionament `to come into operation', entrar_en_servei `to come into oper-ation', entrar_en_vigor `to come into eect', estar_enganxat `to be hooked on sth', fer_acte_de_presència `to appear', fer_cas `to pay attention', fer_falta `to need', fer_fora `to re, throw, expel', fer_front `to face up', fer_referència `to refer, mention', fer-se_(el)_càrrec `to understand', fer-se_passar `to pretend to be sb else', fer_servir `to use', fer_ús `to use', formar_part `to be a part of', pagar_la_pena `to be worth', pas-sar_per_alt `to overlook', perdre_de_vista `to lose sight', petar-se_de_riure `to double up with laughter', pixar_fora_de_test `to get out of hand', plantar_cara `to face up to sb', portar_a_la_pràctica `to put sth into practice', portar_a_terme `to carry out', posar_de_manifest `to announce', posar_de_relleu `to highlight', posar_el_crit_al_cel `to hit the ceiling', posar_el_dit_a_la_llaga `to put one's nger on the sore spot', posar_èmfasi `to stress, to emphasize', posar_en_circulació `to put into circulation', posar_en_contacte `to get in touch', posar_en_dubte `to question', posar_en_funcionament `to bring into op-eration', posar_en_pràctica `to put into practice', posar_en_servei `to put into service', posar_ `to end sth', posar_sobre_avís `to give an advise', prendre_en_consideració `to take into consideration', prendre_nota `to take note', prendre_part `to take part', pren-dre_partit `to take sides', prendre_posició `to adopt a position', sortir-hi_guanyant `to do well out with sth', sortir-hi_perdent `to come o worst', tenir_a_veure `to deal with', tenir_cura `to take care', tenir_en_compte `to take into account', tenir_en_consideració `to take into account', tenir_lloc `to take place, happen', tirar_endavant `to go on', treure_foc_pels_queixals `to rage, fume', trobar_a_faltar `to miss', valer_la_pena `to be worth', venir_al_món `to be born', venir_de_gust `to feel like', veure's_amb_cor `to dare', veure_venir `to see sth coming', voler_dir `to mean'.
+
+Spanish: bajar_la_guardia `to lower one's guard', caerse_la_cara_de_vergüenza `to blush with shame', cerrar_en_banda `to dig in one's heels', correr_peligro `to be in danger', dar_a_conocer `to announce', dar_a_luz `to give birth', dar_comienzo `to give start', dar_crédito `to believe', dar_cuenta `to account for', dar_derecho `to allow', dar_la_gana `to feel like', dar_lugar `to make sth happen' , dar_parte `to inform', dar_paso `to give way', dar_pie `to give cause for', dar_que_pensar `to make sth think', dar_respuesta `to give response', darse_cuenta `to notice', echar_de_menos `to miss', echar_en_falta `to miss', echar_por_tierra `to ruin, spoil', estar_de_acuerdo `to agree', estar_en_contacto `to be in touch', estar_por_ver `to be still uncertain', formar_parte `to take part', hacer_acto_de_presencia `to appear', hacer_alusión `to mention, refer', hacerse_cargo `to take charge', hacer_falta `to need', hacer_frente `to face up', hacer_gala `to display', hacer_hincapié `to stress, emphasize', hacer_referencia `to refer', hacer_uso `to use', ir_a_parar `to end up', lan-zar_las_campanas_al_vuelo' to start shouting about it', llevar_a_cabo `to carry out',
+
+
+
+5
+
+llevar_a_la_práctica `to put into practice', llevar_el_gato_al_agua `to pull sth o in the end', matar_dos_pájaros_de_un_tiro `to kill two birds with one stone', poner_de_maniesto `to announce', poner_el_grito_en_el_cielo `to hit the ceiling', poner_en_duda `to ques-tion', poner_en_marcha `to put into operation', poner_n `to end sth', querer_decir `to mean', sacar_adelante `to get sth o the ground', salir_del_paso `to get out of a (tight) spot`', tener_cabida `to hold', tener_en_consideración `to take into account', tener_en_cuenta `to take into account', tener_lugar `to take place, happen', tener_que_ver `to deal with', tomar_parte `to take part', tomar_partido `to take sides'.
+
+
+
+6
+
+
+
+
+

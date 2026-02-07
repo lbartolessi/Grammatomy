@@ -3,7 +3,7 @@ import copy
 from anytree import Node, PreOrderIter
 from anytree.exporter import DotExporter
 
-from grammatomy.glossary import TAG_MAP
+from ..glossary import TAG_MAP
 
 
 def _enrich_tree_for_graphviz(root):
