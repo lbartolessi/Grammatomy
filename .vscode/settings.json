@@ -24,7 +24,6 @@
     
     "files.exclude": {
         "**/.git": true,
-        "**/.mnemosyne": true,
         "**/__pycache__": true,
         "**/.mypy_cache": true,
         "**/*.pyc": true

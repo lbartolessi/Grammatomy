@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -41,9 +41,7 @@ class ValidationEngine:
     def _normalize_tag(self, tag: str) -> str:
         return self.transparency.get(tag, tag)
 
-    def _get_children_config(
-        self, node_label: str, strategy: str, key: str
-    ) -> List[Any]:
+    def _get_children_config(self, node_label: str, strategy: str, key: str) -> List[Any]:
         node_config = self.rules.get(node_label)
         if not node_config or not isinstance(node_config, dict):
             return []
@@ -54,9 +52,7 @@ class ValidationEngine:
         # We don't merge sets here because order/structure matters for mandatory requirements.
         # We prioritize strategy-specific rules over 'all'.
         if key == "mandatory_children":
-            return rules.get(strategy, {}).get(key, []) or rules.get("all", {}).get(
-                key, []
-            )
+            return rules.get(strategy, {}).get(key, []) or rules.get("all", {}).get(key, [])
         else:
             # For allowed_children, we merge
             base = set(rules.get("all", {}).get(key, []))
@@ -100,13 +96,9 @@ class ValidationEngine:
             # Mandatory checks use all children (presence check only)
             mandatory_scope = children_labels
             # --- STRICT MODE (Classic) ---
-            allowed = self._get_children_config(
-                node_label, "strict", "allowed_children"
-            )
+            allowed = self._get_children_config(node_label, "strict", "allowed_children")
             # Strict mandatory children: List of Lists [[Req1_Alt1, Req1_Alt2], [Req2...]]
-            mandatory = self._get_children_config(
-                node_label, "strict", "mandatory_children"
-            )
+            mandatory = self._get_children_config(node_label, "strict", "mandatory_children")
 
             # 1. Illegal Children
             for child in children_labels:
@@ -123,25 +115,28 @@ class ValidationEngine:
             for requirement_group in mandatory:
                 # LOGIC:
                 # The outer loop represents Syntagmatic obligations (AND). E.g., sp = Prep + Term.
-                # The inner 'requirement_group' represents Paradigmatic alternatives (OR). E.g., Term = sn | S | ...
+                # The inner 'requirement_group' represents Paradigmatic alternatives (OR).
+                # E.g., Term = sn | S | ...
                 if not any(alt in present for alt in requirement_group):
                     missing_desc = "/".join(requirement_group)
-                    msg = f"Strict: Node '{node_label}' missing mandatory child of type [{missing_desc}]."
+                    msg = (
+                        f"Strict: Node '{node_label}' "
+                        f"missing mandatory child of type [{missing_desc}]."
+                    )
                     errors.append(msg)
                     trace.append(
-                        f"❌ Checking mandatory children for '{node_label}': Missing [{missing_desc}]."
+                        f"❌ Checking mandatory children for '{node_label}': "
+                        f"Missing [{missing_desc}]."
                     )
                     trace.append(f"   Current children: {list(present)}")
 
         elif self.strategy == "lax":
             # --- LAX MODE (Recursive Yield) ---
-            # Requires descendants_labels to be passed. If not, falls back to children (shallow check).
-            # For mandatory checks, we prefer valid_descendants > descendants > valid_children > children
-            scope_labels = (
-                descendants_labels
-                if descendants_labels is not None
-                else children_labels
-            )
+            # Requires descendants_labels to be passed.
+            # If not, falls back to children (shallow check).
+            # For mandatory checks,
+            # we prefer valid_descendants > descendants > valid_children > children
+            scope_labels = descendants_labels if descendants_labels is not None else children_labels
 
             mandatory_scope = scope_labels
 
@@ -152,18 +147,17 @@ class ValidationEngine:
             # In Lax mode, we focus ONLY on Mandatory Content (Yield).
             if children_labels:
                 trace.append(
-                    f"ℹ️ Lax Mode: Skipping 'Allowed Children' check to accommodate flattening."
+                    "ℹ️ Lax Mode: Skipping 'Allowed Children' check to accommodate flattening."
                 )
 
             # We use the STRICT definition of mandatory children as the "ideal" structure
             # that we check for presence (either direct or flattened).
-            strict_mandatory = self._get_children_config(
-                node_label, "strict", "mandatory_children"
-            )
+            strict_mandatory = self._get_children_config(node_label, "strict", "mandatory_children")
 
             for requirement_group in strict_mandatory:
                 # requirement_group is [Alt1, Alt2...]. We need ONE of these to be satisfied.
-                # Satisfaction means: Either the node is present, OR its mandatory content is present.
+                # Satisfaction means:
+                # Either the node is present, OR its mandatory content is present.
 
                 satisfied = False
                 for alt_type in requirement_group:
@@ -173,18 +167,20 @@ class ValidationEngine:
 
                 if not satisfied:
                     missing_desc = "/".join(requirement_group)
-                    msg = f"Lax: Node '{node_label}' is missing essential content (yield) for [{missing_desc}]."
+                    msg = (
+                        f"Lax: Node '{node_label}' is missing essential content (yield) "
+                        f"for [{missing_desc}]."
+                    )
                     errors.append(msg)
                     trace.append(
-                        f"❌ Recursive Yield Check for '{node_label}': Could not find content for [{missing_desc}]."
+                        f"❌ Recursive Yield Check for '{node_label}': "
+                        f"Could not find content for [{missing_desc}]."
                     )
                     trace.append(f"   Scope searched: {mandatory_scope}")
 
         return len(errors) == 0, errors, trace
 
-    def validate_context(
-        self, tag: str, parent_tag: Optional[str]
-    ) -> Tuple[bool, List[str]]:
+    def validate_context(self, tag: str, parent_tag: Optional[str]) -> Tuple[bool, List[str]]:
         """
         Checks if 'tag' is allowed under 'parent_tag'.
         Returns (is_valid, trace_log).
@@ -204,41 +200,29 @@ class ValidationEngine:
 
         # 2. Lax Mode Bypass
         if self.strategy == "lax":
-            trace.append(
-                f"ℹ️ Lax Mode: Context check bypassed for '{tag}' in '{parent_tag}'."
-            )
+            trace.append(f"ℹ️ Lax Mode: Context check bypassed for '{tag}' in '{parent_tag}'.")
             return True, trace
 
         # 2. Parent Compatibility
         # Does parent allow this child?
-        parent_allowed = self._get_children_config(
-            parent_tag, self.strategy, "allowed_children"
-        )
+        parent_allowed = self._get_children_config(parent_tag, self.strategy, "allowed_children")
 
         if not parent_allowed:
             # If parent has no allowed children defined, it might be a terminal or undefined
             if parent_tag not in self.rules:
                 trace.append(f"⚠️ Parent '{parent_tag}' is unknown in rules.")
             else:
-                trace.append(
-                    f"❌ Parent '{parent_tag}' does not allow any children (Terminal?)."
-                )
+                trace.append(f"❌ Parent '{parent_tag}' does not allow any children (Terminal?).")
             return False, trace
 
         if tag not in parent_allowed:
-            trace.append(
-                f"❌ Parent '{parent_tag}' is incompatible with child '{tag}'."
-            )
-            trace.append(
-                f"   Allowed children for '{parent_tag}': {sorted(list(parent_allowed))}"
-            )
+            trace.append(f"❌ Parent '{parent_tag}' is incompatible with child '{tag}'.")
+            trace.append(f"   Allowed children for '{parent_tag}': {sorted(list(parent_allowed))}")
             return False, trace
 
         return True, trace
 
-    def _check_yield_presence(
-        self, target_type: str, context_labels: List[str]
-    ) -> bool:
+    def _check_yield_presence(self, target_type: str, context_labels: List[str]) -> bool:
         """
         Recursively checks if 'target_type' or its mandatory yield is present in 'context_labels'.
         """
@@ -248,9 +232,7 @@ class ValidationEngine:
 
         # 2. Recursive Yield Check (Flattening)
         # If target_type is missing, we check if its mandatory children are present.
-        target_mandatory = self._get_children_config(
-            target_type, "strict", "mandatory_children"
-        )
+        target_mandatory = self._get_children_config(target_type, "strict", "mandatory_children")
 
         if not target_mandatory:
             # If the missing node has NO mandatory children (it's optional or empty),

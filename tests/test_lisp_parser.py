@@ -1,6 +1,4 @@
-import pytest
-from anytree import RenderTree
-from grammatomy.parsers import LispParser
+from core.grammatomy.parsers import LispParser
 
 
 def test_simple_parsing():

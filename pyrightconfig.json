@@ -1,0 +1,10 @@
+{
+    "extraPaths": ["./src"],
+    "exclude": [
+        "archive",
+        "**/archive",
+        ".mnemosyne",
+        "**/__pycache__",
+        ".git"
+    ]
+}

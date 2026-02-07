@@ -3,26 +3,21 @@ Main FastAPI application for the Grammatomy service.
 """
 
 import mimetypes
-import os
-import sys
 import time
 import traceback
 from pathlib import Path
 
+import fastapi.responses
+import graphviz
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
-# Import Core Logic
-# Ensure src/core is in PYTHONPATH or installed in editable mode
-# src/api/app/main.py -> parents[2] = src
-sys.path.append(str(Path(__file__).resolve().parents[2] / "core"))
+from core.grammatomy import get_syntax_tree, to_json, to_ptb
+from core.grammatomy.visualization.ascii_renderer import render_ascii_colored
+from core.grammatomy.visualization.graphviz_renderer import get_graphviz_dot
+from core.validation_engine import ValidationEngine
 
-from grammatomy import get_syntax_tree, to_json, to_ptb
-from grammatomy.visualization.ascii_renderer import render_ascii_colored
-from grammatomy.visualization.graphviz_renderer import get_graphviz_dot
-from validation_engine import ValidationEngine
-
-from .schemas import ParseRequest, ParseResponse
+from .schemas import ParseRequest, ParseResponse, SyntaxNode
 
 app = FastAPI(
     title="Grammatomy API",
@@ -30,9 +25,29 @@ app = FastAPI(
     version="0.1.0",
 )
 
+ERROR_PARSER_FAILED = "Parser returned no tree"
+
 # Initialize Validation Engine (Singleton-ish)
 RULES_PATH = Path(__file__).resolve().parents[2] / "core" / "rules_es.yaml"
 validator = ValidationEngine(str(RULES_PATH), strategy="lax")
+
+
+def _convert_to_syntax_node(node) -> SyntaxNode:
+    """
+    Converts an anytree Node (from core) to a Pydantic SyntaxNode (for API response).
+    Extracts dynamic attributes while ignoring internal anytree fields.
+    """
+    attrs = {
+        k: v
+        for k, v in vars(node).items()
+        if not k.startswith("_") and k not in ("name", "parent", "children")
+    }
+    return SyntaxNode(
+        label=node.name,
+        word=node.name if node.is_leaf else None,
+        attributes=attrs,
+        children=[_convert_to_syntax_node(child) for child in node.children],
+    )
 
 
 @app.get("/")
@@ -61,21 +76,22 @@ def parse_text(request: ParseRequest):
         if root:
             ptb_string = to_ptb(root)
             return ParseResponse(
-                root=root,
+                root=_convert_to_syntax_node(root),
                 ptb=ptb_string,
                 meta={"engine": request.engine, "time": elapsed, "status": "success"},
             )
         else:
             return ParseResponse(
                 root=None,
+                ptb=None,
                 meta={"engine": request.engine, "time": elapsed, "status": "failed"},
-                error="Parser returned no tree",
+                error=ERROR_PARSER_FAILED,
             )
 
     except Exception as e:
         # Log full traceback to console for debugging
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/render/ascii")
@@ -89,10 +105,10 @@ def render_ascii(request: ParseRequest):
     try:
         root = get_syntax_tree(request.text, params=params)
         if not root:
-            raise HTTPException(status_code=400, detail="Parser returned no tree")
+            raise HTTPException(status_code=400, detail=ERROR_PARSER_FAILED)
         return fastapi.responses.PlainTextResponse(render_ascii_colored(root))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/render/json")
@@ -106,13 +122,11 @@ def render_json(request: ParseRequest):
     try:
         root = get_syntax_tree(request.text, params=params)
         if not root:
-            raise HTTPException(status_code=400, detail="Parser returned no tree")
+            raise HTTPException(status_code=400, detail=ERROR_PARSER_FAILED)
         # to_json returns a string, we parse it back to return as JSON object or return Raw
-        return fastapi.responses.Response(
-            content=to_json(root), media_type="application/json"
-        )
+        return fastapi.responses.Response(content=to_json(root), media_type="application/json")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/render/lisp")
@@ -126,19 +140,18 @@ def render_lisp(request: ParseRequest):
     try:
         root = get_syntax_tree(request.text, params=params)
         if not root:
-            raise HTTPException(status_code=400, detail="Parser returned no tree")
+            raise HTTPException(status_code=400, detail=ERROR_PARSER_FAILED)
 
         # Check for raw_lisp attribute as required by test_render_lisp_missing_attr
-        if hasattr(root, "raw_lisp") and root.raw_lisp:
-            return fastapi.responses.PlainTextResponse(root.raw_lisp)
+        raw_lisp = getattr(root, "raw_lisp", None)
+        if raw_lisp:
+            return fastapi.responses.PlainTextResponse(raw_lisp)
 
-        raise HTTPException(
-            status_code=404, detail="Original LISP string not available"
-        )
+        raise HTTPException(status_code=404, detail="Original LISP string not available")
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/render/graphviz")
@@ -152,16 +165,15 @@ def render_graphviz(request: ParseRequest):
     try:
         root = get_syntax_tree(request.text, params=params)
         if not root:
-            raise HTTPException(status_code=400, detail="Parser returned no tree")
+            raise HTTPException(status_code=400, detail=ERROR_PARSER_FAILED)
 
         dot_code = get_graphviz_dot(root)
-        import graphviz
 
         src = graphviz.Source(dot_code)
         png_data = src.pipe(format="png")
         return fastapi.responses.Response(content=png_data, media_type="image/png")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # --- Validation Endpoints ---
@@ -174,7 +186,7 @@ def get_validation_options(payload: dict):
     Payload: { parent_tag, current_tag, children_tags }
     """
     parent = payload.get("parent_tag")
-    tag = payload.get("current_tag")
+    tag = payload.get("current_tag") or ""
 
     # 1. Validate Context
     is_valid, trace = validator.validate_context(tag, parent)
@@ -183,13 +195,14 @@ def get_validation_options(payload: dict):
     # If parent is defined, what can go there?
     valid_options = []
     if parent:
+        # pylint: disable=protected-access
         valid_options = validator._get_children_config(
             parent, validator.strategy, "allowed_children"
         )
     else:
         valid_options = ["S", "ROOT"]  # Root context
 
-    return {"valid": is_valid, "trace": trace, "options": sorted(list(valid_options))}
+    return {"valid": is_valid, "trace": trace, "options": sorted(valid_options)}
 
 
 @app.post("/api/validation/check/requirements")
@@ -198,7 +211,7 @@ def check_requirements(payload: dict):
     Checks internal structure (mandatory children).
     Payload: { tag, descendant_tags, strategy }
     """
-    tag = payload.get("tag")
+    tag = payload.get("tag") or ""
     children = payload.get("children_tags", [])
     descendants = payload.get("descendant_tags", [])
     strategy = payload.get("strategy", "lax")
@@ -216,8 +229,6 @@ def check_requirements(payload: dict):
 
     return {"allowed": is_valid, "reason": errors[0] if errors else "", "trace": trace}
 
-
-import fastapi.responses
 
 # --- Static File Serving (Production) ---
 # Serve the built frontend if the 'dist/web' directory exists.

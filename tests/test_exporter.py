@@ -1,6 +1,8 @@
 import json
-from grammatomy.parsers.lisp_parser import SyntaxNode
-from grammatomy import to_json
+
+from core.grammatomy import to_json
+from core.grammatomy.parsers.lisp_parser import SyntaxNode
+
 
 def test_json_export_structure():
     """
@@ -9,11 +11,11 @@ def test_json_export_structure():
     """
     # Manually construct a small tree: (S (NP Juan))
     root = SyntaxNode("S", label="S")
-    child = SyntaxNode("NP", parent=root, label="NP", word="Juan", pos="NNP")
-    
+    SyntaxNode("NP", parent=root, label="NP", word="Juan", pos="NNP")
+
     json_str = to_json(root)
     data = json.loads(json_str)
-    
+
     # Check root
     assert data["name"] == "S"
     assert data["label"] == "S"

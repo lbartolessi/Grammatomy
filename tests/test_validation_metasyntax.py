@@ -8,7 +8,8 @@ are formed.
 """
 
 from anytree import Node
-from grammatomy import from_ptb
+
+from core.grammatomy import from_ptb
 
 # --- MOCK METASYNTAX RULES ---
 # Derived from: references/Especificación YAML de Árboles Sintácticos.md
@@ -85,6 +86,7 @@ def test_metasyntax_valid_tree():
     # Note: Simplified PTB for testing
     ptb = "(S (sn (dt El) (grup.nom (n gato))) (grup.verb (v come)))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_structure(root)
     assert not errors, f"Valid tree flagged as invalid: {errors}"
@@ -95,6 +97,7 @@ def test_metasyntax_illegal_child():
     # (sn (v come)) -> A noun phrase containing a verb directly
     ptb = "(sn (v come))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_structure(root)
     assert len(errors) > 0, "Illegal 'sn -> v' relationship was not detected."
@@ -106,6 +109,7 @@ def test_metasyntax_illegal_nesting():
     # (grup.nom (prep de)) -> Nouns don't usually contain raw prepositions directly, usually via SP
     ptb = "(grup.nom (prep de))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_structure(root)
     assert len(errors) > 0, "Illegal 'grup.nom -> prep' was not detected."

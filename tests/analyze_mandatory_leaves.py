@@ -1,11 +1,9 @@
-import sys
 from pathlib import Path
 
-# Add project root to path to allow importing from src
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+from core.grammatomy.validation_engine import ValidationEngine
 
-from core.validation_engine import ValidationEngine
+# Resolve project root
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def analyze_grammar_intersections():
@@ -15,18 +13,16 @@ def analyze_grammar_intersections():
     """
     print("=" * 80)
     print("Running Algorithmic Mandatory POS Analysis")
-    print(
-        "Hypothesis: Essential POS tags can be deduced by intersecting all possible expansions."
-    )
+    print("Hypothesis: Essential POS tags can be deduced by intersecting all possible expansions.")
     print("-" * 80)
 
+    rules_path = PROJECT_ROOT / "src" / "core" / "rules_es.yaml"
     try:
-        rules_path = PROJECT_ROOT / "src" / "core" / "rules_es.yaml"
-        engine = ValidationEngine(rules_path=str(rules_path), strategy="lax")
+        engine = ValidationEngine(rules_path=str(rules_path), lang="es")
     except FileNotFoundError:
         print(f"ERROR: Rules file not found at '{rules_path}'")
         return
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"ERROR: Failed to initialize ValidationEngine: {e}")
         return
 
@@ -35,15 +31,15 @@ def analyze_grammar_intersections():
     for node_label, config in engine.rules.items():
         if config.get("type") == "group":
             # The cache is pre-populated on engine initialization
-            mandatory_leaves = engine._mandatory_leaves_cache.get(node_label, set())
-            results.append((node_label, mandatory_leaves))
+            mandatory = engine.mandatory_children.get(node_label, set())
+            results.append((node_label, mandatory))
 
     # --- Print Results Table ---
-    print(f"{'AnCora Group':<25} | {'Deduced Mandatory POS (by Intersection)':<50}")
+    print(f"{'AnCora Group':<25} | {'Mandatory Children (Immediate)':<50}")
     print(f"{'-'*25}-|--{'-'*50}")
 
     for group, pos_set in results:
-        pos_str = ", ".join(sorted(list(pos_set))) if pos_set else "(empty set)"
+        pos_str = ", ".join(sorted(pos_set)) if pos_set else "(empty set)"
         print(f"{group:<25} | {pos_str}")
 
     print("=" * 80)

@@ -41,11 +41,18 @@ class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
     It inherits from the standard class and overrides the rotation hooks.
     """
 
-    def namer(self, name: str) -> str:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.namer = self._namer
+        self.rotator = self._rotator
+
+    @staticmethod
+    def _namer(name: str) -> str:
         """Adds the .gz extension to the rotated file name."""
         return name + ".gz"
 
-    def rotator(self, source: str, dest: str) -> None:
+    @staticmethod
+    def _rotator(source: str, dest: str) -> None:
         """Compresses the source log file to the destination file using gzip."""
         with open(source, "rb") as f_in:
             with gzip.open(dest, "wb") as f_out:

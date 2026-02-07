@@ -11,10 +11,9 @@ If a word is not in the lexicon, it is considered INVALID.
 Tags must align with 'references/Especificación YAML de Árboles Sintácticos.md'.
 """
 
-import pytest
 from anytree import Node
 
-from grammatomy import from_ptb
+from core.grammatomy import from_ptb
 
 # --- MOCK INFRASTRUCTURE ---
 
@@ -74,8 +73,12 @@ def test_lexicon_all_valid():
     """
     # "El gato come pescado."
     # Structure follows YAML: sn -> spec/grup.nom -> n
-    ptb = "(S (sn (spec El) (grup.nom (n gato))) (grup.verb (v come) (sn (grup.nom (n pescado)))) (f0 .))"
+    ptb = (
+        "(S (sn (spec El) (grup.nom (n gato))) "
+        "(grup.verb (v come) (sn (grup.nom (n pescado)))) (f0 .))"
+    )
     root = from_ptb(ptb)
+    assert root is not None
 
     validation_results = validate_tree_lexicon(root, mock_lexicon_hook)
 
@@ -92,6 +95,7 @@ def test_lexicon_mixed_validity():
     # "El perro come." -> 'perro' is unknown (invalid), 'El'/'come' are known (valid).
     ptb = "(S (sn (spec El) (grup.nom (n perro))) (grup.verb (v come)) (f0 .))"
     root = from_ptb(ptb)
+    assert root is not None
 
     validation_results = validate_tree_lexicon(root, mock_lexicon_hook)
 
@@ -111,10 +115,11 @@ def test_lexicon_all_invalid():
     # "Un perro ladra" -> None of these are in MOCK_LEXICON.
     ptb = "(S (sn (spec Un) (grup.nom (n perro))) (grup.verb (v ladra)))"
     root = from_ptb(ptb)
+    assert root is not None
 
     validation_results = validate_tree_lexicon(root, mock_lexicon_hook)
 
-    for word, pos, is_valid in validation_results:
+    for word, _, is_valid in validation_results:
         assert is_valid is False, f"Expected INVALID: Word '{word}' (not in lexicon)."
 
 
@@ -126,6 +131,7 @@ def test_lexicon_pos_mismatch_yaml():
     # "gato" (n) tagged as 'v' (Verbo).
     ptb = "(S (grup.verb (v gato)))"
     root = from_ptb(ptb)
+    assert root is not None
 
     validation_results = validate_tree_lexicon(root, mock_lexicon_hook)
 

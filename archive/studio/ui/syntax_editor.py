@@ -26,9 +26,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from grammatomy import to_ptb
-from grammatomy.glossary import TAG_MAP
-from grammatomy.grammar import (
+from core.grammatomy import to_ptb
+from core.grammatomy.glossary import TAG_MAP
+from core.grammatomy.grammar import (
     GRAMMAR_RULES,
     NODE_DESCRIPTIONS,
     PUNCTUATION_INVENTORY,
@@ -36,7 +36,7 @@ from grammatomy.grammar import (
     get_suggestions,
     validate_leaf_consistency,
 )
-from grammatomy.validation import validate_structure
+from core.grammatomy.grammar import validate_structure
 
 # --- CONFIGURATION ---
 # Colorblind-friendly palette (Wong)
@@ -112,9 +112,7 @@ class SyntaxNodeItem(QGraphicsRectItem):
         description = NODE_DESCRIPTIONS.get(node.name)
         if not description:
             # Fallback to Glossary
-            description = TAG_MAP["Phrasal"].get(node.name) or TAG_MAP["POS"].get(
-                node.name
-            )
+            description = TAG_MAP["Phrasal"].get(node.name) or TAG_MAP["POS"].get(node.name)
 
         tooltip_parts = []
         if description:
@@ -200,11 +198,7 @@ class SyntaxNodeItem(QGraphicsRectItem):
             return False, None, None, None
 
         node_to_move = source_node
-        if (
-            source_node.is_leaf
-            and source_node.parent
-            and self._is_pos(source_node.parent)
-        ):
+        if source_node.is_leaf and source_node.parent and self._is_pos(source_node.parent):
             node_to_move = source_node.parent
         elif source_node.is_leaf:
             return False, None, None, None
@@ -526,9 +520,7 @@ class SyntaxEditor(QWidget):
                 child_item.scenePos().y(),
             )
 
-    def _draw_node_recursive(
-        self, node, x, y, node_gap, level_height, parent_item=None
-    ):
+    def _draw_node_recursive(self, node, x, y, node_gap, level_height, parent_item=None):
         error = self._violations.get(node)
         item = SyntaxNodeItem(node, x, y, self, error_msg=error)
         self.scene.addItem(item)
@@ -601,11 +593,7 @@ class SyntaxEditor(QWidget):
 
     def push_state(self):
         ptb = self.get_ptb()
-        if (
-            self.history
-            and self.history_index >= 0
-            and self.history[self.history_index] == ptb
-        ):
+        if self.history and self.history_index >= 0 and self.history[self.history_index] == ptb:
             return
         if self.history_index < len(self.history) - 1:
             self.history = self.history[: self.history_index + 1]
@@ -619,7 +607,7 @@ class SyntaxEditor(QWidget):
             # For self-containment, we assume we can't parse inside unless we import parser
             # But we can emit signal requesting restore?
             # Better: SyntaxEditor should be able to parse PTB for restore.
-            from grammatomy import from_ptb  # pylint: disable=import-outside-toplevel
+            from core.grammatomy import from_ptb  # pylint: disable=import-outside-toplevel
 
             self.root = from_ptb(self.history[self.history_index])
             self.render_tree()
@@ -628,7 +616,7 @@ class SyntaxEditor(QWidget):
     def redo(self):
         if self.history_index < len(self.history) - 1:
             self.history_index += 1
-            from grammatomy import from_ptb  # pylint: disable=import-outside-toplevel
+            from core.grammatomy import from_ptb  # pylint: disable=import-outside-toplevel
 
             self.root = from_ptb(self.history[self.history_index])
             self.render_tree()
@@ -637,9 +625,7 @@ class SyntaxEditor(QWidget):
     def save_image(self, path):
         self.scene.clearSelection()
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
-        image = QImage(
-            self.scene.sceneRect().size().toSize(), QImage.Format.Format_ARGB32
-        )
+        image = QImage(self.scene.sceneRect().size().toSize(), QImage.Format.Format_ARGB32)
         image.fill(Qt.GlobalColor.transparent)
         painter = QPainter(image)
         self.scene.render(painter)

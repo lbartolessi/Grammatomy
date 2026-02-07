@@ -11,18 +11,9 @@ Usage:
 """
 
 import logging
-import os
-import sys
 
-# Ensure src is in path to import grammatomy modules
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-src_path = os.path.join(project_root, "src")
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from grammatomy import get_syntax_tree
-from grammatomy.validation import validate_structure
+from core.grammatomy import get_syntax_tree
+from core.grammatomy.grammar import validate_structure
 
 # Configure logging to console only, clean format
 logging.basicConfig(format="%(message)s", level=logging.INFO)
@@ -50,19 +41,28 @@ CORPUS = [
         "lang": "en",
         "engine": "spacy",  # Uses Benepar
         "desc": "English Standard (PTB)",
-        "text": "The scientist confirmed that the results significantly contradict the previous theories.",
+        "text": (
+            "The scientist confirmed that the results significantly contradict "
+            "the previous theories."
+        ),
     },
     {
         "lang": "pt",
         "engine": "stanza",
         "desc": "Portuguese (CINTIL / CharLM)",
-        "text": "As armas e os barões assinalados, que da ocidental praia lusitana, por mares nunca de antes navegados, passaram ainda além da Taprobana.",
+        "text": (
+            "As armas e os barões assinalados, que da ocidental praia lusitana, "
+            "por mares nunca de antes navegados, passaram ainda além da Taprobana."
+        ),
     },
     {
         "lang": "it",
         "engine": "stanza",
         "desc": "Italian (VIT / CharLM)",
-        "text": "Nel mezzo del cammin di nostra vita mi ritrovai per una selva oscura, ché la diritta via era smarrita.",
+        "text": (
+            "Nel mezzo del cammin di nostra vita mi ritrovai per una selva oscura, "
+            "ché la diritta via era smarrita."
+        ),
     },
 ]
 
@@ -103,14 +103,12 @@ def run_batch_validation():
                     print(f"      - {w}")
                 total_warnings += len(warnings)
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             print(f"   ❌ Execution Error: {e}")
 
         print("-" * 60)
 
-    print(
-        f"\nSUMMARY: {total_warnings} warnings detected across {len(CORPUS)} test cases."
-    )
+    print(f"\nSUMMARY: {total_warnings} warnings detected across {len(CORPUS)} test cases.")
     print("=" * 60)
 
 

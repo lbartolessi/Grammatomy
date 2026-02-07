@@ -6,18 +6,19 @@ services:
     container_name: grammatomy-api
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "7860:7860" # Puerto definido en tu Dockerfile (Uvicorn)
     volumes:
-      # Mount the source code for live-reloading during development
+      # Montamos el código para Hot-Reloading (desarrollo en vivo)
       - ./src/core:/app/src/core
       - ./src/api:/app/src/api
-      # Mount the models directory to avoid re-downloading on every container start
       - ./models:/app/models
-    # Uncomment below to enable GPU acceleration (requires NVIDIA Container Toolkit)
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    # Sobrescribimos el comando para activar 'reload'.
+    # Uvicorn detectará tus cambios en local y reiniciará el servidor automáticamente.
+    command: uvicorn src.api.app.main:app --host 0.0.0.0 --port 7860 --reload
+    networks:
+      - grammatomy-net
+
+networks:
+  grammatomy-net:
+    driver: bridge
+    name: grammatomy-net

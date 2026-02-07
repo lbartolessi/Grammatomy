@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from grammatomy.parsers.lisp_parser import SyntaxNode
+from core.grammatomy.parsers.lisp_parser import SyntaxNode
 
 from src.api.app.main import app
 
@@ -32,12 +32,8 @@ def mock_parser():
 @pytest.fixture
 def mock_graphviz():
     """Mocks graphviz generation and piping."""
-    with patch(
-        "src.api.app.main.get_graphviz_dot", return_value="digraph G {}"
-    ) as mock_dot:
-        with patch(
-            "graphviz.Source.pipe", return_value=b"\x89PNG\r\n\x1a\n"
-        ) as mock_pipe:
+    with patch("src.api.app.main.get_graphviz_dot", return_value="digraph G {}") as mock_dot:
+        with patch("graphviz.Source.pipe", return_value=b"\x89PNG\r\n\x1a\n") as mock_pipe:
             yield mock_dot, mock_pipe
 
 

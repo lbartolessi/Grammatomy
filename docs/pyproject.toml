@@ -12,3 +12,20 @@ dependencies = [
 
 [project.scripts]
 grammatomy-studio = "main:run"
+
+[tool.pytest.ini_options]
+# 1. Registrar marcadores personalizados para evitar PytestUnknownMarkWarning
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests that require external resources or full pipeline",
+]
+
+# 2. Filtrar warnings de terceros que no podemos corregir (Ruido)
+filterwarnings = [
+    # Ignorar advertencias de SWIG en Python 3.13+ (vienen de dependencias compiladas internas)
+    "ignore:.*builtin type SwigPy.*:DeprecationWarning",
+    "ignore:.*builtin type swigvarlink.*:DeprecationWarning",
+    
+    # Ignorar advertencia de torch_struct (dependencia de Benepar) sobre arg_constraints
+    "ignore:.*TreeCRF.*:UserWarning",
+]

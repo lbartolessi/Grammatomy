@@ -1,6 +1,7 @@
 [MASTER]
 # Ignorar carpetas de metadatos y entornos virtuales
 ignore=.git,.mnemosyne,__pycache__,venv,env,node_modules,.mypy_cache,archive
+ignore-paths=(^|/)archive/.*$
 
 # Inyectar ./src en el path de Python para que Pylint encuentre los módulos locales (grammatomy, core, etc.)
 init-hook='import sys; sys.path.append("./src")'

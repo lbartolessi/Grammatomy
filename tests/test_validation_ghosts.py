@@ -6,10 +6,9 @@ Ghost Nodes (marked with '👻') are temporary placeholders inserted during manu
 The system must detect them and BLOCK export or final validation until resolved.
 """
 
-import pytest
 from anytree import Node, PreOrderIter
 
-from grammatomy import from_ptb
+from core.grammatomy import from_ptb
 
 # --- CONSTANTS ---
 # The marker used by the UI to indicate an undefined node/word.
@@ -46,6 +45,7 @@ def test_clean_tree_no_ghosts():
     # (S (sn (spec El) (grup.nom (n gato))) (grup.verb (v come)))
     ptb = "(S (sn (spec El) (grup.nom (n gato))) (grup.verb (v come)))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_no_ghosts(root)
     assert not errors, f"Clean tree flagged as having ghosts: {errors}"
@@ -57,6 +57,7 @@ def test_ghost_in_pos_label():
     # Structure: (S (sn (👻 gato)))
     ptb = f"(S (sn ({GHOST_MARKER} gato)))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_no_ghosts(root)
     assert len(errors) > 0, "Ghost in POS label was not detected."
@@ -69,6 +70,7 @@ def test_ghost_in_word_leaf():
     # Structure: (S (sn (n 👻)))
     ptb = f"(S (sn (n {GHOST_MARKER})))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_no_ghosts(root)
     assert len(errors) > 0, "Ghost in leaf word was not detected."
@@ -80,6 +82,7 @@ def test_ghost_in_intermediate_group():
     # Structure: (S (👻 (n gato))) -> Undefined phrase type
     ptb = f"(S ({GHOST_MARKER} (n gato)))"
     root = from_ptb(ptb)
+    assert root is not None
 
     errors = validate_no_ghosts(root)
     assert len(errors) > 0, "Ghost in phrasal node was not detected."

@@ -11,6 +11,9 @@ readme = "Readme.md"
 requires-python = ">=3.10"
 # Dependencies are now managed in their respective sub-projects (src/core, src/api, etc.)
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [project.optional-dependencies]
 dev = [
     "pytest",
@@ -45,10 +48,11 @@ good-names = [
 
 [tool.pytest.ini_options]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests that require external resources or full pipeline",
 ]
 filterwarnings = [
-    "ignore:.*SwigPy.*:DeprecationWarning",
-    "ignore:.*swigvarlink.*:DeprecationWarning",
-    "ignore:.*torch_struct.*:UserWarning"
+    "ignore:.*builtin type SwigPy.*:DeprecationWarning",
+    "ignore:.*builtin type swigvarlink.*:DeprecationWarning",
+    "ignore:.*TreeCRF.*:UserWarning",
 ]
