@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-
 import yaml
 from anytree import Node, PreOrderIter
+from .engines.stanza_engine import StanzaEngine
 
 from .glossary import TAG_MAP
 
@@ -14,7 +14,7 @@ from .glossary import TAG_MAP
 logger = logging.getLogger(__name__)
 
 
-def load_grammar_rules(lang: str = "es") -> Tuple[Dict[str, List[str]], Dict[str, str]]:
+def load_grammar_rules() -> Tuple[Dict[str, List[str]], Dict[str, str]]:
     """
     Loads grammar rules from the YAML configuration file.
     Returns a tuple containing:
@@ -30,9 +30,7 @@ def load_grammar_rules(lang: str = "es") -> Tuple[Dict[str, List[str]], Dict[str
     file_path = base_path / "hybrid_rules.yaml"
 
     if not file_path.exists():
-        logger.warning(
-            "Grammar rules file not found at %s. Using empty rules.", file_path
-        )
+        logger.warning("Grammar rules file not found at %s. Using empty rules.", file_path)
         return {}, {}
 
     try:
@@ -59,7 +57,7 @@ def load_grammar_rules(lang: str = "es") -> Tuple[Dict[str, List[str]], Dict[str
 
 
 # Initialize rules
-GRAMMAR_RULES, NODE_DESCRIPTIONS = load_grammar_rules("es")
+GRAMMAR_RULES, NODE_DESCRIPTIONS = load_grammar_rules()
 
 # --- LEAF & PUNCTUATION VALIDATION ---
 
@@ -179,9 +177,7 @@ LexiconCallback = Callable[[str, str, str], Tuple[bool, str]]
 LEXICON_HOOK: Optional[LexiconCallback] = None
 
 
-def validate_leaf_consistency(
-    text: str, pos_tag: str, lang: str = "es"
-) -> Tuple[bool, str]:
+def validate_leaf_consistency(text: str, pos_tag: str, lang: str = "es") -> Tuple[bool, str]:
     """
     Validates the consistency between a leaf text and its POS tag.
     Enforces rules for words vs. punctuation.
@@ -319,25 +315,24 @@ class Grammar:
         self.use_gpu = use_gpu
 
     def parse(self, text: str) -> Optional[Node]:
+        root = None
         if self.engine == "stanza":
-            from .engines.stanza_engine import StanzaEngine
-
-            return StanzaEngine.get_tree(
+            root = StanzaEngine.get_tree(
                 text, lang=self.lang, model_package=self.model, use_gpu=self.use_gpu
             )
         elif self.engine == "spacy":
-            from .engines.spacy_engine import SpacyEngine
+            from .engines.spacy_engine import SpacyEngine  # pylint: disable=import-outside-toplevel
 
-            return SpacyEngine.get_tree(
+            root = SpacyEngine.get_tree(
                 text, lang=self.lang, model_package=self.model, use_gpu=self.use_gpu
             )
         else:
             raise ValueError(f"Unsupported engine: {self.engine}")
 
+        return root
 
-def get_syntax_tree(
-    text: str, params: Optional[Dict[str, Any]] = None
-) -> Optional[Node]:
+
+def get_syntax_tree(text: str, params: Optional[Dict[str, Any]] = None) -> Optional[Node]:
     if params is None:
         params = {}
 

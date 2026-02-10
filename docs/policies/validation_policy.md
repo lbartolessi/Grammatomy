@@ -75,6 +75,8 @@ Se establece una distinción fundamental en el tratamiento de las violaciones de
     *   **Acción:** No se bloquea ni se descarta el árbol. Se prioriza la fidelidad al *output* del modelo, delegando en el experto humano la decisión final de corregir la anomalía o aceptarla como una limitación del motor.
 
 2.  **Violaciones de Usuario (Prevención Activa):**
+    *   **Principio de Edición Estricta:** Aunque el sistema puede visualizar árboles "laxos" (aplanados o híbridos) provenientes de modelos, **todas las operaciones de edición manual** (añadir, mover, copiar, borrar) se rigen por el modo **Estricto**.
+    *   **Objetivo:** El editor actúa como un filtro de calidad ascendente. No se permite al usuario introducir o perpetuar estructuras laxas; su intervención debe siempre acercar el árbol a la forma canónica definida en las reglas.
     *   **Diagnóstico:** Cualquier intento de modificación manual se evalúa *a priori* contra el conjunto de reglas.
     *   **Acción:** El sistema impide físicamente la creación de estados inválidos. Las operaciones que resultarían en una violación (ej. adjuntar un nodo a un padre prohibido) se bloquean en la interfaz (deshabilitación de menús, rechazo de *drag-and-drop*).
     *   **Corolario:** El usuario no puede introducir errores sintácticos; su interacción se limita estrictamente a la curación y perfeccionamiento del árbol dentro de los límites de la gramática definida.

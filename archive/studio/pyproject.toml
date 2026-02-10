@@ -12,3 +12,8 @@ dependencies = [
 
 [project.scripts]
 grammatomy-studio = "main:run"
+[tool.pylint.messages_control]
+disable = [
+    "C0301",  # Desactiva line-too-long
+    # ... otros códigos desactivados ...
+]

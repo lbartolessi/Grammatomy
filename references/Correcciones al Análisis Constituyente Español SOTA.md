@@ -6,15 +6,11 @@ Para integrar un análisis de constituyentes de vanguardia para el español en t
 
 Los modelos específicos para español entrenados en el corpus **AnCora-ES** que ofrecen resultados superiores (F1 hasta 0.8183) no se descargan vía `benepar.download()`, sino que se cargan directamente desde **Hugging Face** utilizando la arquitectura de secuencia a secuencia (Seq2Seq).
 
-* **Identificador Exacto (Repo ID):** `PlanTL-GOB-ES/gpt2-large-bne` (Mejor rendimiento F1).
+- **Identificador Exacto (Repo ID):** `PlanTL-GOB-ES/gpt2-large-bne` (Mejor rendimiento F1).
 
+- **Identificador Alternativo (Velocidad):** `bigscience/bloom-560m` (Inferencia más rápida con precisión similar).
 
-* **Identificador Alternativo (Velocidad):** `bigscience/bloom-560m` (Inferencia más rápida con precisión similar).
-
-
-* **Formato de Salida:** Estos modelos generan directamente cadenas en formato **Penn Treebank** (S-expressions), utilizando corchetes `` para evitar ambigüedades con la puntuación española, lo cual es ideal para tu parser LISP.
-
-
+- **Formato de Salida:** Estos modelos generan directamente cadenas en formato **Penn Treebank** (S-expressions), utilizando corchetes `` para evitar ambigüedades con la puntuación española, lo cual es ideal para tu parser LISP.
 
 ### 2. El "Truco" de Instalación: Stanza como Alternativa a Benepar
 
@@ -58,11 +54,8 @@ Sin embargo, para el periodo 2025-2026, el modelo **DiaParser** ha surgido como 
 
 **Resumen de Enlaces y Recursos:**
 
-* **Modelos MiSintaxis (PlanTL):** `https://huggingface.co/PlanTL-GOB-ES/gpt2-large-bne`.
+- **Modelos MiSintaxis (PlanTL):** `https://huggingface.co/PlanTL-GOB-ES/gpt2-large-bne`.
 
+- **Stanza Spanish Resources:** `https://huggingface.co/stanfordnlp/stanza-es`.
 
-* **Stanza Spanish Resources:** `https://huggingface.co/stanfordnlp/stanza-es`.
-
-
-* **Metadata de Benepar (Oficial):** No contiene `es2`. Los fallos de descarga son permanentes para ese ID en el servidor de NLTK.
-
+- **Metadata de Benepar (Oficial):** No contiene `es2`. Los fallos de descarga son permanentes para ese ID en el servidor de NLTK.

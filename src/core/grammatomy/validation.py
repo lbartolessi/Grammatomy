@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -5,6 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from core.grammatomy.validation_engine import ValidationEngine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/validation", tags=["validation"])
 
@@ -51,6 +54,7 @@ class ConversionCheckRequest(BaseModel):
 class RequirementsCheckRequest(BaseModel):
     tag: str
     descendant_tags: List[str]
+    children_tags: List[str] = []
     lang: str = "es"
 
 
@@ -69,10 +73,12 @@ def get_all_tags(lang: str = "es"):
 @router.get("/rules/{tag}", response_model=Dict[str, Any])
 def get_tag_definition(tag: str, lang: str = "es"):
     """Returns the raw rule definition for a specific tag (for UI inspection)."""
-    print(f"🔍 API Request: get_tag_definition for tag='{tag}'")
+    logger.info("API Request: get_tag_definition for tag='%s'", tag)
     engine = get_engine(lang)
     result = engine.get_definition(tag)
-    print(f"   Result found: {bool(result)} (Keys: {list(result.keys()) if result else 'None'})")
+    logger.debug(
+        "Result found: %s (Keys: %s)", bool(result), list(result.keys()) if result else "None"
+    )
     return result
 
 
@@ -93,7 +99,7 @@ def get_valid_conversions(req: ConversionCheckRequest):
     based on its parent and children constraints.
     """
     engine = get_engine(req.lang)
-    return engine.can_convert_node(req.current_tag, req.ancestor_tags, req.children_tags)
+    return engine.can_convert_node(req.ancestor_tags, req.children_tags)
 
 
 @router.post("/check/requirements", response_model=ValidationResponse)
@@ -102,7 +108,13 @@ def validate_requirements(req: RequirementsCheckRequest):
     Validates if a node satisfies its internal mandatory requirements (based on descendants).
     """
     engine = get_engine(req.lang)
-    allowed, reason = engine.validate_requirements(req.tag, req.descendant_tags)
+    is_valid, errors, _ = engine.validate_node(
+        node_label=req.tag,
+        children_labels=req.children_tags,  # Strict mode uses immediate children
+        strategy="strict",
+    )
+    allowed = is_valid
+    reason = errors[0] if errors else "OK"
     return ValidationResponse(allowed=allowed, reason=reason)
 
 

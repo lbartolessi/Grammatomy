@@ -1,0 +1,69 @@
+# Investigación de Reglas con Hijos Categoriales (POS) en AnCora
+
+Este documento analiza los nodos sintácticos del corpus AnCora que poseen al menos una regla de **hijos obligatorios** que incluye nodos categoriales (Part-of-Speech, POS). Se clasifican las reglas según su naturaleza estructural (sintagmática vs. paradigmática) y la composición de sus elementos obligatorios.
+
+## Resumen Ejecutivo
+
+Del análisis de la documentación oficial (`Guia sintaxi.txt`), se han identificado **8 reglas principales** que rigen la estructura obligatoria de los constituyentes básicos y que involucran nodos POS.
+
+- **Reglas Paradigmáticas (Selección):** 5 reglas. (El núcleo es obligatorio, pero se elige de una lista de opciones).
+- **Reglas Sintagmáticas (Co-ocurrencia):** 3 reglas. (Se requiere la presencia simultánea de varios elementos).
+- **Composición "Solo POS":** 6 reglas. (Todos los hijos obligatorios son categorías léxicas).
+- **Composición "POS y Grupo":** 2 reglas. (Los hijos obligatorios mezclan categorías léxicas y sintagmas).
+
+## Tabla de Análisis de Reglas
+
+| Nodo Padre                 | Regla (Hijos Obligatorios)                     | Tipo          | Composición | Cant. POS | POS Incluidos      |
+| :------------------------- | :--------------------------------------------- | :------------ | :---------- | :-------- | :----------------- |
+| **grup.nom**               | Núcleo (`n` \| `p` \| `w` \| `z` \| `grup`...) | Paradigmática | POS y Grupo | 4         | `n`, `p`, `w`, `z` |
+| **grup.a**                 | Núcleo (`a` \| `n` \| `w` \| `z`)              | Paradigmática | Solo POS    | 4         | `a`, `n`, `w`, `z` |
+| **grup.adv**               | Núcleo (`r`)                                   | Paradigmática | Solo POS    | 1         | `r`                |
+| **spec**                   | Núcleo (`d` \| `r` \| `z`)                     | Paradigmática | Solo POS    | 3         | `d`, `r`, `z`      |
+| **sp**                     | Preposición (`s`) + Término (`sn`...)          | Sintagmática  | POS y Grupo | 1         | `s`                |
+| **grup.verb** (Simple)     | Verbo (`v`)                                    | Paradigmática | Solo POS    | 1         | `v`                |
+| **grup.verb** (Compuesto)  | Auxiliar (`v`) + Participio (`v`)              | Sintagmática  | Solo POS    | 1         | `v`                |
+| **grup.verb** (Perífrasis) | Aux (`v`) + Nexo (`s`\|`c`) + Verb (`v`)       | Sintagmática  | Solo POS    | 3         | `v`, `s`, `c`      |
+
+## Detalle de las Reglas
+
+### 1. Grupo Nominal (`grup.nom`)
+
+- **Regla:** Requiere un **Núcleo**.
+- **Naturaleza:** Paradigmática. El núcleo se selecciona de un paradigma que incluye tanto categorías léxicas (nombres, pronombres, fechas, números) como estructuras nominalizadas (grupos adjetivos, oraciones).
+- **POS:** Incluye `n` (nombre), `p` (pronombre), `w` (fecha), `z` (número).
+
+### 2. Grupo Adjetivo (`grup.a`)
+
+- **Regla:** Requiere un **Núcleo**.
+- **Naturaleza:** Paradigmática. Aunque lo canónico es un adjetivo, AnCora permite nombres adjetivados, fechas y números como núcleo.
+- **POS:** Incluye `a` (adjetivo), `n` (nombre), `w` (fecha), `z` (número).
+
+### 3. Grupo Adverbial (`grup.adv`)
+
+- **Regla:** Requiere un **Núcleo**.
+- **Naturaleza:** Paradigmática (Unívoca).
+- **POS:** Incluye `r` (adverbio).
+
+### 4. Especificador (`spec`)
+
+- **Regla:** Requiere un **Elemento Determinante**.
+- **Naturaleza:** Paradigmática. Generalmente es un determinante, pero en locuciones cuantitativas puede ser un adverbio o número.
+- **POS:** Incluye `d` (determinante), `r` (adverbio), `z` (número).
+
+### 5. Sintagma Preposicional (`sp`)
+
+- **Regla:** Requiere **Preposición (`prep`)** Y **Término**.
+- **Naturaleza:** Sintagmática. Es la única estructura de frase básica en AnCora que exige co-ocurrencia de un POS (`s`) y un Grupo (el término, usualmente `sn` o `S`).
+- **POS:** Incluye `s` (preposición).
+
+### 6. Grupo Verbal (`grup.verb`)
+
+Este nodo es único porque sus reglas de formación interna varían drásticamente según el tipo de verbo, pero todas son ricas en POS.
+
+- **Forma Simple:** Paradigmática. Solo requiere `v`.
+- **Forma Compuesta:** Sintagmática. Requiere co-ocurrencia de `v` (auxiliar) y `v` (participio). Es una regla "Solo POS".
+- **Perífrasis:** Sintagmática. Requiere `v` (auxiliar), opcionalmente un nexo (`s` prep o `c` conjunción) y `v` (verbo principal). Es una regla "Solo POS".
+
+---
+
+_Nota: Se han excluido nodos como `sn` (Sintagma Nominal) y `S` (Oración) porque sus reglas de hijos obligatorios (`grup.nom` y `grup.verb` respectivamente) refieren a nodos de agrupamiento, no a categorías POS directas._

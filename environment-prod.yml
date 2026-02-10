@@ -1,0 +1,22 @@
+name: grammatomy-prod
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - pip
+  - stanza
+  - anytree
+  - python-graphviz
+  - fastapi
+  - uvicorn
+  - python-multipart
+  - httpx
+  - pyyaml
+  - pip:
+    - protobuf
+    - transformers>=4.30.0
+    - torch
+    - accelerate
+    - huggingface_hub
+    - langdetect

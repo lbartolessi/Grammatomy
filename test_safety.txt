@@ -1,0 +1,105 @@
+[INFO] Loaded 31 rules from /home/lbartolessi/Workspaces/Grammatomy/src/core/grammatomy/assets/rules/hybrid_rules.yaml
+[DEBUG] EdgeBasedReconstructor loaded 109 patterns.
+
+=== TEST: IDEMPOTENCIA (Árbol Perfecto) ===
+
+--- Árbol Original (Stanza) ---
+ROOT
+└── sentence
+    ├── sn
+    │   ├── spec
+    │   │   └── DET
+    │   │       └── El
+    │   └── grup.nom
+    │       ├── NOUN
+    │       │   └── informe
+    │       └── S
+    │           ├── relatiu
+    │           │   └── PRON
+    │           │       └── que
+    │           ├── sn
+    │           │   ├── spec
+    │           │   │   └── DET
+    │           │   │       └── el
+    │           │   └── grup.nom
+    │           │       └── NOUN
+    │           │           └── comité
+    │           └── grup.verb
+    │               └── VERB
+    │                   └── evaluó
+    └── grup.verb
+        ├── AUX
+        │   └── fue
+        └── VERB
+            └── aprobado
+... Ejecutando refine() ...
+
+--- Árbol Refinado ---
+ROOT
+└── sentence
+    ├── sn
+    │   ├── spec
+    │   │   └── DET
+    │   │       └── El
+    │   └── grup.nom
+    │       ├── NOUN
+    │       │   └── informe
+    │       └── S
+    │           ├── relatiu
+    │           │   └── PRON
+    │           │       └── que
+    │           ├── sn
+    │           │   ├── spec
+    │           │   │   └── DET
+    │           │   │       └── el
+    │           │   └── grup.nom
+    │           │       └── NOUN
+    │           │           └── comité
+    │           └── grup.verb
+    │               └── VERB
+    │                   └── evaluó
+    └── grup.verb
+        ├── AUX
+        │   └── fue
+        └── VERB
+            └── aprobado
+✅ ÉXITO: El árbol no sufrió cambios innecesarios.
+[INFO] Loaded 31 rules from /home/lbartolessi/Workspaces/Grammatomy/src/core/grammatomy/assets/rules/hybrid_rules.yaml
+[DEBUG] EdgeBasedReconstructor loaded 109 patterns.
+
+=== TEST: REPARACIÓN LOCAL (Árbol Dañado) ===
+
+--- Árbol Dañado (Input) ---
+ROOT
+└── sentence
+    └── sn
+        ├── spec
+        │   └── DET
+        └── grup.nom
+            ├── NOUN
+            ├── ADP
+            └── sn
+                ├── spec
+                │   └── DET
+                └── grup.nom
+                    └── NOUN
+[DEBUG] Repairing 'grup.nom'. Children: ['NOUN', 'ADP', 'sn']
+[DEBUG] Match found: ('ADP', 'sn') -> sp at index 1
+[DEBUG] Repairing 'sentence'. Children: ['sn']
+
+--- Árbol Reparado (Output) ---
+ROOT
+└── sentence
+    └── sn
+        ├── spec
+        │   └── DET
+        └── grup.nom
+            ├── NOUN
+            └── sp
+                ├── ADP
+                └── sn
+                    ├── spec
+                    │   └── DET
+                    └── grup.nom
+                        └── NOUN
+✅ ÉXITO: Se creó el nodo 'sp' faltante.

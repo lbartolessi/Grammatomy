@@ -27,7 +27,7 @@ NEXT IMMEDIATE STEP: Verify Linter status after restart and begin Web Component 
 - [2024-05-21] [Refactor: Core] Externalized validation rules to `assets/rules/hybrid_rules.yaml` and implemented dynamic loading in `validation.py` to support hybrid AnCora/UD/PTB structures.
 - [2024-05-21] [Fix: Core] Updated `grammatomy/__init__.py` and `validation.py` exports (`__all__`) to resolve Pylance import errors.
 - [2024-05-21] [Feature: Web] Scaffolded `src/web` frontend application using Vite, Lit, TypeScript, and Tailwind CSS. Configured build pipeline and basic layout.
-- [2024-05-21] [Decision: Validation] Adopted "Pragmatic Structural Validation" for mandatory children: requirements are satisfied by *any* descendant (not just direct children) and follow OR logic (at least one match), accommodating Spanish syntactic flexibility.
+- [2024-05-21] [Decision: Validation] Adopted "Pragmatic Structural Validation" for mandatory children: requirements are satisfied by _any_ descendant (not just direct children) and follow OR logic (at least one match), accommodating Spanish syntactic flexibility.
 - [2024-05-21] [Feature: Validation] Completed "Pragmatic Validation" engine. Implemented ancestor-based permission (upwards flexibility) and descendant-based mandatory checks (downwards flexibility) to accommodate neural parser variability.
 - [2024-05-21] [Feature: Studio] Finalized Inspector UI with dynamic error reporting, ghost node editing (text/structure), and context-aware dropdowns.
 - [2024-05-21] [Validation: External] Reviewed 'Auditoría Estructural Modelos Parsing Español'. The report confirms the necessity of the "Pragmatic Validation" strategy and the handling of hybrid UD/Constituency tags, validating the architectural pivot away from strict academic grammar towards SOTA model compatibility.
@@ -47,3 +47,7 @@ NEXT IMMEDIATE STEP: Verify Linter status after restart and begin Web Component 
 - [2024-05-22] [Observation: UX] Validated Dagre's resistance to reordering aligned leaf nodes as a positive "Safety by Design" feature, preventing accidental word order permutation while allowing structural changes via grouping.
 - [2024-05-22] [Refinement: Studio] Enforced "Atomic POS Unit" logic for Cut/Copy operations. Selecting a leaf node (word/punctuation) now automatically targets its parent POS/PUNCT node, ensuring linguistic units are moved/copied together.
 - [2024-05-22] [Plan: Next Session] Defined roadmap: 1) Implement "Decalogue" Regression Tests (Editing Policy), 2) Refactor Language Architecture into a Plugin System (`plugins/{es,it,en,pt}`), 3) Implement Export System.
+- [2026-02-09] [Experiment: Reconstruction] Attempted full tree reconstruction from flat POS tags using `EdgeBasedReconstructor`. Encountered recursive loop issues ("Tower of Babel") despite stratification strategies.
+- [2026-02-09] [Discovery: AnCora] Confirmed via external intelligence that Stanza models for Spanish use native AnCora tags (`sn`, `grup.nom`) instead of PTB (`NP`, `VP`).
+- [2026-02-09] [Strategic Pivot: Refinement] Abandoned "Reconstruction from Scratch". Adopted "Local Refinement" strategy to repair existing trees using production rules without flattening.
+- [2026-02-09] [Artifact: Dump] Generated session dump to preserve context for the next session.

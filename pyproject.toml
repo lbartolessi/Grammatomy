@@ -25,8 +25,7 @@ dev = [
 ]
 
 [tool.pylint.main]
-source-roots = ["src/core", "src/api", "src/studio"]
-extension-pkg-allow-list = ["PyQt6"]
+source-roots = ["src/core", "src/api"]
 
 [tool.pylint."messages control"]
 disable = [

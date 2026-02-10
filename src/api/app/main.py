@@ -13,9 +13,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 from core.grammatomy import get_syntax_tree, to_json, to_ptb
+from core.grammatomy.validation_engine import ValidationEngine
 from core.grammatomy.visualization.ascii_renderer import render_ascii_colored
 from core.grammatomy.visualization.graphviz_renderer import get_graphviz_dot
-from core.validation_engine import ValidationEngine
 
 from .schemas import ParseRequest, ParseResponse, SyntaxNode
 
@@ -29,7 +29,7 @@ ERROR_PARSER_FAILED = "Parser returned no tree"
 
 # Initialize Validation Engine (Singleton-ish)
 RULES_PATH = Path(__file__).resolve().parents[2] / "core" / "rules_es.yaml"
-validator = ValidationEngine(str(RULES_PATH), strategy="lax")
+validator = ValidationEngine(str(RULES_PATH), lang="es")
 
 
 def _convert_to_syntax_node(node) -> SyntaxNode:
@@ -189,18 +189,20 @@ def get_validation_options(payload: dict):
     tag = payload.get("current_tag") or ""
 
     # 1. Validate Context
-    is_valid, trace = validator.validate_context(tag, parent)
-
-    # 2. Get Valid Options (for dropdown)
-    # If parent is defined, what can go there?
-    valid_options = []
     if parent:
-        # pylint: disable=protected-access
-        valid_options = validator._get_children_config(
-            parent, validator.strategy, "allowed_children"
-        )
+        is_valid, reason = validator.can_add_child(parent, tag)
+        trace = [reason]
+        # 2. Get Valid Options (for dropdown)
+        valid_options = sorted(list(validator.allowed_children.get(parent, [])))
     else:
-        valid_options = ["S", "ROOT"]  # Root context
+        # Root context check
+        is_valid = tag in validator.root_allowed_tags
+        trace = ["Root check"] if is_valid else [f"'{tag}' not allowed as Root"]
+        valid_options = sorted(list(validator.root_allowed_tags))
+
+    # Fallback if no options found (e.g. terminal or unknown parent)
+    if not valid_options and not parent:
+        valid_options = ["S", "ROOT"]
 
     return {"valid": is_valid, "trace": trace, "options": sorted(valid_options)}
 
@@ -220,11 +222,8 @@ def check_requirements(payload: dict):
     if "children_tags" not in payload:
         children = descendants
 
-    validator.set_strategy(strategy)
     is_valid, errors, trace = validator.validate_node(
-        node_label=tag,
-        children_labels=children,
-        descendants_labels=descendants,
+        node_label=tag, children_labels=children, descendants_labels=descendants, strategy=strategy
     )
 
     return {"allowed": is_valid, "reason": errors[0] if errors else "", "trace": trace}

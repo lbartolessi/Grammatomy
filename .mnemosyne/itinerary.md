@@ -52,39 +52,47 @@
     - [ ] Archive Legacy Streamlit Demo
     - [x] Deploy FastAPI Backend (Docker)
     - [x] Deploy Static Frontend (Lit Build)
-  - [ ] Code Quality Audit (Pylint/SonarQube cleanup)
+  - [x] Code Quality Audit (Pylint/SonarQube cleanup) [DONE]
   - [ ] Standard Logging Implementation (Replace print statements)
   - [ ] PyPI Packaging Strategy (Library vs Demo separation)
   - [ ] ReadTheDocs Integration (MkDocs setup)
-  - [ ] Grammatomy Studio (Web Client) [PIVOTED FROM DESKTOP]
+  - [ ] Grammatomy Studio (Phased Roadmap) [STRATEGIC PIVOT]
     - [x] Editor Layout & Chrome (Toolbar, Sidebar) [DONE]
     - [x] Cytoscape.js Integration (Basic)
     - [x] PTB-based State Management (Client-Side Parsing) [DONE]
     - [x] Rule-Based Editing Logic (Validation) [DONE]
       - [x] Connect Inspector Dropdown to Backend Rules (Context-Aware)
       - [x] Implement Graph Mutation Logic (Move/Delete/Ghost Nodes)
-    - [ ] Core Editing Features [PRIORITY]
+    - [ ] Phase 1: v0.1.0 (Foundation & Persistence) [TARGET]
       - [x] Verify Ghost Node Logic (Recursive Delete / Auto-Spawn Child) [DONE]
       - [x] Implement Sibling Node Reordering (Move Left/Right) [DONE - Visual Only]
       - [x] Implement Undo/Redo Stack (State History) [DONE]
-      - [ ] Implement Drag-and-Drop Node Moving (Cytoscape) [NEW]
       - [x] Implement Clipboard Operations (Cut/Copy/Paste Subtrees) [DONE]
-    - [ ] Testing & Stability [PRIORITY]
-      - [ ] Implement Decalogue Regression Suite (Editing Policy Validation) [NEXT]
-    - [ ] Architecture Refactoring [NEXT]
-      - [ ] Implement Language Plugin System (`plugins/{es,it,en,pt}`)
-      - [ ] Migrate `hybrid_rules.yaml` to per-language configuration
-    - [ ] IO & Persistence (Local-First) [NEW]
-      - [ ] Implement File Open (Text/PTB) from Local Disk
-      - [ ] Implement Browser-based Auto-Save (LocalStorage/IndexedDB)
-      - [ ] Implement Export Menu (SVG, PNG, PTB, JSON, LaTeX Forest, PDF)
-    - [ ] Configuration & Controls [NEW]
-      - [ ] Implement Parsing Mode Toggle (Constituency vs Universal Dependencies)
-    - [ ] UX Refinement
-      - [x] Consolidate Toolbar into Inspector Panel [DONE]
-      - [ ] Implement Sliding ASCII Tree Sidebar
-      - [ ] Responsive Design Stress Test
-      - [ ] Welcome Screen & Help Page
+      - [ ] Implement Drag-and-Drop Node Moving (Cytoscape) [NEW]
+      - [ ] Testing & Stability
+        - [x] Implement Decalogue Regression Suite (Editing Policy Validation) [DONE]
+        - [x] Configure Coverage Reporting (pytest-cov for Coverage Gutters) [DONE]
+      - [ ] IO & Persistence (Local-First)
+        - [x] Design Basic `.gmy` JSON Schema (Multi-tree structure only) [DONE]
+        - [ ] Implement Multi-Tree File I/O (Load/Save `.gmy` locally)
+        - [ ] Implement Tree Index/Selector Sidebar
+        - [ ] Implement Export Menu (SVG, PNG, PTB, JSON, Simple LaTeX Forest)
+      - [ ] UX Refinement
+        - [x] Consolidate Toolbar into Inspector Panel [DONE]
+        - [ ] Implement Sliding ASCII Tree Sidebar
+        - [ ] Welcome Screen & Help Page
+    - [ ] Phase 2: v1.0.0 (Advanced Annotation & Fidelity) [FUTURE]
+      - [ ] Architecture Refactoring
+        - [ ] Implement Language Plugin System (`plugins/{es,it,en,pt}`) [BLOCKED]
+        - [ ] Migrate `hybrid_rules.yaml` to per-language configuration
+      - [ ] Advanced Annotation Features
+        - [ ] Extend `.gmy` Schema for Annotation Layer (Metadata, Visual Props)
+        - [ ] Research Cytoscape support for non-structural edges (Movement/Binding)
+        - [ ] Implement Node Feature Editor (Phi-features, indices)
+        - [ ] Implement Split-View Architecture (Interactive Editor / Static Preview)
+        - [ ] Research Live LaTeX Forest Preview strategies (Server-side SVG vs WASM)
+      - [ ] Configuration & Controls
+        - [ ] Implement Parsing Mode Toggle (Constituency vs Universal Dependencies)
   - [ ] Algorithmic Tooling [NEW]
     - [ ] Implement Tree Edit Distance (Tree Levenshtein) for comparison
   - [ ] Pedagogical App (Component Validation) [NEW]

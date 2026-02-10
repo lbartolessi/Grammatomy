@@ -1,25 +1,14 @@
-#!/usr/bin/env python3
-"""
-Batch Validation Tool for Grammatomy.
-
-This script runs a stress test on the configured parsers (Stanza/Benepar)
-using complex sentences from multiple languages. It applies the current
-metasyntactic rules and generates a consolidated report of warnings.
-
-Usage:
-    python tools/batch_validation.py
-"""
-
 import logging
+
+import pytest
 
 from core.grammatomy import get_syntax_tree
 from core.grammatomy.grammar import validate_structure
 
-# Configure logging to console only, clean format
-logging.basicConfig(format="%(message)s", level=logging.INFO)
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # --- STRESS CORPUS ---
-# A collection of sentences designed to trigger complex syntactic structures.
 CORPUS = [
     {
         "lang": "es",
@@ -67,12 +56,13 @@ CORPUS = [
 ]
 
 
-def run_batch_validation():
-    print("=" * 60)
-    print(" 🕵️  GRAMMATOMY BATCH VALIDATION REPORT")
-    print("=" * 60 + "\n")
-
-    total_warnings = 0
+@pytest.mark.integration
+@pytest.mark.slow
+def test_batch_validation_corpus():
+    """
+    Runs the stress corpus through the parsers and validates the structure.
+    This test ensures that the parsers don't crash and return a valid tree object.
+    """
 
     for item in CORPUS:
         lang = item["lang"]
@@ -80,37 +70,20 @@ def run_batch_validation():
         desc = item["desc"]
         text = item["text"]
 
-        print(f"🔹 [{lang.upper()}] {desc} (Engine: {engine})")
-        print(f'   Input: "{text[:70]}..."')
+        logger.info(f"Testing [{lang.upper()}] {desc} with {engine}")
 
         try:
             # 1. Parse
-            # Note: We suppress internal logs to keep the report clean
             root = get_syntax_tree(text, params={"lang": lang, "engine": engine})
 
-            if not root:
-                print("   ❌ Parsing Failed: No tree returned.")
-                continue
+            # Assert tree is generated
+            assert root is not None, f"Parsing failed for {desc} ({lang})"
 
             # 2. Validate
             warnings = validate_structure(root)
 
-            if not warnings:
-                print("   ✅ Structure OK (Compliant with current rules)")
-            else:
-                print(f"   ⚠️  {len(warnings)} Metasyntax Warnings:")
-                for w in warnings.values():
-                    print(f"      - {w}")
-                total_warnings += len(warnings)
+            if warnings:
+                logger.warning("Warnings for %s: %s", desc, warnings)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"   ❌ Execution Error: {e}")
-
-        print("-" * 60)
-
-    print(f"\nSUMMARY: {total_warnings} warnings detected across {len(CORPUS)} test cases.")
-    print("=" * 60)
-
-
-if __name__ == "__main__":
-    run_batch_validation()
+            pytest.fail(f"Exception during batch validation of {desc}: {e}")

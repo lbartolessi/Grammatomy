@@ -17,7 +17,7 @@ TAG_MAP = {
         "QP": "Quantifier Phrase",
         "ROOT": "Root Node",
         "RRC": "Reduced Relative Clause",
-        "S": "Simple Declarative Clause",
+        "S": "Subordinate/Recursive Clause (Oración Subordinada)",
         "SBAR": "Clause introduced by a subordinating conjunction",
         "SBARQ": "Direct question introduced by a wh-word",
         "SINV": "Inverted declarative sentence",
@@ -30,6 +30,7 @@ TAG_MAP = {
         "WHADVP": "Wh-adverb Phrase",
         "WHNP": "Wh-noun Phrase",
         "WHPP": "Wh-prepositional Phrase",
+        "coord": "Coordination Node (Coordinación)",
         "grup.a": "Adjectival Group (AnCora)",
         "grup.adv": "Adverbial Group (AnCora)",
         "grup.nom": "Nominal Group (AnCora)",
@@ -37,6 +38,7 @@ TAG_MAP = {
         "grup.verb": "Verbal Group (AnCora)",
         "inc": "Included/Parenthetical",
         "morf": "Morpheme (Gender/Number)",
+        "relatiu": "Relative Pronoun Group (Relativo)",
         "s.a": "Adjective Phrase (Sintagma Adjetival)",
         "s.adv": "Adverb Phrase (Sintagma Adverbial)",
         "sadv": "Adverb Phrase (Sintagma Adverbial)",
@@ -44,7 +46,7 @@ TAG_MAP = {
         "sn": "Noun Phrase (Sintagma Nominal)",
         "sp": "Prepositional Phrase (Sintagma Preposicional)",
         "spec": "Specifier",
-        "sv": "Verb Phrase (Sintagma Verbal)"
+        "sv": "Verb Phrase (Sintagma Verbal)",
     },
     "POS": {
         "ADJ": "Adjective",
@@ -105,6 +107,5 @@ TAG_MAP = {
         "neg": "Negation",
         "participi": "Participle (Verb)",
         "prep": "Preposition",
-        "relatiu": "Relative (Pronoun/Adverb)"
-    }
+    },
 }
