@@ -14,8 +14,9 @@ This protocol triggers when a Chapter reaches its capacity (~800 lines).
    SUMMARY: [Insert Wayfarer's Summary here]
    NEXT IMMEDIATE STEP: [The very next task from Itinerary]"
 7. ARCHIVE: Close the previous chapter file. Do not write in it again.
+8. Change in .mnemosyne/manifesto.md the tag **CURRENT CHAPTER:** to **[[N+1]]** to show the new Chapter.
 
-8. **LABELING & TAXONOMY (Suggested Style):**
+9. **LABELING & TAXONOMY (Suggested Style):**
    When summarizing or creating the "Wayfarer's Summary", use bold labels to categorize information. You are free to create new labels, but consider these established patterns:
    - **[NATURE OF WORK]**: Use labels like **Refactoring**, **Fix**, **Feature**, or **Cleanup** to define the action.
    - **[STRATEGIC WEIGHT]**: Use **Architectural Decision**, **Milestone**, or **Strategic Pivot** for high-impact changes.

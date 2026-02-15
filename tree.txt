@@ -1,10 +1,57 @@
 .
 ├── archive
-│   └── demo
-│       ├── app.py
-│       ├── examples.yaml
-│       └── github-octocat-svgrepo-com.svg
+│   ├── demo
+│   │   ├── app.py
+│   │   ├── examples.yaml
+│   │   └── github-octocat-svgrepo-com.svg
+│   ├── requirements.dev.txt
+│   └── studio
+│       ├── pyproject.toml
+│       ├── studio.py
+│       └── ui
+│           ├── __init__.py
+│           ├── __pycache__
+│           │   ├── __init__.cpython-313.pyc
+│           │   └── syntax_editor.cpython-313.pyc
+│           └── syntax_editor.py
 ├── config.yaml
+├── coverage_html
+│   ├── class_index.html
+│   ├── coverage_html_cb_dd2e7eb5.js
+│   ├── favicon_32_cb_c827f16f.png
+│   ├── function_index.html
+│   ├── index.html
+│   ├── keybd_closed_cb_900cfef5.png
+│   ├── status.json
+│   ├── style_cb_9ff733b0.css
+│   ├── z_0618756b1ff51bca_validation_engine_py.html
+│   ├── z_11569645913b881c_ascii_renderer_py.html
+│   ├── z_11569645913b881c_graphviz_renderer_py.html
+│   ├── z_11569645913b881c___init___py.html
+│   ├── z_11569645913b881c_json_renderer_py.html
+│   ├── z_11569645913b881c_lisp_renderer_py.html
+│   ├── z_8160d43395bf7f51___init___py.html
+│   ├── z_8160d43395bf7f51_spacy_engine_py.html
+│   ├── z_8160d43395bf7f51_stanza_engine_py.html
+│   ├── z_831b930cca6b6126___init___py.html
+│   ├── z_831b930cca6b6126_lisp_parser_py.html
+│   ├── z_c8005c0bb8152cb5_config_py.html
+│   ├── z_c8005c0bb8152cb5_edge_reconstructor_py.html
+│   ├── z_c8005c0bb8152cb5_essential_validator_py.html
+│   ├── z_c8005c0bb8152cb5_glossary_py.html
+│   ├── z_c8005c0bb8152cb5_grammar_py.html
+│   ├── z_c8005c0bb8152cb5___init___py.html
+│   ├── z_c8005c0bb8152cb5_logic_py.html
+│   ├── z_c8005c0bb8152cb5_tree_reconstructor_py.html
+│   ├── z_c8005c0bb8152cb5_validation_engine_py.html
+│   ├── z_c8005c0bb8152cb5_validation_py.html
+│   ├── z_e3a7256fa63a9828___init___py.html
+│   ├── z_e3a7256fa63a9828_main_py.html
+│   ├── z_e3a7256fa63a9828_schemas_py.html
+│   ├── z_fcea797813b6b460___init___py.html
+│   ├── z_fcea797813b6b460_json_exporter_py.html
+│   └── z_fcea797813b6b460_ptb_exporter_py.html
+├── coverage.xml
 ├── default.conf
 ├── docker-compose.yml
 ├── Dockerfile
@@ -15,16 +62,35 @@
 │   │   └── application_architecture.md
 │   ├── Design_Guidelines.md
 │   ├── Frontend_Architecture.md
+│   ├── index.md
+│   ├── mermaids.md
 │   ├── package.json
 │   ├── policies
+│   │   ├── 2026-02-04_validation_unification.md
 │   │   ├── editing_policy.md
 │   │   ├── native_tagset_policy.md
 │   │   └── validation_policy.md
 │   ├── pyproject.toml
+│   ├── reference
+│   │   ├── code
+│   │   │   ├── edge_reconstructor.md
+│   │   │   ├── grammar.md
+│   │   │   ├── logic.md
+│   │   │   └── validation_engine.md
+│   │   └── visualization.md
+│   ├── technical
+│   │   ├── algorithm_deep_dive.md
+│   │   ├── algorithm_overview.md
+│   │   └── validation_and_reconstruction.md
 │   └── User_Personas.md
+├── edge_reconstructor.md
+├── environment-prod.yml
 ├── environment.yml
+├── grammar.md
 ├── Grammatomy.code-workspace
 ├── __init__.py
+├── logic.md
+├── mkdocs.yml
 ├── models
 │   ├── benepar
 │   │   └── models
@@ -129,13 +195,21 @@
 ├── __pycache__
 │   └── __init__.cpython-313.pyc
 ├── pyproject.toml
+├── pyrightconfig.json
 ├── pytest.ini
 ├── Readme.md
 ├── references
 │   ├── Análisis Constituyente Español SOTA.md
 │   ├── Análisis Sintáctico Constituyente Español.md
+│   ├── ANCORA
+│   │   ├── ChatGPT.yaml
+│   │   ├── copilot.md
+│   │   ├── deepseek.yaml
+│   │   ├── gemini.md
+│   │   └── mistral.md
 │   ├── AnCora: Multilevel Annotated Corpora for Catalan and Spanish.txt
 │   ├── AnCora_Syntax_Analysis.md
+│   ├── AnCora_Syntax_Research
 │   ├── Appendix-sintaxi.pdf
 │   ├── Appendix-sintaxi.txt
 │   ├── Auditoría Estructural Modelos Parsing Español.md
@@ -145,6 +219,7 @@
 │   ├── Guía_de_documentación.md
 │   ├── Guia_sintaxi.pdf
 │   ├── Guia sintaxi.txt
+│   ├── Investigación sobre validaciones sintácticas.html
 │   ├── prompt
 │   ├── Prueba Color.html
 │   ├── Rigor_Linguistico.md
@@ -162,9 +237,7 @@
 │           ├── H__Congressos_LREC2008_lrec2008_multilevel.dvi - Unknown.opf
 │           └── H__Congressos_LREC2008_lrec2008_multilevel.dvi - Unknown.pdf
 ├── requirements.txt
-├── scripts
-│   ├── analyze_mandatory_leaves.py
-│   └── report_head_leaves.py
+├── sonar-project.properties
 ├── src
 │   ├── api
 │   │   └── app
@@ -182,8 +255,10 @@
 │   │   │   ├── assets
 │   │   │   │   ├── examples.yaml
 │   │   │   │   └── rules
+│   │   │   │       ├── ancora_canonical.yaml
 │   │   │   │       └── hybrid_rules.yaml
 │   │   │   ├── config.py
+│   │   │   ├── edge_reconstructor.py
 │   │   │   ├── engines
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── __pycache__
@@ -192,6 +267,7 @@
 │   │   │   │   │   └── stanza_engine.cpython-313.pyc
 │   │   │   │   ├── spacy_engine.py
 │   │   │   │   └── stanza_engine.py
+│   │   │   ├── essential_validator.py
 │   │   │   ├── exporters
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── json_exporter.py
@@ -204,6 +280,7 @@
 │   │   │   ├── grammar.py
 │   │   │   ├── __init__.py
 │   │   │   ├── logger.py
+│   │   │   ├── logic.py
 │   │   │   ├── parsers
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── lisp_parser.py
@@ -212,18 +289,17 @@
 │   │   │   │       └── lisp_parser.cpython-313.pyc
 │   │   │   ├── __pycache__
 │   │   │   │   ├── config.cpython-313.pyc
+│   │   │   │   ├── edge_reconstructor.cpython-313.pyc
+│   │   │   │   ├── essential_validator.cpython-313.pyc
 │   │   │   │   ├── glossary.cpython-313.pyc
 │   │   │   │   ├── grammar.cpython-313.pyc
 │   │   │   │   ├── __init__.cpython-313.pyc
 │   │   │   │   ├── logger.cpython-313.pyc
+│   │   │   │   ├── logic.cpython-313.pyc
+│   │   │   │   ├── tree_reconstructor.cpython-313.pyc
 │   │   │   │   ├── validation.cpython-313.pyc
 │   │   │   │   └── validation_engine.cpython-313.pyc
-│   │   │   ├── ui
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── __pycache__
-│   │   │   │   │   ├── __init__.cpython-313.pyc
-│   │   │   │   │   └── syntax_editor.cpython-313.pyc
-│   │   │   │   └── syntax_editor.py
+│   │   │   ├── test_grammar_edge_cases.py
 │   │   │   ├── validation_engine.py
 │   │   │   ├── validation.py
 │   │   │   └── visualization
@@ -238,26 +314,33 @@
 │   │   │           ├── __init__.cpython-313.pyc
 │   │   │           ├── json_renderer.cpython-313.pyc
 │   │   │           └── lisp_renderer.cpython-313.pyc
+│   │   ├── grammatomy_lib.egg-info
+│   │   │   ├── dependency_links.txt
+│   │   │   ├── PKG-INFO
+│   │   │   ├── requires.txt
+│   │   │   ├── SOURCES.txt
+│   │   │   └── top_level.txt
 │   │   ├── __pycache__
 │   │   │   └── validation_engine.cpython-313.pyc
 │   │   ├── pyproject.toml
-│   │   ├── rules_es.yaml
-│   │   └── validation_engine.py
-│   ├── grammatomy.egg-info
-│   │   ├── dependency_links.txt
-│   │   ├── entry_points.txt
-│   │   ├── PKG-INFO
-│   │   ├── requires.txt
-│   │   ├── SOURCES.txt
-│   │   └── top_level.txt
-│   ├── grammatomy_workspace.egg-info
-│   │   ├── dependency_links.txt
-│   │   ├── PKG-INFO
-│   │   ├── requires.txt
-│   │   ├── SOURCES.txt
-│   │   └── top_level.txt
+│   │   └── rules_es.yaml
 │   ├── models
 │   │   └── stanza
+│   │       ├── en
+│   │       │   ├── backward_charlm
+│   │       │   │   └── 1billion.pt
+│   │       │   ├── constituency
+│   │       │   │   └── ptb3-revised_charlm.pt
+│   │       │   ├── forward_charlm
+│   │       │   │   └── 1billion.pt
+│   │       │   ├── mwt
+│   │       │   │   └── combined.pt
+│   │       │   ├── pos
+│   │       │   │   └── combined_charlm.pt
+│   │       │   ├── pretrain
+│   │       │   │   └── conll17.pt
+│   │       │   └── tokenize
+│   │       │       └── combined.pt
 │   │       ├── es
 │   │       │   ├── backward_charlm
 │   │       │   │   └── newswiki.pt
@@ -273,9 +356,37 @@
 │   │       │   │   └── conll17.pt
 │   │       │   └── tokenize
 │   │       │       └── combined.pt
+│   │       ├── it
+│   │       │   ├── backward_charlm
+│   │       │   │   └── conll17.pt
+│   │       │   ├── constituency
+│   │       │   │   └── vit_charlm.pt
+│   │       │   ├── forward_charlm
+│   │       │   │   └── conll17.pt
+│   │       │   ├── mwt
+│   │       │   │   └── combined.pt
+│   │       │   ├── pos
+│   │       │   │   └── combined_charlm.pt
+│   │       │   ├── pretrain
+│   │       │   │   └── conll17.pt
+│   │       │   └── tokenize
+│   │       │       └── combined.pt
+│   │       ├── pt
+│   │       │   ├── backward_charlm
+│   │       │   │   └── oscar2023.pt
+│   │       │   ├── constituency
+│   │       │   │   └── cintil_charlm.pt
+│   │       │   ├── forward_charlm
+│   │       │   │   └── oscar2023.pt
+│   │       │   ├── mwt
+│   │       │   │   └── bosque.pt
+│   │       │   ├── pos
+│   │       │   │   └── bosque_charlm.pt
+│   │       │   ├── pretrain
+│   │       │   │   └── conll17.pt
+│   │       │   └── tokenize
+│   │       │       └── bosque.pt
 │   │       └── resources.json
-│   ├── studio
-│   │   └── pyproject.toml
 │   └── web
 │       ├── index.html
 │       ├── node_modules
@@ -5529,45 +5640,89 @@
 │       ├── tailwind.config.js
 │       ├── tsconfig.json
 │       └── vite.config.ts
+├── test_blind.txt
 ├── tests
 │   ├── analyze_mandatory_leaves.py
 │   ├── benchmark.py
+│   ├── induce_grammar.py
+│   ├── integration
+│   │   ├── __pycache__
+│   │   │   ├── test_batch_validation.cpython-313-pytest-9.0.2.pyc
+│   │   │   ├── test_gold_standard.cpython-313-pytest-9.0.2.pyc
+│   │   │   └── test_multilingual_probe.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_batch_validation.py
+│   │   └── test_multilingual_probe.py
 │   ├── __pycache__
+│   │   ├── test_ancora_real_cases.cpython-313.pyc
+│   │   ├── test_ancora_real_cases.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_api.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_blind_validation.cpython-313.pyc
+│   │   ├── test_blind_validation.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_decalogue.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_deep_recursion_stress.cpython-313.pyc
+│   │   ├── test_deep_recursion_stress.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_exporter.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_flat_reconstruction.cpython-313.pyc
+│   │   ├── test_flat_reconstruction.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_grammar_edge_cases.cpython-313.pyc
+│   │   ├── test_grammar_edge_cases.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_lisp_parser.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_ptb_conversion.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_refinement_safety.cpython-313.pyc
+│   │   ├── test_refinement_safety.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_spacy_engine.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_stanza_engine.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_stress_refinement.cpython-313.pyc
+│   │   ├── test_stress_refinement.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_tree_reconstruction.cpython-313.pyc
+│   │   ├── test_tree_reconstruction.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_tree_refinement.cpython-313.pyc
+│   │   ├── test_tree_refinement.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_validation_engine.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_validation_ghosts.cpython-313-pytest-9.0.2.pyc
 │   │   ├── test_validation_lexicon.cpython-313-pytest-9.0.2.pyc
-│   │   └── test_validation_metasyntax.cpython-313-pytest-9.0.2.pyc
+│   │   ├── test_validation_metasyntax.cpython-313-pytest-9.0.2.pyc
+│   │   └── test_visualization.cpython-313-pytest-9.0.2.pyc
+│   ├── resources
+│   │   ├── gold_sentences.py
+│   │   └── __pycache__
+│   │       └── gold_sentences.cpython-313.pyc
 │   ├── settings.json
+│   ├── test_ancora_real_cases.py
 │   ├── test_api.py
+│   ├── test_blind_validation.py
 │   ├── test_decalogue.py
+│   ├── test_deep_recursion_stress.py
 │   ├── test_exporter.py
+│   ├── test_flat_reconstruction.py
+│   ├── test_grammar_edge_cases.py
 │   ├── test_lisp_parser.py
 │   ├── test_ptb_conversion.py
 │   ├── test_spacy_engine.py
 │   ├── test_stanza_engine.py
+│   ├── test_stress_refinement.py
 │   ├── test_validation_engine.py
 │   ├── test_validation_ghosts.py
 │   ├── test_validation_lexicon.py
-│   └── test_validation_metasyntax.py
+│   ├── test_validation_metasyntax.py
+│   └── test_visualization.py
+├── test_safety.txt
+├── test_stress.txt
 ├── tools
-│   ├── batch_validation.py
-│   ├── check_model.py
-│   ├── download_fonts.py
-│   ├── inventory_models.py
-│   ├── manage_models.py
-│   ├── poc_transformers.py
-│   ├── probe_multilingual.py
+│   ├── dist
+│   │   ├── check_model.py
+│   │   ├── inventory_models.py
+│   │   ├── manage_models.py
+│   │   └── test_decalogue.py
 │   ├── __pycache__
 │   │   └── test_validation_ghosts.cpython-313-pytest-9.0.2.pyc
-│   ├── run_tests.py
-│   └── studio.py
-└── tree.txt
+│   └── scripts
+│       ├── compile_rules.py
+│       ├── download_fonts.py
+│       ├── report_head_leaves.py
+│       └── run_tests.py
+├── tree.txt
+├── validation_engine.md
+└── visualization.md
 
-511 directories, 5060 files
+544 directories, 5182 files

@@ -1,0 +1,220 @@
+meta:
+  source: "AnCora-ES Official Guidelines"
+  version: "Canonical"
+
+nodes:
+  - id: "sentence"
+    type: "phrase"
+    description: "Oración principal (enunciado):contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}"
+    structure:
+      head: ["sn", "grup.verb"]  # typically subject NP + verb group
+      optional: ["spec", "neg", "sp", "coord", "conj", "relatiu", "inc", "interjeccio"]
+    patterns:
+      - ["sn", "grup.verb"]
+      - ["sn", "grup.verb", "sn"]
+      - ["sn", "grup.verb", "sp"]
+      - ["spec", "sn", "grup.verb", "sn"]
+      - ["sn", "grup.verb", "sn", "coord", "sn"]
+
+  - id: "S"
+    type: "phrase"
+    description: "Oración subordinada:contentReference[oaicite:2]{index=2}"
+    structure:
+      head: ["conj", "relatiu"]  # subordinating conjunction or relative
+      optional: ["sn", "grup.verb", "sp", "coord", "inc"]
+    patterns:
+      - ["conj", "sn", "grup.verb"]
+      - ["relatiu", "sn", "grup.verb"]
+      - ["conj", "sn", "grup.verb", "sn"]
+      - ["relatiu", "sn", "grup.verb", "sn"]
+
+  - id: "inc"
+    type: "phrase"
+    description: "Elemento insertado / inciso:contentReference[oaicite:3]{index=3}"
+    structure:
+      head: []
+      optional: ["sentence", "sn", "sp", "grup.nom", "grup.verb", "grup.a", "grup.adv"]
+    patterns:
+      - ["sentence"]
+      - ["sn"]
+      - ["grup.nom"]
+      - ["sp"]
+
+  - id: "sn"
+    type: "phrase"
+    description: "Sintagma nominal (NP):contentReference[oaicite:4]{index=4}:contentReference[oaicite:5]{index=5}"
+    structure:
+      head: ["n", "p", "w"]    # nombre, pronombre, (w=palabra num./fecha)
+      optional: ["spec", "neg", "s.a", "sp", "S", "coord"]  # determinante, negación, adj, prep., cláus. subordinadas, coord.
+      recursive: true
+    patterns:
+      - ["spec", "grup.nom"]
+      - ["grup.nom"]
+
+  - id: "sp"
+    type: "phrase"
+    description: "Sintagma preposicional (PP):contentReference[oaicite:6]{index=6}"
+    structure:
+      head: ["p"]   # preposición
+      optional: ["sn", "spec", "coord"]
+    patterns:
+      - ["p", "sn"]
+      - ["p", "sn", "coord", "sn"]
+
+  - id: "grup.nom"
+    type: "group"
+    description: "Grupo nominal (sintagma nominal interno):contentReference[oaicite:7]{index=7}"
+    structure:
+      head: ["n", "p", "w"]  # nombre, pronombre, palabra (fecha/num.)
+      recursive: true
+    patterns:
+      - ["n"]
+      - ["n", "s.a"]
+      - ["n", "sp"]
+      - ["n", "s.a", "sp"]
+      - ["grup.nom", "coord", "grup.nom"]
+      - ["p"]
+      - ["p", "s.a"]
+      - ["w"]
+      - ["w", "s.a"]
+
+  - id: "grup.verb"
+    type: "group"
+    description: "Grupo verbal (sintagma verbal):contentReference[oaicite:8]{index=8}"
+    structure:
+      head: ["v"]  # verbo
+      optional: ["spec", "neg", "morfema.pronominal", "morfema.verbal", "coord"]
+    patterns:
+      - ["v"]
+      - ["neg", "v"]
+      - ["v", "morfema.pronominal"]
+      - ["v", "morfema.verbal"]
+      - ["neg", "v", "morfema.pronominal", "morfema.verbal"]
+
+  - id: "grup.a"
+    type: "group"
+    description: "Grupo adjetival (sintagma adjetival):contentReference[oaicite:9]{index=9}"
+    structure:
+      head: ["a"]  # adjetivo
+      optional: ["spec", "neg", "coord"]
+      recursive: true
+    patterns:
+      - ["a"]
+      - ["neg", "a"]
+      - ["spec", "a"]
+      - ["a", "sp"]
+      - ["a", "S"]
+
+  - id: "grup.adv"
+    type: "group"
+    description: "Grupo adverbial (sintagma adverbial):contentReference[oaicite:10]{index=10}"
+    structure:
+      head: ["r"]  # adverbio
+      optional: ["spec", "coord"]
+      recursive: true
+    patterns:
+      - ["r"]
+      - ["neg", "r"]
+      - ["spec", "r"]
+      - ["r", "r"]
+
+  - id: "spec"
+    type: "functional"
+    description: "Especificador / determinante:contentReference[oaicite:11]{index=11}"
+    structure:
+      head: ["d"]   # determinante
+    patterns:
+      - ["d"]
+
+  - id: "neg"
+    type: "functional"
+    description: "Negación (adverbio de negación):contentReference[oaicite:12]{index=12}"
+    structure:
+      head: ["r"]   # adverbio de negación ("no", "nunca", etc.)
+    patterns:
+      - ["r"]
+
+  - id: "morfema.pronominal"
+    type: "functional"
+    description: "Morfema pronominal (pronombre enclítico):contentReference[oaicite:13]{index=13}"
+    structure:
+      head: ["p"]   # pronombre átono (me, te, se, ...)
+    patterns:
+      - ["p"]
+
+  - id: "morfema.verbal"
+    type: "functional"
+    description: "Morfema verbal (partícula 'se' impersonal/reflexiva):contentReference[oaicite:14]{index=14}"
+    structure:
+      head: ["p"]   # pronombre átono 'se'
+    patterns:
+      - ["p"]
+
+  - id: "coord"
+    type: "connection"
+    description: "Coordinación sintáctica (estructura coordinada)"
+    structure:
+      head: []
+    patterns:
+      - ["sn", "coord", "sn"]
+      - ["grup.nom", "coord", "grup.nom"]
+      - ["S", "coord", "S"]
+      - ["sp", "coord", "sp"]
+
+  - id: "conj"
+    type: "connection"
+    description: "Conjunción subordinante (SCONJ)"
+    structure:
+      head: ["s"]   # subord.
+    patterns:
+      - ["s"]
+
+  - id: "relatiu"
+    type: "connection"
+    description: "Pronombre o conjunción relativa:contentReference[oaicite:15]{index=15}"
+    structure:
+      head: ["p"]   # pronombre relativo
+    patterns:
+      - ["p"]
+
+  - id: "infinitiu"
+    type: "group"
+    description: "Verbo en forma no personal: infinitivo:contentReference[oaicite:16]{index=16}"
+    structure:
+      head: ["v"]
+      optional: ["spec", "neg", "sn", "sp"]
+    patterns:
+      - ["v"]
+      - ["v", "sn"]
+      - ["v", "sp"]
+
+  - id: "gerundi"
+    type: "group"
+    description: "Verbo en forma no personal: gerundio:contentReference[oaicite:17]{index=17}"
+    structure:
+      head: ["v"]
+      optional: ["spec", "neg", "sn", "sp"]
+    patterns:
+      - ["v"]
+      - ["v", "sn"]
+      - ["v", "sp"]
+
+  - id: "participi"
+    type: "group"
+    description: "Verbo en forma no personal: participio:contentReference[oaicite:18]{index=18}"
+    structure:
+      head: ["v"]
+      optional: ["spec", "neg", "sn", "sp"]
+    patterns:
+      - ["v"]
+      - ["v", "sn"]
+      - ["v", "sp"]
+
+  - id: "interjeccio"
+    type: "phrase"
+    description: "Interjección (frase exclamativa):contentReference[oaicite:19]{index=19}"
+    structure:
+      head: ["i"]
+    patterns:
+      - ["i"]
+

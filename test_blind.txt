@@ -1,5 +1,3 @@
-[INFO] Loaded 31 rules from /home/lbartolessi/Workspaces/Grammatomy/src/core/grammatomy/assets/rules/hybrid_rules.yaml
-[DEBUG] EdgeBasedReconstructor loaded 116 patterns.
 
 >>> EJECUTANDO SUITE: DEEPSEEK <<<
 
@@ -8,91 +6,59 @@ Categoría 1: Ambigüedad de Adjunción de Cláusula Relativa
 ================================================================================
 
 --- FRASE 1: 'La propuesta de la delegación que generó más polémica fue retirada.' ---
-  (Sin cambios estructurales)
-  Validación Estricta: ✅ (OK)
-
---- FRASE 2: 'Criticaron el discurso del presidente que se volvió viral en las redes.' ---
-[DEBUG] Repairing 'S'. Children: ['relatiu', 'morfema.pronominal', 'grup.verb', 's.a', 'sp']
-[DEBUG] Match found: ('relatiu',) -> grup.nom at index 0
-[DEBUG] Repairing 'S'. Children: ['grup.nom', 'morfema.pronominal', 'grup.verb', 's.a', 'sp']
-[DEBUG] Match found: ('sp',) -> grup.nom at index 4
-[DEBUG] Repairing 'S'. Children: ['grup.nom', 'morfema.pronominal', 'grup.verb', 's.a', 'grup.nom']
-[DEBUG] Match found: ('s.a',) -> grup.nom at index 3
-[DEBUG] Repairing 'S'. Children: ['grup.nom', 'morfema.pronominal', 'grup.verb', 'grup.nom', 'grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'S'. Children: ['sn', 'morfema.pronominal', 'grup.verb', 'grup.nom', 'grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 3
-[DEBUG] Repairing 'S'. Children: ['sn', 'morfema.pronominal', 'grup.verb', 'sn', 'grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 4
-[DEBUG] Repairing 'S'. Children: ['sn', 'morfema.pronominal', 'grup.verb', 'sn', 'sn']
-[DEBUG] Match found: ('grup.verb', 'sn') -> sentence at index 2
-[DEBUG] Match found: ('sn', 'sn') -> S at index 3
-[DEBUG] Match found: ('grup.verb',) -> sentence at index 2
-[DEBUG] Match found: ('grup.verb',) -> S at index 2
-[DEBUG] Match found: ('grup.verb',) -> infinitiu at index 2
-[DEBUG] Repairing 'S'. Children: ['sn', 'morfema.pronominal', 'infinitiu', 'sn', 'sn']
-[DEBUG] Match found: ('sn', 'sn') -> S at index 3
-[DEBUG] Match found: ('infinitiu',) -> S at index 2
-  (Refinado: 7 nodos creados)
+  (Refinado: 5 nodos creados)
 
 --- Árbol Refinado ---
     ROOT
     └── sentence
-        ├── grup.verb
-        │   └── VERB
-        │       └── [96mCriticaron[0m
         ├── sn
         │   ├── spec
         │   │   └── DET
-        │   │       └── [96mel[0m
+        │   │       └── [96mLa[0m
         │   └── grup.nom
         │       ├── NOUN
-        │       │   └── [96mdiscurso[0m
-        │       ├── sp
-        │       │   ├── prep
-        │       │   │   └── ADP
-        │       │   │       └── [96mde[0m
-        │       │   └── sn
-        │       │       ├── spec
-        │       │       │   └── DET
-        │       │       │       └── [96mel[0m
-        │       │       └── grup.nom
-        │       │           └── NOUN
-        │       │               └── [96mpresidente[0m
-        │       └── S
-        │           ├── [93msn[0m
-        │           │   └── [93mgrup.nom[0m
-        │           │       └── relatiu
-        │           │           └── PRON
-        │           │               └── [96mque[0m
-        │           ├── morfema.pronominal
-        │           │   └── PRON
-        │           │       └── [96mse[0m
-        │           ├── [93minfinitiu[0m
-        │           │   └── grup.verb
-        │           │       └── VERB
-        │           │           └── [96mvolvió[0m
-        │           ├── [93msn[0m
-        │           │   └── [93mgrup.nom[0m
-        │           │       └── s.a
-        │           │           └── grup.a
-        │           │               └── ADJ
-        │           │                   └── [96mviral[0m
-        │           └── [93msn[0m
-        │               └── [93mgrup.nom[0m
-        │                   └── sp
-        │                       ├── prep
-        │                       │   └── ADP
-        │                       │       └── [96men[0m
+        │       │   └── [96mpropuesta[0m
+        │       └── sp
+        │           ├── prep
+        │           │   └── ADP
+        │           │       └── [96mde[0m
+        │           └── sn
+        │               ├── spec
+        │               │   └── DET
+        │               │       └── [96mla[0m
+        │               └── grup.nom
+        │                   ├── NOUN
+        │                   │   └── [96mdelegación[0m
+        │                   └── S
+        │                       ├── relatiu
+        │                       │   └── PRON
+        │                       │       └── [96mque[0m
+        │                       ├── grup.verb
+        │                       │   └── VERB
+        │                       │       └── [96mgeneró[0m
         │                       └── sn
         │                           ├── spec
-        │                           │   └── DET
-        │                           │       └── [96mlas[0m
+        │                           │   └── [93minc[0m
+        │                           │       └── [93msn[0m
+        │                           │           └── [93mgrup.nom[0m
+        │                           │               └── [93msadv[0m
+        │                           │                   └── [93mgrup.adv[0m
+        │                           │                       └── ADV
+        │                           │                           └── [96mmás[0m
         │                           └── grup.nom
         │                               └── NOUN
-        │                                   └── [96mredes[0m
+        │                                   └── [96mpolémica[0m
+        ├── grup.verb
+        │   ├── AUX
+        │   │   └── [96mfue[0m
+        │   └── VERB
+        │       └── [96mretirada[0m
         └── PUNCT
             └── [96m.[0m
+  Validación Estricta: ✅ (OK)
+
+--- FRASE 2: 'Criticaron el discurso del presidente que se volvió viral en las redes.' ---
+  (Sin cambios estructurales)
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'Finalmente localizaron al hermano de la testigo que llevaba una gabardina azul.' ---
@@ -124,17 +90,7 @@ Categoría 3: Orden de Palabras No Canónico (Garden Path)
   Validación Estricta: ✅ (OK)
 
 --- FRASE 2: 'Mientras revisaba los datos el servidor se colapsó por completo.' ---
-[DEBUG] Repairing 'grup.a'. Children: ['NOUN']
-[DEBUG] Match found: ('NOUN',) -> grup.nom at index 0
-[DEBUG] Repairing 'grup.a'. Children: ['grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'grup.a'. Children: ['sn']
-[DEBUG] Repairing 'grup.adv'. Children: ['sp']
-[DEBUG] Match found: ('sp',) -> grup.nom at index 0
-[DEBUG] Repairing 'grup.adv'. Children: ['grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'grup.adv'. Children: ['sn']
-  (Refinado: 4 nodos creados)
+  (Refinado: 3 nodos creados)
 
 --- Árbol Refinado ---
     ROOT
@@ -168,20 +124,19 @@ Categoría 3: Orden de Palabras No Canónico (Garden Path)
         │       └── [96mcolapsó[0m
         ├── sadv
         │   └── grup.adv
-        │       └── [93msn[0m
-        │           └── [93mgrup.nom[0m
-        │               └── sp
-        │                   ├── prep
-        │                   │   └── ADP
-        │                   │       └── [96mpor[0m
-        │                   └── sn
-        │                       └── grup.nom
-        │                           └── s.a
-        │                               └── grup.a
-        │                                   └── [93msn[0m
-        │                                       └── [93mgrup.nom[0m
-        │                                           └── NOUN
-        │                                               └── [96mcompleto[0m
+        │       └── sp
+        │           ├── prep
+        │           │   └── ADP
+        │           │       └── [96mpor[0m
+        │           └── sn
+        │               └── grup.nom
+        │                   └── s.a
+        │                       └── grup.a
+        │                           └── [93minc[0m
+        │                               └── [93msn[0m
+        │                                   └── [93mgrup.nom[0m
+        │                                       └── NOUN
+        │                                           └── [96mcompleto[0m
         └── PUNCT
             └── [96m.[0m
   Validación Estricta: ✅ (OK)
@@ -195,12 +150,7 @@ Categoría 4: Coordinación con Elipsis (Gapping)
 ================================================================================
 
 --- FRASE 1: 'La streamer comenzó su directo a las ocho, y sus seguidores, a las diez.' ---
-[DEBUG] Repairing 'grup.a'. Children: ['NOUN']
-[DEBUG] Match found: ('NOUN',) -> grup.nom at index 0
-[DEBUG] Repairing 'grup.a'. Children: ['grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'grup.a'. Children: ['sn']
-  (Refinado: 2 nodos creados)
+  (Refinado: 3 nodos creados)
 
 --- Árbol Refinado ---
     ROOT
@@ -223,10 +173,11 @@ Categoría 4: Coordinación con Elipsis (Gapping)
         │   │   └── grup.nom
         │   │       └── s.a
         │   │           └── grup.a
-        │   │               └── [93msn[0m
-        │   │                   └── [93mgrup.nom[0m
-        │   │                       └── NOUN
-        │   │                           └── [96mdirecto[0m
+        │   │               └── [93minc[0m
+        │   │                   └── [93msn[0m
+        │   │                       └── [93mgrup.nom[0m
+        │   │                           └── NOUN
+        │   │                               └── [96mdirecto[0m
         │   ├── sp
         │   │   ├── prep
         │   │   │   └── ADP
@@ -269,11 +220,135 @@ Categoría 4: Coordinación con Elipsis (Gapping)
   Validación Estricta: ✅ (OK)
 
 --- FRASE 2: 'Nuestra arquitecta propuso un diseño vanguardista, y la cliente, uno más conservador.' ---
-  (Sin cambios estructurales)
+  (Refinado: 5 nodos creados)
+
+--- Árbol Refinado ---
+    ROOT
+    └── sentence
+        ├── S
+        │   ├── sn
+        │   │   ├── spec
+        │   │   │   └── DET
+        │   │   │       └── [96mNuestra[0m
+        │   │   └── grup.nom
+        │   │       └── NOUN
+        │   │           └── [96marquitecta[0m
+        │   ├── grup.verb
+        │   │   └── VERB
+        │   │       └── [96mpropuso[0m
+        │   ├── sn
+        │   │   ├── spec
+        │   │   │   └── DET
+        │   │   │       └── [96mun[0m
+        │   │   └── grup.nom
+        │   │       ├── NOUN
+        │   │       │   └── [96mdiseño[0m
+        │   │       └── s.a
+        │   │           └── grup.a
+        │   │               └── ADJ
+        │   │                   └── [96mvanguardista[0m
+        │   └── PUNCT
+        │       └── [96m,[0m
+        ├── conj
+        │   └── CCONJ
+        │       └── [96my[0m
+        ├── S
+        │   ├── sn
+        │   │   ├── spec
+        │   │   │   └── DET
+        │   │   │       └── [96mla[0m
+        │   │   ├── grup.nom
+        │   │   │   └── NOUN
+        │   │   │       └── [96mcliente[0m
+        │   │   └── PUNCT
+        │   │       └── [96m,[0m
+        │   └── sn
+        │       └── grup.nom
+        │           ├── PRON
+        │           │   └── [96muno[0m
+        │           └── s.a
+        │               ├── spec
+        │               │   └── [93minc[0m
+        │               │       └── [93msn[0m
+        │               │           └── [93mgrup.nom[0m
+        │               │               └── [93msadv[0m
+        │               │                   └── [93mgrup.adv[0m
+        │               │                       └── ADV
+        │               │                           └── [96mmás[0m
+        │               └── grup.a
+        │                   └── ADJ
+        │                       └── [96mconservador[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'El primer equipo anotó dos goles en el primer tiempo, y el rival, tres.' ---
-  (Sin cambios estructurales)
+  (Refinado: 3 nodos creados)
+
+--- Árbol Refinado ---
+    ROOT
+    └── sentence
+        ├── S
+        │   ├── sn
+        │   │   ├── spec
+        │   │   │   └── DET
+        │   │   │       └── [96mEl[0m
+        │   │   └── grup.nom
+        │   │       ├── s.a
+        │   │       │   └── grup.a
+        │   │       │       └── ADJ
+        │   │       │           └── [96mprimer[0m
+        │   │       └── NOUN
+        │   │           └── [96mequipo[0m
+        │   ├── grup.verb
+        │   │   └── VERB
+        │   │       └── [96manotó[0m
+        │   ├── sn
+        │   │   ├── spec
+        │   │   │   └── [93minc[0m
+        │   │   │       └── [93msn[0m
+        │   │   │           └── [93mgrup.nom[0m
+        │   │   │               └── NUM
+        │   │   │                   └── [96mdos[0m
+        │   │   └── grup.nom
+        │   │       └── NOUN
+        │   │           └── [96mgoles[0m
+        │   ├── sp
+        │   │   ├── prep
+        │   │   │   └── ADP
+        │   │   │       └── [96men[0m
+        │   │   └── sn
+        │   │       ├── spec
+        │   │       │   └── DET
+        │   │       │       └── [96mel[0m
+        │   │       └── grup.nom
+        │   │           ├── s.a
+        │   │           │   └── grup.a
+        │   │           │       └── ADJ
+        │   │           │           └── [96mprimer[0m
+        │   │           └── NOUN
+        │   │               └── [96mtiempo[0m
+        │   └── PUNCT
+        │       └── [96m,[0m
+        ├── conj
+        │   └── CCONJ
+        │       └── [96my[0m
+        ├── S
+        │   ├── sn
+        │   │   ├── spec
+        │   │   │   └── DET
+        │   │   │       └── [96mel[0m
+        │   │   └── grup.nom
+        │   │       └── NOUN
+        │   │           └── [96mrival[0m
+        │   └── sn
+        │       ├── PUNCT
+        │       │   └── [96m,[0m
+        │       └── grup.nom
+        │           └── NUM
+        │               └── [96mtres[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 ================================================================================
@@ -289,139 +364,7 @@ Categoría 5: Anidamiento Profundo de Subordinadas
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'La teoría de que el hecho de que los datos fueran públicos influyó en la decisión es controvertida.' ---
-[DEBUG] Repairing 'S'. Children: ['conj', 'sn', 'grup.verb', 's.a']
-[DEBUG] Match found: ('s.a',) -> grup.nom at index 3
-[DEBUG] Repairing 'S'. Children: ['conj', 'sn', 'grup.verb', 'grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 3
-[DEBUG] Repairing 'S'. Children: ['conj', 'sn', 'grup.verb', 'sn']
-[DEBUG] Match found: ('sn', 'grup.verb', 'sn') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'grup.verb') -> sentence at index 1
-[DEBUG] Match found: ('grup.verb', 'sn') -> sentence at index 2
-[DEBUG] Match found: ('grup.verb',) -> sentence at index 2
-[DEBUG] Match found: ('grup.verb',) -> S at index 2
-[DEBUG] Match found: ('grup.verb',) -> infinitiu at index 2
-[DEBUG] Repairing 'S'. Children: ['conj', 'sn', 'infinitiu', 'sn']
-[DEBUG] Match found: ('infinitiu',) -> S at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 's.a', 'PUNCT']
-[DEBUG] Match found: ('s.a',) -> grup.nom at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'grup.nom', 'PUNCT']
-[DEBUG] Match found: ('PUNCT',) -> coord at index 3
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'grup.nom', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'grup.verb', 'sn') -> sentence at index 0
-[DEBUG] Match found: ('sn', 'grup.verb') -> sentence at index 0
-[DEBUG] Match found: ('grup.verb', 'sn') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 2
-[DEBUG] Match found: ('grup.verb',) -> sentence at index 1
-[DEBUG] Match found: ('grup.verb',) -> S at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'S', 'sn', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.nom', 'sn', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'sn', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 2
-[DEBUG] Match found: ('sn', 'sn') -> S at index 0
-[DEBUG] Repairing 'sentence'. Children: ['S', 'sn', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 0
-[DEBUG] Repairing 'sentence'. Children: ['grup.nom', 'sn', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'sn') -> S at index 0
-[DEBUG] Repairing 'sentence'. Children: ['S', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 0
-[DEBUG] Repairing 'sentence'. Children: ['grup.nom', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 0
-  (Refinado: 15 nodos creados)
-
---- Árbol Refinado ---
-    ROOT
-    └── sentence
-        ├── [93msn[0m
-        │   └── [93mgrup.nom[0m
-        │       └── [93mS[0m
-        │           ├── [93msn[0m
-        │           │   └── [93mgrup.nom[0m
-        │           │       └── [93mS[0m
-        │           │           ├── sn
-        │           │           │   ├── spec
-        │           │           │   │   └── DET
-        │           │           │   │       └── [96mLa[0m
-        │           │           │   └── grup.nom
-        │           │           │       ├── NOUN
-        │           │           │       │   └── [96mteoría[0m
-        │           │           │       └── sp
-        │           │           │           ├── prep
-        │           │           │           │   └── ADP
-        │           │           │           │       └── [96mde[0m
-        │           │           │           └── S
-        │           │           │               ├── conj
-        │           │           │               │   └── SCONJ
-        │           │           │               │       └── [96mque[0m
-        │           │           │               ├── sn
-        │           │           │               │   ├── spec
-        │           │           │               │   │   └── DET
-        │           │           │               │   │       └── [96mel[0m
-        │           │           │               │   └── grup.nom
-        │           │           │               │       ├── NOUN
-        │           │           │               │       │   └── [96mhecho[0m
-        │           │           │               │       └── sp
-        │           │           │               │           ├── prep
-        │           │           │               │           │   └── ADP
-        │           │           │               │           │       └── [96mde[0m
-        │           │           │               │           └── S
-        │           │           │               │               ├── conj
-        │           │           │               │               │   └── SCONJ
-        │           │           │               │               │       └── [96mque[0m
-        │           │           │               │               ├── sn
-        │           │           │               │               │   ├── spec
-        │           │           │               │               │   │   └── DET
-        │           │           │               │               │   │       └── [96mlos[0m
-        │           │           │               │               │   └── grup.nom
-        │           │           │               │               │       └── NOUN
-        │           │           │               │               │           └── [96mdatos[0m
-        │           │           │               │               ├── [93minfinitiu[0m
-        │           │           │               │               │   └── grup.verb
-        │           │           │               │               │       └── AUX
-        │           │           │               │               │           └── [96mfueran[0m
-        │           │           │               │               └── [93msn[0m
-        │           │           │               │                   └── [93mgrup.nom[0m
-        │           │           │               │                       └── s.a
-        │           │           │               │                           └── grup.a
-        │           │           │               │                               └── ADJ
-        │           │           │               │                                   └── [96mpúblicos[0m
-        │           │           │               ├── grup.verb
-        │           │           │               │   └── VERB
-        │           │           │               │       └── [96minfluyó[0m
-        │           │           │               └── sp
-        │           │           │                   ├── prep
-        │           │           │                   │   └── ADP
-        │           │           │                   │       └── [96men[0m
-        │           │           │                   └── sn
-        │           │           │                       ├── spec
-        │           │           │                       │   └── DET
-        │           │           │                       │       └── [96mla[0m
-        │           │           │                       └── grup.nom
-        │           │           │                           └── NOUN
-        │           │           │                               └── [96mdecisión[0m
-        │           │           └── [93msn[0m
-        │           │               └── [93mgrup.nom[0m
-        │           │                   └── [93mS[0m
-        │           │                       └── grup.verb
-        │           │                           └── AUX
-        │           │                               └── [96mes[0m
-        │           └── [93msn[0m
-        │               └── [93mgrup.nom[0m
-        │                   └── s.a
-        │                       └── grup.a
-        │                           └── ADJ
-        │                               └── [96mcontrovertida[0m
-        └── [93mcoord[0m
-            └── PUNCT
-                └── [96m.[0m
+  (Sin cambios estructurales)
   Validación Estricta: ✅ (OK)
 
 ================================================================================
@@ -455,7 +398,62 @@ Categoría 1: Ambigüedad de Adjunción de Cláusula Relativa
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'Conocí al sobrino del escritor que publicó tres novelas este año.' ---
-  (Sin cambios estructurales)
+  (Refinado: 3 nodos creados)
+
+--- Árbol Refinado ---
+    ROOT
+    └── sentence
+        ├── grup.verb
+        │   └── VERB
+        │       └── [96mConocí[0m
+        ├── sp
+        │   ├── prep
+        │   │   └── ADP
+        │   │       └── [96ma[0m
+        │   └── sn
+        │       ├── spec
+        │       │   └── DET
+        │       │       └── [96mel[0m
+        │       └── grup.nom
+        │           ├── NOUN
+        │           │   └── [96msobrino[0m
+        │           └── sp
+        │               ├── prep
+        │               │   └── ADP
+        │               │       └── [96mde[0m
+        │               └── sn
+        │                   ├── spec
+        │                   │   └── DET
+        │                   │       └── [96mel[0m
+        │                   └── grup.nom
+        │                       ├── NOUN
+        │                       │   └── [96mescritor[0m
+        │                       └── S
+        │                           ├── relatiu
+        │                           │   └── PRON
+        │                           │       └── [96mque[0m
+        │                           ├── grup.verb
+        │                           │   └── VERB
+        │                           │       └── [96mpublicó[0m
+        │                           ├── sn
+        │                           │   ├── spec
+        │                           │   │   └── [93minc[0m
+        │                           │   │       └── [93msn[0m
+        │                           │   │           └── [93mgrup.nom[0m
+        │                           │   │               └── NUM
+        │                           │   │                   └── [96mtres[0m
+        │                           │   └── grup.nom
+        │                           │       └── NOUN
+        │                           │           └── [96mnovelas[0m
+        │                           └── sn
+        │                               ├── spec
+        │                               │   └── DET
+        │                               │       └── [96meste[0m
+        │                               └── grup.nom
+        │                                   └── NOUN
+        │                                       └── [96maño[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 --- FRASE 4: 'Observé la fotografía del artista que ganó el concurso internacional.' ---
@@ -535,22 +533,133 @@ Categoría 5: Anidamiento Profundo de Subordinadas
 ================================================================================
 
 --- FRASE 1: 'El proyecto que me asignaron que desarrollara resultó ser el que más recursos consumió.' ---
-  (Sin cambios estructurales)
+  (Refinado: 6 nodos creados)
+
+--- Árbol Refinado ---
+    ROOT
+    └── sentence
+        ├── sn
+        │   ├── spec
+        │   │   └── DET
+        │   │       └── [96mEl[0m
+        │   └── grup.nom
+        │       ├── NOUN
+        │       │   └── [96mproyecto[0m
+        │       └── S
+        │           ├── relatiu
+        │           │   └── PRON
+        │           │       └── [96mque[0m
+        │           ├── sn
+        │           │   └── grup.nom
+        │           │       └── PRON
+        │           │           └── [96mme[0m
+        │           ├── grup.verb
+        │           │   └── VERB
+        │           │       └── [96masignaron[0m
+        │           └── S
+        │               ├── conj
+        │               │   └── SCONJ
+        │               │       └── [96mque[0m
+        │               └── grup.verb
+        │                   └── VERB
+        │                       └── [96mdesarrollara[0m
+        ├── grup.verb
+        │   └── VERB
+        │       └── [96mresultó[0m
+        ├── S
+        │   ├── infinitiu
+        │   │   └── AUX
+        │   │       └── [96mser[0m
+        │   └── sn
+        │       ├── spec
+        │       │   └── DET
+        │       │       └── [96mel[0m
+        │       └── grup.nom
+        │           └── [93minc[0m
+        │               └── S
+        │                   ├── relatiu
+        │                   │   └── PRON
+        │                   │       └── [96mque[0m
+        │                   ├── sn
+        │                   │   ├── spec
+        │                   │   │   └── [93minc[0m
+        │                   │   │       └── [93msn[0m
+        │                   │   │           └── [93mgrup.nom[0m
+        │                   │   │               └── [93msadv[0m
+        │                   │   │                   └── [93mgrup.adv[0m
+        │                   │   │                       └── ADV
+        │                   │   │                           └── [96mmás[0m
+        │                   │   └── grup.nom
+        │                   │       └── NOUN
+        │                   │           └── [96mrecursos[0m
+        │                   └── grup.verb
+        │                       └── VERB
+        │                           └── [96mconsumió[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 --- FRASE 2: 'La película que me dijiste que viera resultó ser la que todos comentaban.' ---
-  (Sin cambios estructurales)
+  (Refinado: 1 nodos creados)
+
+--- Árbol Refinado ---
+    ROOT
+    └── sentence
+        ├── sn
+        │   ├── spec
+        │   │   └── DET
+        │   │       └── [96mLa[0m
+        │   └── grup.nom
+        │       ├── NOUN
+        │       │   └── [96mpelícula[0m
+        │       └── S
+        │           ├── relatiu
+        │           │   └── PRON
+        │           │       └── [96mque[0m
+        │           ├── sn
+        │           │   └── grup.nom
+        │           │       └── PRON
+        │           │           └── [96mme[0m
+        │           ├── grup.verb
+        │           │   └── VERB
+        │           │       └── [96mdijiste[0m
+        │           └── S
+        │               ├── conj
+        │               │   └── SCONJ
+        │               │       └── [96mque[0m
+        │               └── grup.verb
+        │                   └── VERB
+        │                       └── [96mviera[0m
+        ├── grup.verb
+        │   └── VERB
+        │       └── [96mresultó[0m
+        ├── S
+        │   ├── infinitiu
+        │   │   └── AUX
+        │   │       └── [96mser[0m
+        │   └── sn
+        │       ├── spec
+        │       │   └── DET
+        │       │       └── [96mla[0m
+        │       └── grup.nom
+        │           └── [93minc[0m
+        │               └── S
+        │                   ├── relatiu
+        │                   │   └── PRON
+        │                   │       └── [96mque[0m
+        │                   ├── sn
+        │                   │   └── grup.nom
+        │                   │       └── PRON
+        │                   │           └── [96mtodos[0m
+        │                   └── grup.verb
+        │                       └── VERB
+        │                           └── [96mcomentaban[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'El candidato que propusiste que entrevistáramos resultó ser quien mejor encajaba.' ---
-[DEBUG] Repairing 'grup.adv'. Children: ['ADJ']
-[DEBUG] Match found: ('ADJ',) -> grup.a at index 0
-[DEBUG] Repairing 'grup.adv'. Children: ['grup.a']
-[DEBUG] Match found: ('grup.a',) -> grup.nom at index 0
-[DEBUG] Repairing 'grup.adv'. Children: ['grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'grup.adv'. Children: ['sn']
-  (Refinado: 3 nodos creados)
+  (Refinado: 5 nodos creados)
 
 --- Árbol Refinado ---
     ROOT
@@ -589,11 +698,13 @@ Categoría 5: Anidamiento Profundo de Subordinadas
         │       │       └── [96mquien[0m
         │       ├── sadv
         │       │   └── grup.adv
-        │       │       └── [93msn[0m
-        │       │           └── [93mgrup.nom[0m
-        │       │               └── [93mgrup.a[0m
-        │       │                   └── ADJ
-        │       │                       └── [96mmejor[0m
+        │       │       └── [93minc[0m
+        │       │           └── [93msn[0m
+        │       │               └── [93mgrup.nom[0m
+        │       │                   └── [93ms.a[0m
+        │       │                       └── [93mgrup.a[0m
+        │       │                           └── ADJ
+        │       │                               └── [96mmejor[0m
         │       └── grup.verb
         │           └── VERB
         │               └── [96mencajaba[0m
@@ -602,7 +713,62 @@ Categoría 5: Anidamiento Profundo de Subordinadas
   Validación Estricta: ✅ (OK)
 
 --- FRASE 4: 'La estrategia que sugeriste que implementáramos demostró ser la que mayor impacto tuvo.' ---
-  (Sin cambios estructurales)
+  (Refinado: 1 nodos creados)
+
+--- Árbol Refinado ---
+    ROOT
+    └── sentence
+        ├── sn
+        │   ├── spec
+        │   │   └── DET
+        │   │       └── [96mLa[0m
+        │   └── grup.nom
+        │       ├── NOUN
+        │       │   └── [96mestrategia[0m
+        │       └── S
+        │           ├── relatiu
+        │           │   └── PRON
+        │           │       └── [96mque[0m
+        │           ├── grup.verb
+        │           │   └── VERB
+        │           │       └── [96msugeriste[0m
+        │           └── S
+        │               ├── conj
+        │               │   └── SCONJ
+        │               │       └── [96mque[0m
+        │               └── grup.verb
+        │                   └── VERB
+        │                       └── [96mimplementáramos[0m
+        ├── grup.verb
+        │   └── VERB
+        │       └── [96mdemostró[0m
+        ├── S
+        │   ├── infinitiu
+        │   │   └── AUX
+        │   │       └── [96mser[0m
+        │   └── sn
+        │       ├── spec
+        │       │   └── DET
+        │       │       └── [96mla[0m
+        │       └── grup.nom
+        │           └── [93minc[0m
+        │               └── S
+        │                   ├── relatiu
+        │                   │   └── PRON
+        │                   │       └── [96mque[0m
+        │                   ├── sn
+        │                   │   └── grup.nom
+        │                   │       ├── s.a
+        │                   │       │   └── grup.a
+        │                   │       │       └── ADJ
+        │                   │       │           └── [96mmayor[0m
+        │                   │       └── NOUN
+        │                   │           └── [96mimpacto[0m
+        │                   └── grup.verb
+        │                       └── VERB
+        │                           └── [96mtuvo[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 ================================================================================
@@ -708,59 +874,7 @@ Categoría 4: Coordinación con Elipsis (Gapping)
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'El profesor explicó el tema y los alumnos, las dudas.' ---
-[DEBUG] Repairing 'sn'. Children: ['sn', 'PUNCT', 'sn']
-[DEBUG] Match found: ('PUNCT',) -> coord at index 1
-[DEBUG] Repairing 'sn'. Children: ['sn', 'coord', 'sn']
-[DEBUG] Match found: ('sn', 'coord', 'sn') -> grup.nom at index 0
-[DEBUG] Repairing 'sn'. Children: ['grup.nom']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-  (Refinado: 2 nodos creados)
-
---- Árbol Refinado ---
-    ROOT
-    └── sentence
-        ├── S
-        │   ├── sn
-        │   │   ├── spec
-        │   │   │   └── DET
-        │   │   │       └── [96mEl[0m
-        │   │   └── grup.nom
-        │   │       └── NOUN
-        │   │           └── [96mprofesor[0m
-        │   ├── grup.verb
-        │   │   └── VERB
-        │   │       └── [96mexplicó[0m
-        │   └── sn
-        │       ├── spec
-        │       │   └── DET
-        │       │       └── [96mel[0m
-        │       └── grup.nom
-        │           └── NOUN
-        │               └── [96mtema[0m
-        ├── conj
-        │   └── CCONJ
-        │       └── [96my[0m
-        ├── sn
-        │   └── [93mgrup.nom[0m
-        │       ├── sn
-        │       │   ├── spec
-        │       │   │   └── DET
-        │       │   │       └── [96mlos[0m
-        │       │   └── grup.nom
-        │       │       └── NOUN
-        │       │           └── [96malumnos[0m
-        │       ├── [93mcoord[0m
-        │       │   └── PUNCT
-        │       │       └── [96m,[0m
-        │       └── sn
-        │           ├── spec
-        │           │   └── DET
-        │           │       └── [96mlas[0m
-        │           └── grup.nom
-        │               └── NOUN
-        │                   └── [96mdudas[0m
-        └── PUNCT
-            └── [96m.[0m
+  (Sin cambios estructurales)
   Validación Estricta: ✅ (OK)
 
 --- FRASE 4: 'La empresa lanzó un nuevo producto y su competencia, una campaña publicitaria.' ---

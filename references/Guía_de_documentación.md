@@ -1,5 +1,82 @@
 # Guía de Documentación
 
+## 0. Acción previa
+
+Antes de documentar conviene ordenar el contenido de cada módulo de una manera lógica, siguiendo las mejores prácticas y convenciones de estilo.
+
+## 1. Estructura recomendada del archivo
+
+El orden de arriba hacia abajo debería ser el siguiente:
+
+1. **Shebang line:** Solo si el script se va a ejecutar directamente en Unix/Linux (`#!/usr/bin/env python3`).
+2. **Docstring del módulo:** Un comentario multilínea `""" """` que explique qué hace el archivo.
+3. **Imports:** Organizados en bloques (ver sección abajo).
+4. **Metadatos a nivel de módulo:** Variables como `__author__` o `__version__`.
+5. **Variables Globales / Constantes:** Definidas en `UPPER_CASE`.
+6. **Excepciones personalizadas:** Clases que heredan de `Exception`.
+7. **Clases:** Las piezas principales de lógica.
+8. **Funciones:** Funciones auxiliares o independientes.
+9. **Código ejecutable:** El bloque `if __name__ == "__main__":`.
+
+---
+
+## 2. El arte de los Imports
+
+No los mezcles. El PEP 8 dicta que deben ir en tres bloques separados por una línea en blanco:
+
+* **Bloque 1:** Librerías estándar de Python (ej. `os`, `sys`, `math`).
+* **Bloque 2:** Librerías de terceros (ej. `requests`, `pandas`, `flask`).
+* **Bloque 3:** Importaciones locales del propio proyecto.
+
+> **Tip:** Dentro de cada bloque, ordénalos alfabéticamente. Hace que sea mucho más fácil detectar si algo ya está importado.
+
+---
+
+## 3. Dentro de las Clases
+
+Para mantener la coherencia dentro de una clase, sigue este orden:
+
+* **Atributos de clase** (variables compartidas).
+* **Método `__init__**` (el constructor).
+* **Métodos mágicos / especiales** (`__str__`, `__repr__`, `__call__`, etc.).
+* **Propiedades** (`@property`, setters).
+* **Métodos públicos** (la interfaz principal).
+* **Métodos privados** (aquellos que empiezan con `_` y son de uso interno).
+
+---
+
+## 4. Convenciones de Estilo (Nomenclatura)
+
+Para que tu código "hable" Python de forma nativa:
+
+| Elemento | Convención | Ejemplo |
+| --- | --- | --- |
+| **Clases** | PascalCase | `UserProfileManager` |
+| **Funciones / Métodos** | snake_case | `calculate_total()` |
+| **Variables** | snake_case | `user_id` |
+| **Constantes** | SCREAMING_SNAKE_CASE | `MAX_RETRY_ATTEMPTS` |
+| **Privados** | `_` prefijo (un guion bajo) | `_internal_helper()` |
+
+---
+
+## 5. El toque final: `if __name__ == "__main__":`
+
+Evita poner lógica suelta en el cuerpo del archivo. Si tu script hace algo, envuélvelo en una función llamada `main()` y llámala así:
+
+```python
+def main():
+    # Tu lógica principal aquí
+    print("¡Hola mundo!")
+
+if __name__ == "__main__":
+    main()
+
+```
+
+Esto permite que otros importen tus funciones o clases sin que el script se ejecute automáticamente.
+
+---
+
 ## 1. Documentación de Paquetes (`__init__.py`)
 
 Se centra en el "qué" y el "cómo" global.

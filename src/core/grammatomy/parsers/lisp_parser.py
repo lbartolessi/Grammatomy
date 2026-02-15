@@ -1,5 +1,8 @@
+import re
+from pathlib import Path
 from typing import List, Optional
 
+import yaml
 from anytree import Node
 
 
@@ -24,92 +27,119 @@ class SyntaxNode(Node):
         self.raw_lisp = raw_lisp
 
 
-def _process_token(
-    token: str, stack: List[SyntaxNode], tokens: List[str], index: int
-) -> int:
-    """Processes a single token and updates the stack."""
-    if token == "(":
-        # Look ahead for the label
-        if index + 1 < len(tokens):
-            label = tokens[index + 1]
-            node = SyntaxNode(label, label=label)
-            if stack:
-                node.parent = stack[-1]
-            stack.append(node)
-            return index + 1  # Skip the label we just consumed
-    elif token == ")":
-        if stack:
-            stack.pop()
-    else:
-        # It is a leaf content (terminal). Reverse sanitization
-        word_text = token.replace("-LRB-", "(").replace("-RRB-", ")")
-        if stack:
-            parent_node = stack[-1]
-            # 1. Create structural leaf for export/traversal compatibility
-            SyntaxNode(word_text, parent=parent_node)
-            # 2. Set attributes on the parent POS node
-            parent_node.word = word_text
-            # Heuristic: if the parent has a label, that label is likely the POS
-            parent_node.pos = parent_node.label
+def _load_reserved_tags() -> set:
+    """Load structural tags ONLY from hybrid_rules.yaml (the source of truth).
 
-    return index
-
-
-def from_ptb(ptb_string: str) -> SyntaxNode:
+    This is the canonical grammar definition for the Grammatomy project.
     """
-    Parses a Penn Treebank (S-expression) string into an anytree Node structure.
+    fallback = set()
 
-    Reverses the logic of `to_ptb`, including parenthesis desanitization.
+    try:
+        # Path: parsers/lisp_parser.py -> parents[1] -> grammatomy/assets/rules/
+        rules_path = Path(__file__).resolve().parents[1] / "assets" / "rules" / "hybrid_rules.yaml"
+        if rules_path.exists():
+            data = yaml.safe_load(rules_path.read_text(encoding="utf-8"))
+            ids = set()
+            for node in data.get("nodes", []):
+                nid = node.get("id")
+                if nid:
+                    ids.add(nid)
+            return ids
+    except Exception:
+        pass
 
-    Args:
-        ptb_string: The PTB formatted string (e.g., "(S (NP Juan))").
+    # If YAML cannot be loaded, return empty set to signal an error
+    # (rather than a silent fallback that might mask configuration issues)
+    return fallback
 
-    Returns:
-        SyntaxNode: The root node of the constructed tree.
+
+# Master set of reserved tags used by the parser (structural tags + POS + punctuation)
+RESERVED_TAGS = _load_reserved_tags()
+
+
+def to_anytree(lisp_str: str) -> Optional[SyntaxNode]:
+    """Parse a PTB/Lisp constituency string into an anytree SyntaxNode tree.
+
+    This parser converts strings like "(S (NP (NNP Juan)) (VP (VBD vino)))"
+    into a tree of SyntaxNode objects. It properly handles:
+    - Structural nodes (S, NP, VP, etc. from RESERVED_TAGS)
+    - Preterminal nodes (e.g. NNP, VBD) with terminal word children
+    - Parentheses sanitization (-LRB- / -RRB-)
     """
-    if not ptb_string or not ptb_string.strip():
-        raise ValueError("Input PTB string is empty")
+    if not lisp_str or not lisp_str.strip():
+        return None
 
-    # Normalize spaces around parentheses to facilitate tokenization
-    # We assume standard PTB format where structure parens are separate.
-    normalized = ptb_string.replace("(", " ( ").replace(")", " ) ")
-    tokens = normalized.split()
-
-    # Root will be the first node created
+    # Tokenize: split on parentheses and whitespace
+    tokens = re.findall(r"(\(|\)|[^\s()]+)", lisp_str)
     stack: List[SyntaxNode] = []
-    root_ref: List[SyntaxNode] = []  # Mutable container to capture root
+    root: Optional[SyntaxNode] = None
 
     i = 0
     while i < len(tokens):
-        # Capture root on first node creation
-        if tokens[i] == "(" and not root_ref and i + 1 < len(tokens):
-            # We can't easily capture it inside _process_token without more complexity
-            # So we peek here.
-            pass
+        tok = tokens[i]
 
-        new_index = _process_token(tokens[i], stack, tokens, i)
+        if tok == "(":
+            # Next token should be a label
+            if i + 1 < len(tokens):
+                label = tokens[i + 1]
+                is_reserved = label in RESERVED_TAGS or label.startswith("LINK-")
 
-        # If we just created the first node (stack size 1) and root_ref is empty
-        if len(stack) == 1 and not root_ref:
-            root_ref.append(stack[0])
+                if is_reserved:
+                    # Create a structural node
+                    node = SyntaxNode(label, label=label)
+                    if stack:
+                        node.parent = stack[-1]
+                    else:
+                        root = node
+                    stack.append(node)
+                    i += 2
+                else:
+                    # Non-reserved label in parens: it's a terminal attached to parent
+                    # e.g. (Juan) where Juan is the terminal for the parent NP
+                    if stack:
+                        parent = stack[-1]
+                        word = label.replace("-LRB-", "(").replace("-RRB-", ")")
+                        # Only add if parent doesn't already have children
+                        if not parent.children:
+                            SyntaxNode(word, parent=parent, label=word, word=word)
+                    i += 2
+                    # Skip closing paren if it follows immediately
+                    if i < len(tokens) and tokens[i] == ")":
+                        i += 1
+            else:
+                i += 1
 
-        i = new_index + 1
+        elif tok == ")":
+            if stack:
+                stack.pop()
+            i += 1
 
-    if not root_ref:
-        raise ValueError("Failed to parse PTB string: No root found.")
+        else:
+            # Bare word (terminal): attach to current parent
+            word_text = tok.replace("-LRB-", "(").replace("-RRB-", ")")
+            if stack:
+                parent = stack[-1]
+                # Only add if parent doesn't have children yet
+                if not parent.children:
+                    child = SyntaxNode(word_text, parent=parent, label=word_text, word=word_text)
+                    # Mark preterminal: the parent's pos is its label
+                    parent.pos = parent.label
+                    # Also set the parent's word attribute
+                    parent.word = word_text
+            i += 1
 
-    return root_ref[0]
+    return root
 
 
 class LispParser:
-    """
-    Legacy wrapper for backward compatibility with existing tests.
-    Delegates logic to the functional `from_ptb` implementation.
-    """
+    """Wrapper class providing static methods for parsing PTB format strings."""
 
     @staticmethod
     def to_anytree(lisp_str: str) -> Optional[SyntaxNode]:
-        try:
-            return from_ptb(lisp_str)
-        except ValueError:
-            return None
+        """Alias for the module-level to_anytree function."""
+        return to_anytree(lisp_str)
+
+
+def from_ptb(lisp_str: str) -> Optional[SyntaxNode]:
+    """Alias for to_anytree, for backward compatibility."""
+    return to_anytree(lisp_str)

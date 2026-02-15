@@ -41,13 +41,13 @@
   - [x] Endpoint: /render/json (Raw Tree)
   - [x] Endpoint: /render/lisp (Penn Treebank)
   - [x] Unit Tests (TestClient) [DONE]
-- [ ] Release Engineering & Documentation [NEXT SESSION]
+- [ ] Release Engineering & Documentation [IN PROGRESS]
   - [x] Define Architectural Objectives & Personas [DONE]
   - [x] Define Frontend Stack (Lit/TS) [DONE]
   - [x] Monorepo Restructuring [DONE]
     - [x] Create folder structure (core, api, web, studio)
     - [x] Define per-module dependencies (pyproject.toml/package.json)
-    - [ ] Migrate existing Python logic to `src/core` [USER ACTION REQUIRED]
+    - [x] Migrate existing Python logic to `src/core` [DONE]
   - [ ] Hugging Face Space Deployment (v2: Stateless Web App) [NEW TARGET]
     - [ ] Archive Legacy Streamlit Demo
     - [x] Deploy FastAPI Backend (Docker)
@@ -56,29 +56,58 @@
   - [ ] Standard Logging Implementation (Replace print statements)
   - [ ] PyPI Packaging Strategy (Library vs Demo separation)
   - [ ] ReadTheDocs Integration (MkDocs setup)
-  - [ ] Grammatomy Studio (Phased Roadmap) [STRATEGIC PIVOT]
+  - [ ] Grammatomy Studio (Phased Roadmap) [NEXT TARGET]
     - [x] Editor Layout & Chrome (Toolbar, Sidebar) [DONE]
     - [x] Cytoscape.js Integration (Basic)
     - [x] PTB-based State Management (Client-Side Parsing) [DONE]
     - [x] Rule-Based Editing Logic (Validation) [DONE]
       - [x] Connect Inspector Dropdown to Backend Rules (Context-Aware)
       - [x] Implement Graph Mutation Logic (Move/Delete/Ghost Nodes)
+      - [x] Implement Visual Validation Feedback (Hexagons/Red Edges) [DONE]
+    - [ ] Phase 1.5: UI Refactoring & Workflow [NEXT TARGET]
+      - [x] Refactor Sidebar: Implement Tree List / Project Navigator [DONE]
+      - [x] Implement Top Bar Menu (Project Level: New/Load/Save/Export) [DONE]
+      - [x] Define Multi-Tree File Format (`.gmy` v1) [DONE]
+      - [x] Implement "New Project" Wizard (Text Splitting Logic) [DONE]
+      - [x] Implement Text-Tree Synchronization (Click sentence -> Load Tree) [DONE]
+      - [x] Implement Subtree Extraction & Navigation (The "Góngora" Feature) [DONE]
+      - [x] Implement Structural Search (Query-by-Example) [DONE]
+      - [x] Markdown Annotation Layer [DONE]
+        - [x] Select JS Markdown Editor (EasyMDE vs TipTap) [DONE: TipTap]
+        - [x] Implement Project/Tree/Subtree Notes in Data Model [DONE]
+        - [x] UI: Editor Integration in Sidebar/Inspector [DONE]
+      - [x] Refactor: Server-Side Mutation (Migration) [DONE]
+        - [x] Endpoint: /api/mutation/detach [DONE]
+        - [x] Endpoint: /api/mutation/reabsorb [DONE]
+      - [ ] UX Polish: Mutation Workflow [NEXT TARGET]
+        - [ ] Fix: Auto-focus/Centering after Reabsorb
+        - [ ] Fix: Selection state management during transitions
     - [ ] Phase 1: v0.1.0 (Foundation & Persistence) [TARGET]
       - [x] Verify Ghost Node Logic (Recursive Delete / Auto-Spawn Child) [DONE]
       - [x] Implement Sibling Node Reordering (Move Left/Right) [DONE - Visual Only]
       - [x] Implement Undo/Redo Stack (State History) [DONE]
       - [x] Implement Clipboard Operations (Cut/Copy/Paste Subtrees) [DONE]
-      - [ ] Implement Drag-and-Drop Node Moving (Cytoscape) [NEW]
+      - [x] UX: Visual Semantics (Triangle shape for LINK/Ghost nodes) [DONE]
       - [ ] Testing & Stability
         - [x] Implement Decalogue Regression Suite (Editing Policy Validation) [DONE]
         - [x] Configure Coverage Reporting (pytest-cov for Coverage Gutters) [DONE]
+        - [ ] Setup Frontend Testing Infrastructure (Vitest) [NEW]
       - [ ] IO & Persistence (Local-First)
         - [x] Design Basic `.gmy` JSON Schema (Multi-tree structure only) [DONE]
-        - [ ] Implement Multi-Tree File I/O (Load/Save `.gmy` locally)
-        - [ ] Implement Tree Index/Selector Sidebar
-        - [ ] Implement Export Menu (SVG, PNG, PTB, JSON, Simple LaTeX Forest)
+        - [x] Implement Multi-Tree File I/O (Load/Save `.gmy` locally via Browser) [DONE]
+        - [x] Context Menu Exports (Granular) [DONE]
+          - [x] Implement Right-Click Context Menu in Editor [DONE]
+          - [x] Export Formats: PNG, SVG, WebP (Modern Web) [DONE]
+          - [x] Export Formats: PTB (Text), ASCII Tree (LLM), LaTeX Forest (Academic) [DONE]
+          - [x] Logic: Export Fragment vs Export Whole Tree based on target [DONE]
+        - [ ] Project Level Exports (Main Menu)
+          - [ ] Export Project as ZIP / Directory Structure
+          - [ ] Cloud Integration (Google Drive, Dropbox, Mega) [FUTURE]
+        - [ ] Interoperability
+          - [ ] Research & Implement Import/Export for NLTK, Tregex, etc.
       - [ ] UX Refinement
         - [x] Consolidate Toolbar into Inspector Panel [DONE]
+        - [ ] Implement Drag-and-Drop Node Moving (Cytoscape) [POSTPONED]
         - [ ] Implement Sliding ASCII Tree Sidebar
         - [ ] Welcome Screen & Help Page
     - [ ] Phase 2: v1.0.0 (Advanced Annotation & Fidelity) [FUTURE]

@@ -1,5 +1,3 @@
-[INFO] Loaded 31 rules from /home/lbartolessi/Workspaces/Grammatomy/src/core/grammatomy/assets/rules/hybrid_rules.yaml
-[DEBUG] EdgeBasedReconstructor loaded 116 patterns.
 
 ================================================================================
 CATEGORÍA DE ESTRÉS: Anidamiento Profundo
@@ -58,104 +56,59 @@ CATEGORÍA DE ESTRÉS: Anidamiento Profundo
         │           └── [96mincreíble[0m
         └── PUNCT
             └── [96m.[0m
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 's.a', 'PUNCT']
-[DEBUG] Match found: ('s.a',) -> grup.nom at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'grup.nom', 'PUNCT']
-[DEBUG] Match found: ('PUNCT',) -> coord at index 3
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'grup.nom', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'grup.verb', 'sn') -> sentence at index 0
-[DEBUG] Match found: ('sn', 'grup.verb') -> sentence at index 0
-[DEBUG] Match found: ('grup.verb', 'sn') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 2
-[DEBUG] Match found: ('grup.verb',) -> sentence at index 1
-[DEBUG] Match found: ('grup.verb',) -> S at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'S', 'sn', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.nom', 'sn', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'sn', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 2
-[DEBUG] Match found: ('sn', 'sn') -> S at index 0
-[DEBUG] Repairing 'sentence'. Children: ['S', 'sn', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 0
-[DEBUG] Repairing 'sentence'. Children: ['grup.nom', 'sn', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'sn') -> S at index 0
-[DEBUG] Repairing 'sentence'. Children: ['S', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 0
-[DEBUG] Repairing 'sentence'. Children: ['grup.nom', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 0
-  (Refinamiento completado en 1 pasada(s) efectivas)
+  (Refinamiento completado en 0 pasada(s) efectivas)
 
 --- Árbol Refinado ---
     ROOT
     └── sentence
-        ├── [93msn[0m
-        │   └── [93mgrup.nom[0m
-        │       └── [93mS[0m
-        │           ├── [93msn[0m
-        │           │   └── [93mgrup.nom[0m
-        │           │       └── [93mS[0m
-        │           │           ├── sn
-        │           │           │   ├── spec
-        │           │           │   │   └── DET
-        │           │           │   │       └── [96mLa[0m
-        │           │           │   └── grup.nom
-        │           │           │       ├── NOUN
-        │           │           │       │   └── [96midea[0m
-        │           │           │       └── sp
-        │           │           │           ├── prep
-        │           │           │           │   └── ADP
-        │           │           │           │       └── [96mde[0m
-        │           │           │           └── S
-        │           │           │               ├── conj
-        │           │           │               │   └── SCONJ
-        │           │           │               │       └── [96mque[0m
-        │           │           │               ├── sn
-        │           │           │               │   ├── spec
-        │           │           │               │   │   └── DET
-        │           │           │               │   │       └── [96mel[0m
-        │           │           │               │   └── grup.nom
-        │           │           │               │       ├── NOUN
-        │           │           │               │       │   └── [96mhombre[0m
-        │           │           │               │       └── S
-        │           │           │               │           ├── relatiu
-        │           │           │               │           │   └── PRON
-        │           │           │               │           │       └── [96mque[0m
-        │           │           │               │           └── grup.verb
-        │           │           │               │               └── VERB
-        │           │           │               │                   └── [96mconociste[0m
-        │           │           │               ├── grup.verb
-        │           │           │               │   └── AUX
-        │           │           │               │       └── [96msea[0m
-        │           │           │               └── sn
-        │           │           │                   ├── spec
-        │           │           │                   │   └── DET
-        │           │           │                   │       └── [96mel[0m
-        │           │           │                   └── grup.nom
-        │           │           │                       └── NOUN
-        │           │           │                           └── [96mdirector[0m
-        │           │           └── [93msn[0m
-        │           │               └── [93mgrup.nom[0m
-        │           │                   └── [93mS[0m
-        │           │                       └── grup.verb
-        │           │                           └── AUX
-        │           │                               └── [96mes[0m
-        │           └── [93msn[0m
-        │               └── [93mgrup.nom[0m
-        │                   └── s.a
-        │                       └── grup.a
-        │                           └── ADJ
-        │                               └── [96mincreíble[0m
-        └── [93mcoord[0m
-            └── PUNCT
-                └── [96m.[0m
+        ├── sn
+        │   ├── spec
+        │   │   └── DET
+        │   │       └── [96mLa[0m
+        │   └── grup.nom
+        │       ├── NOUN
+        │       │   └── [96midea[0m
+        │       └── sp
+        │           ├── prep
+        │           │   └── ADP
+        │           │       └── [96mde[0m
+        │           └── S
+        │               ├── conj
+        │               │   └── SCONJ
+        │               │       └── [96mque[0m
+        │               ├── sn
+        │               │   ├── spec
+        │               │   │   └── DET
+        │               │   │       └── [96mel[0m
+        │               │   └── grup.nom
+        │               │       ├── NOUN
+        │               │       │   └── [96mhombre[0m
+        │               │       └── S
+        │               │           ├── relatiu
+        │               │           │   └── PRON
+        │               │           │       └── [96mque[0m
+        │               │           └── grup.verb
+        │               │               └── VERB
+        │               │                   └── [96mconociste[0m
+        │               ├── grup.verb
+        │               │   └── AUX
+        │               │       └── [96msea[0m
+        │               └── sn
+        │                   ├── spec
+        │                   │   └── DET
+        │                   │       └── [96mel[0m
+        │                   └── grup.nom
+        │                       └── NOUN
+        │                           └── [96mdirector[0m
+        ├── grup.verb
+        │   └── AUX
+        │       └── [96mes[0m
+        ├── s.a
+        │   └── grup.a
+        │       └── ADJ
+        │           └── [96mincreíble[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 --- FRASE 2: 'El informe que mencionaste que debíamos revisar antes de que llegara el comité resultó incompleto.' ---
@@ -218,111 +171,66 @@ CATEGORÍA DE ESTRÉS: Anidamiento Profundo
         │           └── [96mincompleto[0m
         └── PUNCT
             └── [96m.[0m
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 's.a', 'PUNCT']
-[DEBUG] Match found: ('s.a',) -> grup.nom at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'grup.nom', 'PUNCT']
-[DEBUG] Match found: ('PUNCT',) -> coord at index 3
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'grup.nom', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 2
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.verb', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'grup.verb', 'sn') -> sentence at index 0
-[DEBUG] Match found: ('sn', 'grup.verb') -> sentence at index 0
-[DEBUG] Match found: ('grup.verb', 'sn') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 2
-[DEBUG] Match found: ('grup.verb',) -> sentence at index 1
-[DEBUG] Match found: ('grup.verb',) -> S at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'S', 'sn', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'grup.nom', 'sn', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 1
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'sn', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 2
-[DEBUG] Match found: ('sn', 'sn') -> S at index 0
-[DEBUG] Repairing 'sentence'. Children: ['S', 'sn', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 0
-[DEBUG] Repairing 'sentence'. Children: ['grup.nom', 'sn', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 1
-[DEBUG] Match found: ('sn', 'sn') -> S at index 0
-[DEBUG] Repairing 'sentence'. Children: ['S', 'coord']
-[DEBUG] Match found: ('S',) -> grup.nom at index 0
-[DEBUG] Repairing 'sentence'. Children: ['grup.nom', 'coord']
-[DEBUG] Match found: ('grup.nom',) -> sn at index 0
-[DEBUG] Repairing 'sentence'. Children: ['sn', 'coord']
-[DEBUG] Match found: ('sn', 'coord') -> sentence at index 0
-  (Refinamiento completado en 1 pasada(s) efectivas)
+  (Refinamiento completado en 0 pasada(s) efectivas)
 
 --- Árbol Refinado ---
     ROOT
     └── sentence
-        ├── [93msn[0m
-        │   └── [93mgrup.nom[0m
-        │       └── [93mS[0m
-        │           ├── [93msn[0m
-        │           │   └── [93mgrup.nom[0m
-        │           │       └── [93mS[0m
-        │           │           ├── sn
-        │           │           │   ├── spec
-        │           │           │   │   └── DET
-        │           │           │   │       └── [96mEl[0m
-        │           │           │   └── grup.nom
-        │           │           │       ├── NOUN
-        │           │           │       │   └── [96minforme[0m
-        │           │           │       └── S
-        │           │           │           ├── relatiu
-        │           │           │           │   └── PRON
-        │           │           │           │       └── [96mque[0m
-        │           │           │           ├── grup.verb
-        │           │           │           │   └── VERB
-        │           │           │           │       └── [96mmencionaste[0m
-        │           │           │           └── S
-        │           │           │               ├── conj
-        │           │           │               │   └── SCONJ
-        │           │           │               │       └── [96mque[0m
-        │           │           │               ├── grup.verb
-        │           │           │               │   ├── AUX
-        │           │           │               │   │   └── [96mdebíamos[0m
-        │           │           │               │   └── infinitiu
-        │           │           │               │       └── VERB
-        │           │           │               │           └── [96mrevisar[0m
-        │           │           │               └── sadv
-        │           │           │                   └── grup.adv
-        │           │           │                       ├── ADV
-        │           │           │                       │   └── [96mantes[0m
-        │           │           │                       └── sp
-        │           │           │                           ├── prep
-        │           │           │                           │   └── ADP
-        │           │           │                           │       └── [96mde[0m
-        │           │           │                           └── S
-        │           │           │                               ├── conj
-        │           │           │                               │   └── SCONJ
-        │           │           │                               │       └── [96mque[0m
-        │           │           │                               ├── grup.verb
-        │           │           │                               │   └── VERB
-        │           │           │                               │       └── [96mllegara[0m
-        │           │           │                               └── sn
-        │           │           │                                   ├── spec
-        │           │           │                                   │   └── DET
-        │           │           │                                   │       └── [96mel[0m
-        │           │           │                                   └── grup.nom
-        │           │           │                                       └── NOUN
-        │           │           │                                           └── [96mcomité[0m
-        │           │           └── [93msn[0m
-        │           │               └── [93mgrup.nom[0m
-        │           │                   └── [93mS[0m
-        │           │                       └── grup.verb
-        │           │                           └── VERB
-        │           │                               └── [96mresultó[0m
-        │           └── [93msn[0m
-        │               └── [93mgrup.nom[0m
-        │                   └── s.a
-        │                       └── grup.a
-        │                           └── ADJ
-        │                               └── [96mincompleto[0m
-        └── [93mcoord[0m
-            └── PUNCT
-                └── [96m.[0m
+        ├── sn
+        │   ├── spec
+        │   │   └── DET
+        │   │       └── [96mEl[0m
+        │   └── grup.nom
+        │       ├── NOUN
+        │       │   └── [96minforme[0m
+        │       └── S
+        │           ├── relatiu
+        │           │   └── PRON
+        │           │       └── [96mque[0m
+        │           ├── grup.verb
+        │           │   └── VERB
+        │           │       └── [96mmencionaste[0m
+        │           └── S
+        │               ├── conj
+        │               │   └── SCONJ
+        │               │       └── [96mque[0m
+        │               ├── grup.verb
+        │               │   ├── AUX
+        │               │   │   └── [96mdebíamos[0m
+        │               │   └── infinitiu
+        │               │       └── VERB
+        │               │           └── [96mrevisar[0m
+        │               └── sadv
+        │                   └── grup.adv
+        │                       ├── ADV
+        │                       │   └── [96mantes[0m
+        │                       └── sp
+        │                           ├── prep
+        │                           │   └── ADP
+        │                           │       └── [96mde[0m
+        │                           └── S
+        │                               ├── conj
+        │                               │   └── SCONJ
+        │                               │       └── [96mque[0m
+        │                               ├── grup.verb
+        │                               │   └── VERB
+        │                               │       └── [96mllegara[0m
+        │                               └── sn
+        │                                   ├── spec
+        │                                   │   └── DET
+        │                                   │       └── [96mel[0m
+        │                                   └── grup.nom
+        │                                       └── NOUN
+        │                                           └── [96mcomité[0m
+        ├── grup.verb
+        │   └── VERB
+        │       └── [96mresultó[0m
+        ├── s.a
+        │   └── grup.a
+        │       └── ADJ
+        │           └── [96mincompleto[0m
+        └── PUNCT
+            └── [96m.[0m
   Validación Estricta: ✅ (OK)
 
 --- FRASE 3: 'El coche que el mecánico que trabaja al lado reparó se vendió por un precio alto.' ---
@@ -2310,7 +2218,7 @@ CATEGORÍA DE ESTRÉS: Ambigüedad de Adjunción (RC)
         │                               └── [96mgrande[0m
         └── PUNCT
             └── [96m.[0m
-  (Refinamiento completado en 0 pasada(s) efectivas)
+  (Refinamiento completado en 1 pasada(s) efectivas)
 
 --- Árbol Refinado ---
     ROOT
@@ -2352,8 +2260,13 @@ CATEGORÍA DE ESTRÉS: Ambigüedad de Adjunción (RC)
         │                   │   └── [96mjardín[0m
         │                   └── s.a
         │                       ├── spec
-        │                       │   └── ADV
-        │                       │       └── [96mmás[0m
+        │                       │   └── [93minc[0m
+        │                       │       └── [93msn[0m
+        │                       │           └── [93mgrup.nom[0m
+        │                       │               └── [93msadv[0m
+        │                       │                   └── [93mgrup.adv[0m
+        │                       │                       └── ADV
+        │                       │                           └── [96mmás[0m
         │                       └── grup.a
         │                           └── ADJ
         │                               └── [96mgrande[0m
@@ -2364,8 +2277,8 @@ CATEGORÍA DE ESTRÉS: Ambigüedad de Adjunción (RC)
 ================================================================================
 RESUMEN DE LA EJECUCIÓN DEL REFINADOR
 --------------------------------------------------------------------------------
-  Árboles sin modificar (Untouched):      22
-  Árboles refinados (Refined):            2
+  Árboles sin modificar (Untouched):      23
+  Árboles refinados (Refined):            1
   Fallos de parseo inicial:               0
 --------------------------------------------------------------------------------
   TOTAL VÁLIDOS (Strict Mode):            24

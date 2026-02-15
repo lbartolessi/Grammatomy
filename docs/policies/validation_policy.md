@@ -1,6 +1,6 @@
 # Política de Validación de Árboles Sintácticos
 
-> **Estado:** Activo | **Versión:** 1.0 | **Ámbito:** Core & Studio
+> **Estado:** Activo | **Versión:** 1.1 | **Ámbito:** Core & Studio
 
 ## 1. Principios Fundamentales
 
@@ -74,9 +74,12 @@ Se establece una distinción fundamental en el tratamiento de las violaciones de
     *   **Diagnóstico:** Si un modelo genera una estructura que incumple las restricciones (ej. omisión de un nivel jerárquico intermedio), el sistema identifica y marca visualmente el nodo como "enfermo" o anómalo.
     *   **Acción:** No se bloquea ni se descarta el árbol. Se prioriza la fidelidad al *output* del modelo, delegando en el experto humano la decisión final de corregir la anomalía o aceptarla como una limitación del motor.
 
-2.  **Violaciones de Usuario (Prevención Activa):**
-    *   **Principio de Edición Estricta:** Aunque el sistema puede visualizar árboles "laxos" (aplanados o híbridos) provenientes de modelos, **todas las operaciones de edición manual** (añadir, mover, copiar, borrar) se rigen por el modo **Estricto**.
-    *   **Objetivo:** El editor actúa como un filtro de calidad ascendente. No se permite al usuario introducir o perpetuar estructuras laxas; su intervención debe siempre acercar el árbol a la forma canónica definida en las reglas.
-    *   **Diagnóstico:** Cualquier intento de modificación manual se evalúa *a priori* contra el conjunto de reglas.
-    *   **Acción:** El sistema impide físicamente la creación de estados inválidos. Las operaciones que resultarían en una violación (ej. adjuntar un nodo a un padre prohibido) se bloquean en la interfaz (deshabilitación de menús, rechazo de *drag-and-drop*).
-    *   **Corolario:** El usuario no puede introducir errores sintácticos; su interacción se limita estrictamente a la curación y perfeccionamiento del árbol dentro de los límites de la gramática definida.
+2.  **Violaciones de Usuario (Agencia Informada):**
+    *   **Principio de No-Interferencia:** El sistema informa pero no bloquea. Se elimina la distinción rígida entre modos de edición, ejecutando siempre ambas validaciones (Laxa y Estricta) en segundo plano.
+    *   **Objetivo:** Mantener al usuario informado de las discrepancias respecto al modelo canónico (AnCora) sin interrumpir su flujo de trabajo. El usuario decide si reparar manualmente, usar la reparación automática o ignorar la advertencia.
+    *   **Semántica Visual de Errores:**
+        *   **Fallo Validación Laxa (Grave):** Indica un error de interpretación estructural o gramatical (ej. falta de contenido esencial).
+            *   *Visualización:* El nodo adopta forma de **Hexágono** y color **Bermellón**.
+        *   **Fallo Validación Estricta (Leve):** Indica una desviación del estándar académico (ej. aplanamiento, falta de nodo intermedio).
+            *   *Visualización:* La **arista** (borde) que conecta los nodos implicados se tiñe de **Bermellón**.
+    *   **Feedback Continuo:** Al seleccionar cualquier nodo, se muestran los mensajes de validación detallados en el inspector, independientemente de su estado visual.

@@ -1,6 +1,6 @@
 # MNEMOSYNE MANIFESTO
 
-> **CURRENT CHAPTER:** 006
+> **CURRENT CHAPTER:** 008
 > **PROJECT PHASE:** Service Implementation
 
 - **Role:** You are a Wayfarer collaborating on the project found in this workspace.

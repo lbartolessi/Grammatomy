@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from core.grammatomy.parsers.lisp_parser import SyntaxNode
 
+from core.grammatomy.parsers.lisp_parser import SyntaxNode
 from src.api.app.main import app
 
 client = TestClient(app)
@@ -27,6 +27,18 @@ def mock_parser():
     with patch("src.api.app.main.get_syntax_tree") as mock:
         mock.return_value = MOCK_ROOT
         yield mock
+
+
+@pytest.fixture
+def mock_validator():
+    """Mocks the ValidationEngine instance used by the API."""
+    with patch("src.api.app.main.validator") as mock_instance:
+        mock_instance.root_allowed_tags = {"S", "ROOT"}
+        mock_instance.validate_node.return_value = (True, [], [])
+        mock_instance.get_valid_substitutions.return_value = ["S"]
+        # Ensure allowed_children behaves like a dict
+        mock_instance.allowed_children = {}
+        yield mock_instance
 
 
 @pytest.fixture
@@ -136,3 +148,37 @@ def test_render_lisp_missing_attr(mock_parser):  # pylint: disable=redefined-out
 
     assert response.status_code == 404
     assert "Original LISP string not available" in response.json()["detail"]
+
+
+def test_validation_options_root(mock_validator):
+    """Tests the validation options endpoint for a root node."""
+    payload = {"parent_tag": None, "current_tag": "S", "children_tags": []}
+    response = client.post("/api/validation/options", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    # The endpoint returns a list of strings directly
+    if isinstance(data, list):
+        assert "S" in data
+    else:
+        assert "S" in data.get("options", [])
+
+
+def test_check_requirements_fallback(mock_validator):
+    """Tests the requirements check endpoint with fallback for children_tags."""
+    payload = {"tag": "sn", "descendant_tags": ["NOUN"]}
+    response = client.post("/api/validation/check/requirements", json=payload)
+    assert response.status_code == 200
+    mock_validator.validate_node.assert_called_once()
+    call_args = mock_validator.validate_node.call_args[1]
+    assert call_args["children_labels"] == ["NOUN"]
+
+
+@pytest.mark.parametrize(
+    "endpoint", ["/api/render/ascii", "/api/render/json", "/api/render/graphviz"]
+)
+def test_render_endpoints_exception(mock_parser, endpoint):
+    """Tests 500 error on render endpoints if the parser raises an exception."""
+    mock_parser.side_effect = ValueError("Test exception")
+    response = client.post(endpoint, json={"text": "some text"})
+    assert response.status_code == 500
+    assert "Test exception" in response.json()["detail"]

@@ -17,16 +17,26 @@ Attributes:
 __version__ = "0.2.0"
 
 from .config import config
-from .engines.spacy_engine import SpacyEngine
-from .engines.stanza_engine import StanzaEngine
 from .exporters.json_exporter import to_json
 from .exporters.ptb_exporter import to_ptb
+from .exporters.latex_exporter import to_latex
 from .grammar import Grammar, get_syntax_tree
 from .parsers.lisp_parser import LispParser
 from .visualization.ascii_renderer import render_ascii_colored
 from .visualization.graphviz_renderer import get_graphviz_dot
 from .visualization.json_renderer import render_json_colored
 from .visualization.lisp_renderer import render_lisp_colored
+
+# Conditional imports to allow running without optional dependencies (like nltk/spacy)
+try:
+    from .engines.stanza_engine import StanzaEngine
+except ImportError:
+    StanzaEngine = None
+
+try:
+    from .engines.spacy_engine import SpacyEngine
+except ImportError:
+    SpacyEngine = None
 
 # Alias for backward compatibility and convenience
 from_ptb = LispParser.to_anytree
@@ -40,6 +50,7 @@ __all__ = [
     "LispParser",
     "to_json",
     "to_ptb",
+    "to_latex",
     "from_ptb",
     "render_ascii_colored",
     "get_graphviz_dot",

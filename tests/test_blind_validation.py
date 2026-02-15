@@ -195,6 +195,7 @@ class TestBlindValidation(unittest.TestCase):
             "valid_final": 0,
             "invalid_final": 0,
         }
+        failures = []  # Collect detailed failure reasons
 
         # Combinar ambos bancos de pruebas para el reporte
         test_suites = [
@@ -207,6 +208,12 @@ class TestBlindValidation(unittest.TestCase):
             print(f"\n>>> EJECUTANDO SUITE: {source_name} <<<")
             self._process_suite(suite, results)
 
+            # Capture failures from this suite
+            if results["invalid_final"] > len(failures):
+                # We can't easily grab them here without refactoring _process_suite,
+                # so we'll rely on _process_sentence appending to a list if we pass it.
+                pass
+
         print("\n" + "=" * 80)
         print("RESUMEN BLIND TEST")
         print("-" * 80)
@@ -216,22 +223,27 @@ class TestBlindValidation(unittest.TestCase):
         print(f"  Inválidos:    {results['invalid_final']}")
         print("=" * 80)
 
+        if failures:
+            print("\n>>> DETALLE DE FALLOS (Muestra de los primeros 5) <<<")
+            for i, f in enumerate(failures[:5], 1):
+                print(f"{i}. {f}")
+
         # Assert final success for regression testing
         self.assertEqual(
             results["invalid_final"],
             0,
-            f"Regression: Found {results['invalid_final']} invalid trees in Blind Test.",
+            f"Regression: Found {results['invalid_final']} invalid trees. First failure: {failures[0] if failures else 'None'}",
         )
 
-    def _process_suite(self, suite, results):
+    def _process_suite(self, suite, results, failures=None):
         for category, sentences in suite.items():
             print("\n" + "=" * 80)
             print(f"{category}")
             print("=" * 80)
             for i, text in enumerate(sentences, 1):
-                self._process_sentence(i, text, results)
+                self._process_sentence(i, text, results, failures)
 
-    def _process_sentence(self, index: int, text: str, results: dict):
+    def _process_sentence(self, index: int, text: str, results: dict, failures: list = None):
         print(f"\n--- FRASE {index}: '{text}' ---")
 
         original_root = get_syntax_tree(text, self.params)
@@ -260,6 +272,63 @@ class TestBlindValidation(unittest.TestCase):
             results["valid_final"] += 1
         else:
             results["invalid_final"] += 1
+            if failures is not None:
+                failures.append(f"'{text[:30]}...': {reason}")
+
+    # Override _process_suite to pass failures list
+    def _process_suite(self, suite, results):
+        # We attach the failures list to the instance or pass it down.
+        # For simplicity, let's use a list bound to the test method scope (passed as arg).
+        # But since _process_suite signature in the loop above didn't have it, we need to fix the call site.
+        # Actually, let's just use a bound variable or pass it.
+        # Refactoring slightly to be cleaner:
+        pass
+
+    # Redefining test_blind_cases to properly pass the list
+    def test_blind_cases(self):
+        results = {
+            "untouched": 0,
+            "refined": 0,
+            "failed": 0,
+            "valid_final": 0,
+            "invalid_final": 0,
+        }
+        failures = []
+
+        test_suites = [
+            ("DEEPSEEK", DEEPSEEK_TEST_SENTENCES),
+            ("CLAUDE", CLAUDE_TEST_SENTENCES),
+            ("MISTRAL", MISTRAL_TEST_SENTENCES),
+        ]
+
+        for source_name, suite in test_suites:
+            print(f"\n>>> EJECUTANDO SUITE: {source_name} <<<")
+            for category, sentences in suite.items():
+                print("\n" + "=" * 80)
+                print(f"{category}")
+                print("=" * 80)
+                for i, text in enumerate(sentences, 1):
+                    self._process_sentence(i, text, results, failures)
+
+        print("\n" + "=" * 80)
+        print("RESUMEN BLIND TEST")
+        print("-" * 80)
+        total_sentences = sum(len(v) for _, s in test_suites for v in s.values())
+        print(f"  Total Frases: {total_sentences}")
+        print(f"  Válidos:      {results['valid_final']}")
+        print(f"  Inválidos:    {results['invalid_final']}")
+        print("=" * 80)
+
+        if failures:
+            print("\n>>> DETALLE DE FALLOS (Muestra de los primeros 5) <<<")
+            for i, f in enumerate(failures[:5], 1):
+                print(f"{i}. {f}")
+
+        self.assertEqual(
+            results["invalid_final"],
+            0,
+            f"Regression: Found {results['invalid_final']} invalid trees. First failure: {failures[0] if failures else 'None'}",
+        )
 
 
 if __name__ == "__main__":

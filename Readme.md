@@ -103,13 +103,13 @@ lisp_tree = sent._.parse_string
 
 ## 6. Hoja de Ruta (Roadmap)
 
-1. **Project setup**: Preparar el entorno de desarrollo, environment.yml para entorno Conda, project.toml, estructura de directorios (src, test, etc...)
-2. **Parser LISP**: Convertidor universal independiente del motor.
-3. **Bridge Stanza**: Integración del pipeline de Stanford.
-4. **Bridge spaCy**: Integración de Benepar con soporte para modelos externos.
-5. **AnyTree Exporter**: Utilidad para visualizar el árbol en consola o exportar a JSON/dict.
-6. **Interactive Web Demo**: Prototipado rápido en Streamlit/Gradio para validación de conceptos.
-7. **Grammatomy API (REST)**: Servicio centralizado (FastAPI) para desacoplar el motor de la interfaz.
+1. ✅ **Project setup**: Preparar el entorno de desarrollo, environment.yml para entorno Conda, project.toml, estructura de directorios (src, test, etc...)
+2. ✅ **Parser LISP**: Convertidor universal independiente del motor.
+3. ✅ **Bridge Stanza**: Integración del pipeline de Stanford.
+4. ✅ **Bridge spaCy**: Integración de Benepar con soporte para modelos externos.
+5. ✅ **AnyTree Exporter**: Utilidad para visualizar el árbol en consola o exportar a JSON/dict.
+6. ✅ **Grammatomy API (REST)**: Servicio centralizado (FastAPI) para desacoplar el motor de la interfaz.
+7. **Interactive Web Demo**: Prototipado rápido en Streamlit/Gradio para validación de conceptos.
 8. **Grammatomy Studio (Desktop/Qt)**: Aplicación nativa (PySide6) capaz de operar en modo híbrido:
    - _Local_: Motor integrado para privacidad y potencia.
    - _Remoto_: Cliente ligero consumiendo la API (Escenario "Gaming PC" -> Tablet).

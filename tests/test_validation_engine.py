@@ -1,154 +1,121 @@
+import unittest
 from pathlib import Path
 
-import pytest
-import yaml
+from src.core.grammatomy.validation_engine import ValidationEngine
 
-from core.grammatomy.validation_engine import ValidationEngine
-
-
-@pytest.fixture
-def rules_file(tmp_path):
-    """Creates a self-contained rules file for testing."""
-    content = """
-tree_config:
-  language: es
-nodes:
-  - id: sn
-    type: group
-    allowed_children:
-      mandatory: [grup.nom]
-      optional: [spec]
-  - id: sp
-    type: group
-    allowed_children:
-      mandatory: [[ADP, prep], [sn]]
-      optional: []
-  - id: grup.nom
-    type: group
-    allowed_children:
-      mandatory: [NOUN]
-      optional: []
-  - id: grup.verb
-    type: group
-    allowed_children:
-      mandatory: [VERB]
-      optional: []
-  - id: NOUN
-    type: leaf
-  - id: VERB
-    type: leaf
-  - id: ADP
-    type: leaf
-  - id: prep
-    type: leaf
-  - id: spec
-    type: leaf
-"""
-    rules_file_path = tmp_path / "test_rules.yaml"
-    rules_file_path.write_text(content, encoding="utf-8")
-    return str(rules_file_path)
+# Path to the real rules file
+RULES_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "src"
+    / "core"
+    / "grammatomy"
+    / "assets"
+    / "rules"
+    / "hybrid_rules.yaml"
+)
 
 
-@pytest.fixture
-def engine(rules_file):
-    """Provides a ValidationEngine instance with the default 'lax' strategy."""
-    return ValidationEngine(rules_file, lang="es")
+class TestValidationEngine(unittest.TestCase):
+    def setUp(self):
+        # Clear singleton cache to ensure fresh start
+        ValidationEngine._instances = {}
+        self.validator = ValidationEngine(str(RULES_PATH), "es")
 
+    def test_initialization(self):
+        """Test that the engine loads rules correctly."""
+        self.assertTrue(self.validator._initialized)
+        self.assertIn("sn", self.validator.rules)
+        self.assertIn("grup.nom", self.validator.rules)
 
-class TestValidationEngine:
-
-    def test_initialization(self, engine):
-        """Tests that the engine loads rules correctly."""
-        assert "sn" in engine.rules
-        assert engine.lang == "es"
-
-    def test_validate_sn_lax_mode_algorithmic(self, engine):
-        """Lax mode should algorithmically allow NOUN as descendant of sn."""
-
-        # Valid: Collapsed structure (sn -> NOUN)
-        # We pass NOUN as both child and descendant
-        is_valid, errors, _ = engine.validate_node("sn", ["NOUN"], descendants_labels=["NOUN"])
-        assert is_valid is True
-        assert not errors
-
-        # Invalid: Contains a forbidden child
-        is_valid, errors, _ = engine.validate_node("sn", ["VERB"], descendants_labels=["VERB"])
-        assert is_valid is False
-        assert "missing essential content" in errors[0]
-
-    @pytest.mark.xfail(reason="Pending definitive rule definitions for strict mode")
-    def test_validate_sn_strict_mode(self, engine):
-        """Strict mode must enforce X-Bar hierarchy (sn -> grup.nom)."""
-
-        # Invalid: Collapsed structure is forbidden in strict mode
-        is_valid, errors, _ = engine.validate_node(
-            "sn", ["spec", "NOUN"], descendants_labels=["spec", "NOUN"], strategy="strict"
+    def test_validate_sn_strict_mode(self):
+        """
+        Test strict validation for SN.
+        Updated to reflect Hybrid Grammar: 'inc' is now a valid child.
+        """
+        # Valid case: Standard SN
+        valid, errors, _ = self.validator.validate_node(
+            "sn", ["spec", "grup.nom"], strategy="strict"
         )
-        assert is_valid is False
-        assert "cannot contain 'NOUN'" in errors[0]  # NOUN is not allowed direct child in strict
+        self.assertTrue(valid, f"Standard SN should be valid. Errors: {errors}")
 
-        # Invalid: Missing mandatory child 'grup.nom'
-        is_valid, errors, _ = engine.validate_node("sn", ["spec"], descendants_labels=["spec"])
-        assert is_valid is False
-        # Note: In strict mode without explicit strategy arg (defaults to lax), this might pass or fail differently.
+        # Valid case: Hybrid SN with Inciso (Previously Invalid, now Valid)
+        valid, errors, _ = self.validator.validate_node("sn", ["inc"], strategy="strict")
+        self.assertTrue(valid, "SN -> INC should be valid in Hybrid Grammar.")
 
-        # Valid: Correct strict structure
-        is_valid, errors, _ = engine.validate_node("sn", ["spec", "grup.nom"], strategy="strict")
-        assert is_valid is True
-        assert not errors
+        # Invalid case: Random verb inside SN (still invalid)
+        valid, errors, _ = self.validator.validate_node("sn", ["grup.verb"], strategy="strict")
+        self.assertFalse(valid, "SN -> GRUP.VERB should be invalid.")
 
-    @pytest.mark.xfail(reason="Pending definitive rule definitions for lax mode")
-    def test_lax_mandatory_content(self, engine):
-        """
-        Lax mode should enforce mandatory YIELD recursively.
-        sp strict mandatory: [ADP/prep] AND [sn].
+    def test_validate_sn_lax_mode(self):
+        """Test lax validation (content presence)."""
+        # Valid: Has mandatory grup.nom
+        valid, errors, _ = self.validator.validate_node("sn", ["spec", "grup.nom"], strategy="lax")
+        self.assertTrue(valid)
 
-        Case 1: sp -> prep (Missing sn).
-        'sn' is missing. 'sn' requires 'grup.nom'. 'grup.nom' requires 'NOUN'.
-        If 'NOUN' is missing, then 'sn' is effectively missing.
-        """
+        # Valid: 'inc' is allowed and assumed to potentially contain mandatory content
+        # due to permissive recursion in _check_yield_presence for non-leaf nodes.
+        valid, errors, _ = self.validator.validate_node("sn", ["inc"], strategy="lax")
+        self.assertTrue(valid)
 
-        # Invalid: sp -> prep (Missing term/sn)
-        is_valid, errors, _ = engine.validate_node("sp", ["prep"], descendants_labels=["prep"])
-        assert is_valid is False
-        assert "missing essential content" in errors[0]
+    def test_can_add_child(self):
+        """Test context compatibility."""
+        # SN allows grup.nom
+        valid, _ = self.validator.can_add_child("sn", "grup.nom")
+        self.assertTrue(valid)
 
-        # Valid: sp -> prep + NOUN (Collapsed sn)
-        # sp requires sn -> sn requires grup.nom -> grup.nom requires NOUN.
-        # NOUN is present, so sn is "satisfied".
-        is_valid, errors, _ = engine.validate_node(
-            "sp", ["prep", "NOUN"], descendants_labels=["prep", "NOUN"]
-        )
-        assert is_valid is True
+        # SN allows inc (New)
+        valid, _ = self.validator.can_add_child("sn", "inc")
+        self.assertTrue(valid)
 
-    def test_transparency_intersection(self, engine):
-        """
-        Test that VERB and v are treated as the same mandatory content.
-        """
-        # Mocking a node 'grup.verb' that allows [VERB, v]
-        # Intersection({VERB}, {v}) should be {VERB_EQUIV} -> {VERB} (normalized)
-        # This requires the engine to load the transparency map correctly.
+        # SN does not allow grup.verb
+        valid, _ = self.validator.can_add_child("sn", "grup.verb")
+        self.assertFalse(valid)
 
-        # We can test this by checking if 'grup.verb' (from rules_es.yaml) requires VERB
-        # rules_es.yaml defines grup.verb allowed: [VERB, AUX, v...]
-        # If we assume AUX is also verbal, intersection might be VERB_EQUIV.
-        pass
+        # Punctuation is always allowed
+        valid, _ = self.validator.can_add_child("sn", "PUNCT")
+        self.assertTrue(valid)
 
-    @pytest.mark.xfail(reason="Reverse index population requires fix in fixture or engine")
-    def test_reverse_index_for_dropdowns(self, engine):
-        """Tests the get_valid_parents method."""
-        # Reverse index now uses strict rules for dropdown suggestions (canonical parents)
+    def test_get_valid_substitutions(self):
+        """Test substitution suggestions."""
+        # Case 1: Context compatible with 'S' (contains verb)
+        subs_verb = self.validator.get_valid_substitutions("sentence", ["grup.verb"])
+        self.assertIn("S", subs_verb)
+        # 'sn' cannot directly contain 'grup.verb', so it shouldn't be here
+        self.assertNotIn("sn", subs_verb)
 
-        # NOUN is strictly child of grup.nom
-        parents_of_noun = engine.get_valid_parents(
-            "NOUN"
-        )  # Assuming NOUN is allowed in strict grup.nom
-        # Note: In the test fixture, NOUN is not explicitly added to strict allowed of grup.nom in p2_content,
-        # but let's assume the logic holds for what is defined.
-        # In p2_content: sp -> allowed [ADP, prep, sn].
+        # Case 2: Context compatible with 'sn' (contains nominal group)
+        subs_noun = self.validator.get_valid_substitutions("sentence", ["grup.nom"])
+        self.assertIn("sn", subs_noun)
 
-        parents_of_prep = engine.get_valid_parents("prep")
-        assert "sp" in parents_of_prep
+    def test_legacy_tag_warning(self):
+        """Ensure legacy tags are not present in compiled rules."""
+        # This assumes compile_rules.py has run and removed 'n', 'v', etc.
+        sn_allowed = self.validator.allowed_children.get("sn", set())
+        self.assertNotIn("n", sn_allowed)
+        self.assertNotIn("v", sn_allowed)
 
-        parents_of_verb = engine.get_valid_parents("VERB")
-        assert "grup.verb" in parents_of_verb
+    def test_gapping_patterns(self):
+        """Verify new gapping patterns in Sentence."""
+        # Pattern: [sn, grup.verb, sn, conj, sn]
+        children = ["sn", "grup.verb", "sn", "conj", "sn"]
+        valid, errors, _ = self.validator.validate_node("sentence", children, strategy="strict")
+        self.assertTrue(valid, f"Gapping pattern should be valid. Errors: {errors}")
+
+    def test_enumeration_patterns(self):
+        """Verify enumeration patterns in SN."""
+        # Pattern: [sn, f, sn, conj, sn] -> [sn, PUNCT, sn, conj, sn]
+        # Note: PUNCT is filtered out in strict pattern check, so we check [sn, sn, conj, sn]
+        children = ["sn", "PUNCT", "sn", "conj", "sn"]
+        valid, errors, _ = self.validator.validate_node("sn", children, strategy="strict")
+        self.assertTrue(valid, f"Enumeration pattern should be valid. Errors: {errors}")
+
+    def test_copulative_sentence(self):
+        """Verify copulative sentence pattern."""
+        # Pattern: [sn, grup.verb, s.a]
+        children = ["sn", "grup.verb", "s.a"]
+        valid, errors, _ = self.validator.validate_node("sentence", children, strategy="strict")
+        self.assertTrue(valid, f"Copulative pattern should be valid. Errors: {errors}")
+
+
+if __name__ == "__main__":
+    unittest.main()

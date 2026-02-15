@@ -8,13 +8,13 @@ from core.grammatomy import from_ptb, to_ptb
 class TestPTBConversion(unittest.TestCase):
 
     def test_simple_round_trip(self):
-        """Verifies basic structure preservation."""
-        # Original Tree: (S (NP Juan) (VP duerme))
+        """Verifies basic structure preservation using YAML-defined tags."""
+        # Original Tree using AnCora/UD: (S (sn Juan) (grup.verb duerme))
         root = Node("S")
-        np = Node("NP", parent=root)
-        Node("Juan", parent=np)
-        vp = Node("VP", parent=root)
-        Node("duerme", parent=vp)
+        sn = Node("sn", parent=root)
+        Node("Juan", parent=sn)
+        gv = Node("grup.verb", parent=root)
+        Node("duerme", parent=gv)
 
         ptb_str = to_ptb(root)
         reconstructed_root = from_ptb(ptb_str)
@@ -37,13 +37,21 @@ class TestPTBConversion(unittest.TestCase):
         self.assertEqual(to_ptb(reconstructed_root), ptb_str)
 
     def test_parenthesis_sanitization(self):
-        """Verifies that parentheses in text are handled correctly."""
-        # Sentence: "Hola (mundo)" -> Tree should preserve parens in content
+        """Verifies that parentheses in text are handled correctly using POS tags."""
+        # Sentence: "Hola (mundo)" -> with explicit POS for each word
         root = Node("S")
-        Node("Hola", parent=root)
-        Node("(", parent=root)  # Should become -LRB- in PTB
-        Node("mundo", parent=root)
-        Node(")", parent=root)  # Should become -RRB- in PTB
+        # Each terminal word needs a POS tag as parent
+        hola_pos = Node("NOUN", parent=root)
+        Node("Hola", parent=hola_pos)
+
+        lrb_pos = Node("PUNCT", parent=root)
+        Node("(", parent=lrb_pos)  # Will be sanitized to -LRB-
+
+        mundo_pos = Node("NOUN", parent=root)
+        Node("mundo", parent=mundo_pos)
+
+        rrb_pos = Node("PUNCT", parent=root)
+        Node(")", parent=rrb_pos)  # Will be sanitized to -RRB-
 
         ptb_str = to_ptb(root)
         self.assertIn("-LRB-", ptb_str)

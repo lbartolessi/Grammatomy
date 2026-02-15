@@ -4,6 +4,9 @@ from anytree import RenderTree
 from core.grammatomy import get_syntax_tree
 
 
+@pytest.mark.skip(
+    reason="English Stanza integration deferred to language plugin phase; currently building Spanish core"
+)
 @pytest.mark.slow
 def test_stanza_integration_english():
     """

@@ -1,3 +1,11 @@
+"""
+API Router para Validación Gramatical.
+
+Este módulo expone los endpoints REST relacionados con la validación de
+estructuras, verificación de movimientos y consulta de reglas. Actúa como
+interfaz HTTP sobre el `ValidationEngine`.
+"""
+
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -11,12 +19,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/validation", tags=["validation"])
 
-# Resolve rules path relative to the core package
+#: Ruta absoluta al archivo de reglas híbridas.
 RULES_PATH = Path(__file__).parent / "assets" / "rules" / "hybrid_rules.yaml"
 
 
 def get_engine(lang: str = "es") -> ValidationEngine:
-    """Dependency/Helper to get the singleton engine instance."""
+    """
+    Helper para obtener la instancia singleton del motor de validación.
+    """
     try:
         return ValidationEngine(str(RULES_PATH), lang)
     except Exception as e:
@@ -26,18 +36,24 @@ def get_engine(lang: str = "es") -> ValidationEngine:
 
 
 class TagOptionsRequest(BaseModel):
+    """Esquema para solicitar opciones de etiquetado válidas."""
+
     parent_tag: Optional[str] = None
     current_tag: str
     children_tags: List[str] = []
 
 
 class MoveCheckRequest(BaseModel):
+    """Esquema para verificar movimiento de nodos."""
+
     parent_tag: str
     child_tag: str
     lang: str = "es"
 
 
 class DeleteCheckRequest(BaseModel):
+    """Esquema para verificar borrado de nodos."""
+
     parent_tag: str
     child_tag: str
     sibling_tags: List[str]
@@ -45,6 +61,8 @@ class DeleteCheckRequest(BaseModel):
 
 
 class ConversionCheckRequest(BaseModel):
+    """Esquema para verificar conversión de etiquetas."""
+
     current_tag: str
     ancestor_tags: List[str]
     children_tags: List[str]
@@ -52,6 +70,8 @@ class ConversionCheckRequest(BaseModel):
 
 
 class RequirementsCheckRequest(BaseModel):
+    """Esquema para verificar requisitos internos (hijos obligatorios)."""
+
     tag: str
     descendant_tags: List[str]
     children_tags: List[str] = []
@@ -59,20 +79,22 @@ class RequirementsCheckRequest(BaseModel):
 
 
 class ValidationResponse(BaseModel):
+    """Respuesta estándar de validación."""
+
     allowed: bool
     reason: str
 
 
 @router.get("/tags", response_model=List[str])
 def get_all_tags(lang: str = "es"):
-    """Returns a sorted list of all valid tags for the dropdown."""
+    """Retorna una lista ordenada de todas las etiquetas válidas."""
     engine = get_engine(lang)
     return engine.get_all_tags()
 
 
 @router.get("/rules/{tag}", response_model=Dict[str, Any])
 def get_tag_definition(tag: str, lang: str = "es"):
-    """Returns the raw rule definition for a specific tag (for UI inspection)."""
+    """Retorna la definición cruda de una etiqueta (para inspección en UI)."""
     logger.info("API Request: get_tag_definition for tag='%s'", tag)
     engine = get_engine(lang)
     result = engine.get_definition(tag)
@@ -85,7 +107,7 @@ def get_tag_definition(tag: str, lang: str = "es"):
 @router.post("/check/move", response_model=ValidationResponse)
 def validate_move(req: MoveCheckRequest):
     """
-    Validates if a child node can be moved under a parent node.
+    Valida si un nodo hijo puede ser movido bajo un nodo padre.
     """
     engine = get_engine(req.lang)
     allowed, reason = engine.can_add_child(req.parent_tag, req.child_tag)
@@ -95,8 +117,7 @@ def validate_move(req: MoveCheckRequest):
 @router.post("/check/conversion", response_model=List[str])
 def get_valid_conversions(req: ConversionCheckRequest):
     """
-    Returns a list of valid tags that the current node can be converted to,
-    based on its parent and children constraints.
+    Retorna etiquetas válidas a las que se puede convertir el nodo actual.
     """
     engine = get_engine(req.lang)
     return engine.can_convert_node(req.ancestor_tags, req.children_tags)
@@ -105,7 +126,7 @@ def get_valid_conversions(req: ConversionCheckRequest):
 @router.post("/check/requirements", response_model=ValidationResponse)
 def validate_requirements(req: RequirementsCheckRequest):
     """
-    Validates if a node satisfies its internal mandatory requirements (based on descendants).
+    Valida si un nodo satisface sus requisitos internos obligatorios.
     """
     engine = get_engine(req.lang)
     is_valid, errors, _ = engine.validate_node(
@@ -121,7 +142,7 @@ def validate_requirements(req: RequirementsCheckRequest):
 @router.post("/check/delete", response_model=ValidationResponse)
 def validate_delete(req: DeleteCheckRequest):
     """
-    Validates if a node can be deleted without violating mandatory child constraints of its parent.
+    Valida si un nodo puede ser borrado sin violar restricciones del padre.
     """
     engine = get_engine(req.lang)
     allowed, reason = engine.can_delete_child(req.parent_tag, req.child_tag, req.sibling_tags)
@@ -131,8 +152,7 @@ def validate_delete(req: DeleteCheckRequest):
 @router.post("/check/add_child", response_model=ValidationResponse)
 def validate_add_child(req: MoveCheckRequest):
     """
-    Validates if a parent can accept a specific type of child.
-    Reuses MoveCheckRequest structure as arguments are identical.
+    Valida si un padre puede aceptar un tipo específico de hijo.
     """
     engine = get_engine(req.lang)
     allowed, reason = engine.can_add_child(req.parent_tag, req.child_tag)

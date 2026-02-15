@@ -1,8 +1,10 @@
 """
-Linguistic Logic Module.
+Linguistic Logic Module (Logic).
 
 Implements geometric tree algorithms (C-Command) and Binding Theory principles.
-Used for 'Strict Mode' semantic validation.
+It is used for semantic validation in 'Strict Mode', verifying coreference
+relationships between pronouns, anaphors, and referring expressions
+(R-expressions).
 """
 
 from typing import List, Optional
@@ -12,11 +14,19 @@ from anytree import NodeMixin
 
 def c_command(node_a: NodeMixin, node_b: NodeMixin) -> bool:
     """
-    Determines if node_a c-commands node_b.
-    Definition:
+    Determines if node A c-commands node B.
+
+    Standard Definition (Reinhart, 1976):
     1. A does not dominate B.
     2. B does not dominate A.
     3. The first branching node dominating A also dominates B.
+
+    Args:
+        node_a: The potential commander node.
+        node_b: The potential commandee node.
+
+    Returns:
+        True if A c-commands B, False otherwise.
     """
     if node_a is node_b:
         return False
@@ -42,7 +52,15 @@ def c_command(node_a: NodeMixin, node_b: NodeMixin) -> bool:
 def get_local_domain(node: NodeMixin) -> Optional[NodeMixin]:
     """
     Finds the local domain (Governing Category) for a node.
-    Simplification: The minimal S (Clause) or NP containing the node.
+
+    Simplification: The nearest S (Clause) or NP/sn (Noun Phrase) node
+    containing the target node.
+
+    Args:
+        node: The node for which to find the domain.
+
+    Returns:
+        The ancestor node acting as the local domain, or None if not found.
     """
     current = node.parent
     while current:
@@ -56,7 +74,15 @@ def get_local_domain(node: NodeMixin) -> Optional[NodeMixin]:
 def validate_binding_principles(root: NodeMixin) -> List[str]:
     """
     Audits the tree for violations of Binding Principles A, B, and C.
-    Requires nodes to have 'index' and 'type' attributes.
+
+    Requires nodes to have 'index' (coreference index) and 'type' attributes
+    (anaphor, pronoun, r-expression).
+
+    Args:
+        root: The root node of the tree to analyze.
+
+    Returns:
+        List of error messages describing the violations found.
     """
     violations = []
     # Collect all indexed nodes

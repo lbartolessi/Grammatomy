@@ -1,0 +1,64 @@
+site_name: Grammatomy Documentation
+site_description: Technical documentation for the Grammatomy constituency parsing engine.
+site_author: Grammatomy Team
+repo_url: https://github.com/lbartolessi/Grammatomy
+repo_name: lbartolessi/Grammatomy
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Technical Guides:
+    - Validation & Reconstruction: technical/validation_and_reconstruction.md
+    - Algorithm Overview: technical/algorithm_overview.md
+    - Algorithm Deep Dive: technical/algorithm_deep_dive.md
+  - Policies:
+    - Native Tagset Policy: policies/native_tagset_policy.md
+  - API Reference:
+    - Core:
+      - Grammar: reference/core/grammar.md
+      - Validation Engine: reference/core/validation_engine.md
+      - Edge Reconstructor: reference/core/edge_reconstructor.md
+      - Logic: reference/core/logic.md
+    - Visualization: reference/visualization.md

@@ -1,32 +1,44 @@
+"""
+Módulo de Gramática y Parsing (Grammar).
+
+Este módulo actúa como fachada principal para las operaciones de análisis sintáctico
+y validación gramatical. Coordina los motores de parsing (Stanza, SpaCy), carga
+las reglas de validación desde archivos YAML y proporciona utilidades para
+verificar la consistencia de hojas y estructura.
+"""
+
 import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
 import yaml
 from anytree import Node, PreOrderIter
-from .engines.stanza_engine import StanzaEngine
 
 from .glossary import TAG_MAP
 
-# Standard Constituents Rules (Penn Treebank / AnCora approximation)
-# Mapping: Parent Tag -> List of Allowed Child Tags
-# If a parent is not listed, the system will default to permissive mode (allow all).
-
+#: Logger del módulo.
 logger = logging.getLogger(__name__)
 
 
 def load_grammar_rules() -> Tuple[Dict[str, List[str]], Dict[str, str]]:
     """
-    Loads grammar rules from the YAML configuration file.
-    Returns a tuple containing:
-    1. A flattened dictionary {Parent: [Allowed Children]} for validation.
-    2. A dictionary {NodeID: Description} for UI tooltips.
+    Carga las reglas gramaticales desde el archivo de configuración YAML.
+
+    El archivo de reglas define la estructura permitida (padre -> hijos) y
+    metadatos para la interfaz de usuario.
+
+    Returns:
+        Una tupla conteniendo:
+        1. Diccionario aplanado {Padre: [Hijos Permitidos]} para validación rápida.
+        2. Diccionario {NodeID: Descripción} para tooltips en la UI.
     """
     rules = {}
     descriptions = {}
 
     # Determine path relative to this file
     base_path = Path(__file__).parent / "assets" / "rules"
-    # Unified rules file (Hybrid)
+
+    # Archivo de reglas unificado (Híbrido AnCora/Universal Dependencies)
     file_path = base_path / "hybrid_rules.yaml"
 
     if not file_path.exists():
@@ -42,9 +54,13 @@ def load_grammar_rules() -> Tuple[Dict[str, List[str]], Dict[str, str]]:
         for node in raw_nodes:
             tag = node["id"]
             children_config = node.get("allowed_children", {})
-            allowed = (children_config.get("mandatory", []) or []) + (
-                children_config.get("optional", []) or []
-            )
+
+            if isinstance(children_config, list):
+                allowed = children_config
+            else:
+                allowed = (children_config.get("mandatory", []) or []) + (
+                    children_config.get("optional", []) or []
+                )
             rules[tag] = allowed
             if "description" in node:
                 descriptions[tag] = node["description"]
@@ -61,6 +77,7 @@ GRAMMAR_RULES, NODE_DESCRIPTIONS = load_grammar_rules()
 
 # --- LEAF & PUNCTUATION VALIDATION ---
 
+#: Inventario de signos de puntuación válidos por idioma.
 PUNCTUATION_INVENTORY: Dict[str, Set[str]] = {
     "es": {
         ".",
@@ -142,7 +159,7 @@ PUNCTUATION_INVENTORY: Dict[str, Set[str]] = {
     },
 }
 
-# Tags that strictly denote punctuation (AnCora + Penn)
+#: Etiquetas que denotan estrictamente puntuación (AnCora + Penn).
 PUNCTUATION_TAGS: Set[str] = {
     # Penn
     ".",
@@ -155,6 +172,7 @@ PUNCTUATION_TAGS: Set[str] = {
     "SYM",
     "$",
     "#",
+    "PUNCT",  # Universal Dependencies
     # AnCora (starts with f)
     "fp",
     "fc",
@@ -171,16 +189,25 @@ PUNCTUATION_TAGS: Set[str] = {
     "fia",
 }
 
-# Hook for external lexicon validation (e.g., dictionary lookup)
-# Signature: (word, pos_tag, lang) -> (is_valid, error_message)
+#: Tipo para el callback de validación de léxico.
 LexiconCallback = Callable[[str, str, str], Tuple[bool, str]]
+
+#: Hook para validación externa de léxico (ej. búsqueda en diccionario).
 LEXICON_HOOK: Optional[LexiconCallback] = None
 
 
 def validate_leaf_consistency(text: str, pos_tag: str, lang: str = "es") -> Tuple[bool, str]:
     """
-    Validates the consistency between a leaf text and its POS tag.
-    Enforces rules for words vs. punctuation.
+    Valida la consistencia entre el texto de una hoja y su etiqueta POS.
+    Aplica reglas estrictas para distinguir palabras de signos de puntuación.
+
+    Args:
+        text: El texto del nodo hoja.
+        pos_tag: La etiqueta gramatical asignada.
+        lang: Código de idioma.
+
+    Returns:
+        Tupla (Es válido, Mensaje de error).
     """
     # 1. External Hook (Future Proofing)
     if LEXICON_HOOK:
@@ -225,14 +252,14 @@ def validate_leaf_consistency(text: str, pos_tag: str, lang: str = "es") -> Tupl
 
 def get_suggestions(parent_tag: str, all_tags: List[str]) -> List[str]:
     """
-    Filters a list of tags based on the grammar rules for the given parent.
+    Filtra una lista de etiquetas basándose en las reglas gramaticales para un padre dado.
 
     Args:
-        parent_tag: The tag of the parent node (e.g., "NP").
-        all_tags: The list of candidate tags (e.g., all POS tags).
+        parent_tag: La etiqueta del nodo padre (ej. "sn").
+        all_tags: Lista completa de etiquetas candidatas.
 
     Returns:
-        List[str]: A filtered list of valid tags. If parent is unknown, returns all_tags.
+        Lista filtrada y ordenada de etiquetas válidas.
     """
     if parent_tag not in GRAMMAR_RULES:
         return sorted(all_tags)
@@ -251,7 +278,7 @@ def get_suggestions(parent_tag: str, all_tags: List[str]) -> List[str]:
 def _check_node_validity(
     node: Node, known_tags: Set[str], rules: Dict[str, List[str]]
 ) -> Optional[str]:
-    """Checks a single node against grammar rules."""
+    """Verifica un único nodo contra las reglas gramaticales."""
     # 0. Ghost Node Check (Intrinsic Invalidity)
     if node.name == "👻":
         return "Nodo Fantasma: Estructura temporal. Edite la etiqueta."
@@ -276,8 +303,11 @@ def _check_node_validity(
 
 def validate_structure(root: Node) -> Dict[Node, str]:
     """
-    Audits the entire tree against the loaded grammar rules.
-    Returns a dictionary mapping invalid nodes to their error messages.
+    Audita el árbol completo contra las reglas gramaticales cargadas.
+
+    Returns:
+        Un diccionario mapeando nodos inválidos a sus mensajes de error.
+        {Node: "Mensaje de error"}
     """
     violations = {}
 
@@ -299,7 +329,15 @@ def validate_structure(root: Node) -> Dict[Node, str]:
 
 class Grammar:
     """
-    Main entry point for parsing. Facade for different engines.
+    Fachada principal para el análisis sintáctico.
+
+    Abstrae la complejidad de los diferentes motores subyacentes (Stanza, SpaCy)
+    proporcionando una interfaz unificada para obtener árboles sintácticos.
+
+    Attributes:
+        engine (str): Nombre del motor ('stanza' o 'spacy').
+        lang (str): Idioma objetivo.
+        model (str): Paquete de modelo específico.
     """
 
     def __init__(
@@ -315,13 +353,24 @@ class Grammar:
         self.use_gpu = use_gpu
 
     def parse(self, text: str) -> Optional[Node]:
+        """
+        Analiza el texto y retorna un árbol sintáctico.
+
+        Args:
+            text: La oración o texto a analizar.
+
+        Returns:
+            El nodo raíz del árbol generado o None si falla.
+        """
         root = None
         if self.engine == "stanza":
+            from .engines.stanza_engine import StanzaEngine
+
             root = StanzaEngine.get_tree(
                 text, lang=self.lang, model_package=self.model, use_gpu=self.use_gpu
             )
         elif self.engine == "spacy":
-            from .engines.spacy_engine import SpacyEngine  # pylint: disable=import-outside-toplevel
+            from .engines.spacy_engine import SpacyEngine
 
             root = SpacyEngine.get_tree(
                 text, lang=self.lang, model_package=self.model, use_gpu=self.use_gpu
@@ -333,6 +382,16 @@ class Grammar:
 
 
 def get_syntax_tree(text: str, params: Optional[Dict[str, Any]] = None) -> Optional[Node]:
+    """
+    Función utilitaria (helper) para obtener un árbol sintáctico rápidamente.
+
+    Args:
+        text: Texto a analizar.
+        params: Diccionario de configuración (engine, lang, model_package, use_gpu).
+
+    Returns:
+        Nodo raíz del árbol sintáctico.
+    """
     if params is None:
         params = {}
 

@@ -1,0 +1,332 @@
+meta:
+  source: "AnCora-ES Official Guidelines (Consolidated)"
+  version: "Canonical 1.0"
+  description: "Reglas de producción puras de AnCora. Etiquetas nativas (n, v, s...)."
+
+nodes:
+  # --- NIVEL ORACIONAL ---
+  - id: ROOT
+    type: meta
+    description: "Nodo Raíz Técnico"
+    allowed_children:
+      mandatory: [sentence]
+    patterns:
+      - [sentence]
+
+  - id: sentence
+    type: root
+    description: "Oración Principal (Raíz)"
+    allowed_children:
+      optional: [sn, grup.verb, S, coord, inc, interjeccio, sadv, sp, f, morfema.verbal, morfema.pronominal, neg, conj]
+    patterns:
+      - [sn, grup.verb]
+      - [grup.verb, sn]
+      - [grup.verb]
+      - [S]
+      - [S, coord, S]
+      - [S, conj, S] # Coordinación directa sin nodo coord
+      - [S, conj, sn] # Gapping: "Unos prefieren X y otros, Y"
+      - [sn, grup.verb, sn, conj, sn] # Gapping completo: "Juan compró X y María, Y"
+      - [sn, grup.verb, conj, sn] # Gapping sujeto-verbo (Suj + Verbo + Conj + Suj2)
+      - [S, sn] # Coordinación rota por Stanza (conjunción enterrada en el SN)
+      - [sadv, S]
+      - [sp, S]
+      - [inc] # Cuando la oración principal es detectada como inciso
+      - [morfema.verbal, inc] # Pasiva refleja con verbo en inciso
+      - [morfema.pronominal, inc]
+      - [sn, grup.verb, s.a] # Oración copulativa: Sujeto + Verbo + Atributo
+      - [inc, conj, inc, coord] # Coordinación de oraciones con elipsis/incisos
+      - [inc, conj, inc]
+
+  - id: S
+    type: clause
+    description: "Oración / Cláusula (Subordinada o Principal)"
+    allowed_children:
+      optional: [sn, grup.verb, sp, grup.adv, grup.a, s.a, neg, morfema.pronominal, morfema.verbal, conj, relatiu, inc, f, infinitiu, gerundi, participi, spec]
+    patterns:
+      - [grup.verb]
+      - [sn, grup.verb]
+      - [grup.verb, sn]
+      - [conj, S]
+      - [relatiu, grup.verb]
+      - [relatiu, sn, grup.verb]
+      - [infinitiu]
+      - [gerundi]
+      - [participi]
+      - [s.a] # Atributo en oraciones copulativas elípticas o analizadas planas
+      - [inc] # Inciso aislado interpretado como oración
+      - [sn, sp] # Gapping: "y otros [en avión]" (S sin verbo)
+      - [sn, sadv] # Gapping: "y otros [allí]"
+      - [sn, sn] # Gapping: "y otros [tres]"
+      - [sn, grup.nom] # Gapping variante
+      - [sn, f, grup.nom] # Gapping con coma: "sus amigos, revistas"
+      - [sn, f, sn] # Gapping con coma (variante)
+
+  # --- SINTAGMAS MAYORES ---
+  - id: sn
+    type: phrase
+    description: "Sintagma Nominal"
+    allowed_children:
+      mandatory: [grup.nom]
+      optional: [spec, s.a, sp, S, coord, inc, f]
+    patterns:
+      - [grup.nom]
+      - [spec, grup.nom]
+      - [spec, grup.nom, sp]
+      - [spec, grup.nom, s.a]
+      - [spec, grup.nom, S]
+      - [grup.nom, sp]
+      - [grup.nom, s.a]
+      - [sn, coord, sn]
+      - [inc, conj, inc, coord] # Coordinación de SNs con elipsis/incisos
+      - [inc, conj, inc]
+      - [inc] # Inciso ocupando la posición del SN
+      - [sn, conj, sn] # Coordinación directa de SNs
+      - [sn, conj, sn, grup.nom] # Stanza Quirk: Gapping atrapado dentro de un SN
+      - [sn, conj, sn, sn] # Stanza Quirk: Gapping atrapado (variante SN)
+      - [sn, sn] # Coordinación asindética o aposición compleja: "la oposición, la de sanidad"
+      - [sn, sn, conj, sn] # Enumeración estándar: "A, B y C"
+      - [sn, sn, sn] # Enumeración asindética: "A, B, C"
+      - [sn, f, sn, conj, sn] # Enumeración con coma: "A, B y C"
+
+  - id: sp
+    type: phrase
+    description: "Sintagma Preposicional"
+    allowed_children:
+      mandatory: [prep, sn]
+      optional: [grup.adv, S, s.a, inc]
+    patterns:
+      - [prep, sn]
+      - [prep, S]
+      - [prep, grup.adv]
+      - [prep, s.a]
+      - [inc]
+
+  # --- GRUPOS (NIVEL X') ---
+  - id: grup.nom
+    type: group
+    description: "Grupo Nominal (Núcleo)"
+    allowed_children:
+      optional: [n, p, w, z, s.a, sp, S, sn, coord, inc, f, relatiu]
+    patterns:
+      - [n]
+      - [p]
+      - [w] # Fechas
+      - [z] # Números
+      - [n, s.a]
+      - [n, sp]
+      - [n, S]
+      - [n, sn] # Aposición
+      - [relatiu] # Pronombre relativo como núcleo (quien, el que...)
+      - [inc]
+      - [grup.nom, conj, grup.nom] # Coordinación interna de núcleos: "todos y María"
+      - [sp] # Elipsis nominal: "la [ley] de sanidad"
+      - [s.a] # Elipsis nominal: "la [casa] roja"
+      - [sadv] # Elipsis nominal: "la [gente] de ayer"
+      - [grup.nom, f, grup.nom, conj, grup.nom] # Enumeración de núcleos: "libros, revistas y periódicos"
+      # Patrones recursivos para absorción de modificadores (Reconstrucción)
+      - [grup.nom, sp] # Absorción de SP: "el [libro] [de historia]"
+      - [grup.nom, s.a] # Absorción de Adjetivo: "el [coche] [rojo]"
+
+  - id: grup.verb
+    type: group
+    description: "Grupo Verbal"
+    allowed_children:
+      optional: [v, infinitiu, gerundi, participi, neg, morfema.pronominal, morfema.verbal, sp, sn, grup.adv, inc, f, grup.verb]
+    patterns:
+      - [v]
+      - [v, v] # Perífrasis / Tiempos compuestos
+      - [neg, v]
+      - [morfema.pronominal, v]
+      - [v, morfema.pronominal] # Enclítico separado
+      - [v, sn]
+      - [v, sp]
+      - [inc]
+      # Patrones recursivos para absorción de argumentos (Reconstrucción)
+      - [grup.verb, sn] # Absorción de Objeto Directo
+      - [grup.verb, sp] # Absorción de Adjunto/CI
+      - [grup.verb, grup.adv] # Absorción de Adverbio
+      - [grup.verb, sn, sp] # Ditransitivo reconstruido
+      - [grup.verb, sp, sp] # Múltiples adjuntos
+      - [grup.verb, s.a] # Absorción de Atributo/Predicativo: "llegó [cansado]"
+
+  - id: grup.a
+    type: group
+    description: "Grupo Adjetival"
+    allowed_children:
+      optional: [a, sp, grup.adv, spec, inc, f]
+    patterns:
+      - [a]
+      - [a, sp]
+      - [spec, a]
+      - [grup.adv, a]
+      - [inc]
+
+  - id: s.a
+    type: phrase
+    description: "Sintagma Adjetival"
+    allowed_children:
+      mandatory: [grup.a]
+      optional: [spec, grup.adv, sp, inc, f]
+    patterns:
+      - [grup.a]
+      - [spec, grup.a]
+      - [grup.adv, grup.a]
+      - [inc]
+
+  - id: sadv
+    type: phrase
+    description: "Sintagma Adverbial"
+    allowed_children:
+      mandatory: [grup.adv]
+      optional: [spec, sp, inc, f]
+    patterns:
+      - [grup.adv]
+      - [spec, grup.adv]
+      - [grup.adv, sp]
+      - [inc]
+
+  - id: grup.adv
+    type: group
+    description: "Grupo Adverbial"
+    allowed_children:
+      optional: [r, sp, spec, inc, f]
+    patterns:
+      - [r]
+      - [r, sp]
+      - [spec, r]
+      - [sp] # Locuciones adverbiales (por completo, en absoluto)
+      - [inc]
+
+  # --- ELEMENTOS FUNCIONALES ---
+  - id: prep
+    type: functional
+    description: "Preposición (Contenedor)"
+    allowed_children: [s, grup.prep]
+    patterns:
+      - [s]
+      - [grup.prep]
+
+  - id: grup.prep
+    type: group
+    description: "Grupo Preposicional (Locuciones)"
+    allowed_children:
+      optional: [s, r, n, a] # s=ADP, r=ADV, n=NOUN, a=ADJ
+    patterns:
+      - [r, s] # cerca de
+      - [a, s] # junto a
+      - [n, s] # gracias a
+
+  - id: spec
+    type: functional
+    description: "Especificador"
+    allowed_children: [d, f, sadv, inc]
+    patterns:
+      - [d]
+      - [sadv] # Cuantificadores adverbiales (más, menos)
+      - [inc]
+
+  - id: neg
+    type: functional
+    description: "Negación"
+    allowed_children: [r] # 'no' es adverbio en AnCora
+    patterns:
+      - [r]
+
+  - id: morfema.pronominal
+    type: functional
+    description: "Morfema Pronominal (se, te...)"
+    allowed_children: [p]
+    patterns:
+      - [p]
+
+  - id: morfema.verbal
+    type: functional
+    description: "Morfema Verbal (Pasiva/Impersonal)"
+    allowed_children: [p]
+    patterns:
+      - [p]
+
+  - id: relatiu
+    type: functional
+    description: "Relativo"
+    allowed_children: [p, r, d]
+    patterns:
+      - [p] # que, quien
+      - [r] # donde
+      - [d] # cuyo
+
+  - id: conj
+    type: functional
+    description: "Conjunción Subordinante"
+    allowed_children: [c]
+    patterns:
+      - [c]
+
+  - id: coord
+    type: functional
+    description: "Coordinación"
+    allowed_children: [c, f]
+    patterns:
+      - [c]
+
+  # --- FORMAS NO PERSONALES ---
+  - id: infinitiu
+    type: group
+    allowed_children: [v, sn, sp, grup.adv]
+    patterns:
+      - [v]
+
+  - id: gerundi
+    type: group
+    allowed_children: [v, sn, sp, grup.adv]
+    patterns:
+      - [v]
+
+  - id: participi
+    type: group
+    allowed_children: [v, a, sn, sp] # A veces 'a' si funciona como adjetivo
+    patterns:
+      - [v]
+      - [a]
+
+  # --- OTROS ---
+  - id: inc
+    type: phrase
+    description: "Inciso"
+    allowed_children: [S, sn, sp, grup.nom, f]
+    patterns:
+      - [S]
+      - [sn]
+
+  - id: interjeccio
+    type: phrase
+    allowed_children: [i]
+    patterns:
+      - [i]
+
+  # --- TERMINALES NATIVOS (Referencia) ---
+  - id: n
+    type: leaf
+  - id: v
+    type: leaf
+  - id: a
+    type: leaf
+  - id: d
+    type: leaf
+  - id: r
+    type: leaf
+  - id: p
+    type: leaf
+  - id: c
+    type: leaf
+  - id: s
+    type: leaf
+  - id: f
+    type: leaf
+  - id: z
+    type: leaf
+  - id: w
+    type: leaf
+  - id: i
+    type: leaf

@@ -5,16 +5,17 @@ import {
   parsePtbToCytoscape,
   serializeCytoscapeToPtb,
   serializeNodeToPtb,
-  GraphNode
 } from "./utils/ptb-utils";
+// @ts-ignore
 import dagre from "cytoscape-dagre";
+import { SubTree } from "./types";
 cytoscape.use(dagre);
 import { GhostLogic } from "./lib/ghost-logic";
 
 const KNOWN_POS_TAGS = new Set([
   "NOUN", "VERB", "DET", "ADJ", "ADV", "PRON", "ADP", "AUX", "CCONJ", "SCONJ", "NUM", "PART", "INTJ", "SYM", "PROPN",
   "n", "v", "d", "a", "r", "p", "c", "w", "z", "f", "i",
-  "nc", "np", "aq", "rg", "rn", "sp"
+  "nc", "np", "aq", "rg", "rn"
 ]);
 
 const PUNCTUATION_MARKS = [
@@ -28,15 +29,21 @@ const PUNCTUATION_MARKS = [
 @customElement("grammatomy-editor")
 export class GrammatomyEditor extends LitElement {
   @query("#cy")
-  private container!: HTMLElement;
+  private readonly container!: HTMLElement;
 
   private cy!: cytoscape.Core;
 
   @property({ type: String })
   ptb: string = "";
 
+  @property({ type: Array })
+  subtrees: SubTree[] = [];
+
+  @property({ type: Boolean })
+  isMainTree: boolean = true;
+
   @property({ type: String })
-  validationStrategy: string = "lax";
+  parentLabel: string = "";
 
   @state()
   private selectedNode: any = null;
@@ -70,6 +77,9 @@ export class GrammatomyEditor extends LitElement {
   @state()
   private clipboard: string | null = null;
 
+  @state()
+  private contextMenu: { open: boolean; x: number; y: number; target: any; type: 'node' | 'bg' } | null = null;
+
   private resizeObserver: ResizeObserver | null = null;
 
   private readonly layoutConfig: any = {
@@ -93,13 +103,14 @@ export class GrammatomyEditor extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
     this.classList.add("block", "h-full", "w-full");
-    window.addEventListener('keydown', this.handleKeyDown);
+    globalThis.addEventListener('keydown', this.handleKeyDown);
   }
 
-  override async firstUpdated() {
+  override firstUpdated() {
     // Wait for the first render to complete
-    await this.updateComplete;
-    this.attemptInitialization();
+    this.updateComplete.then(() => {
+        this.attemptInitialization();
+    });
   }
 
   override updated(
@@ -108,40 +119,29 @@ export class GrammatomyEditor extends LitElement {
     if (this.cy && changedProperties.has("ptb") && this.ptb) {
       this.loadPtb(this.ptb, true);
     }
-    if (this.cy && changedProperties.has("validationStrategy")) {
-      console.log(`[Editor] Revalidating with strategy: ${this.validationStrategy}`);
-      this.validateAllNodes().then(() => this.classifyNodes());
+    // Reload subtrees if they change externally (though usually editor generates them)
+    if (changedProperties.has("subtrees")) {
+        // Logic to display indicators for existing subtrees could go here
     }
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.resizeObserver?.disconnect();
-    window.removeEventListener('keydown', this.handleKeyDown);
+    globalThis.removeEventListener('keydown', this.handleKeyDown);
   }
 
   private attemptInitialization() {
       if (this.cy) return;
       
-      // Direct query in Light DOM
-      let container = this.querySelector("#cy");
+      // Use the @query property which resolves to Shadow DOM
+      let container = this.container;
       
-      // SELF-HEALING: If Lit failed to render the DOM, inject fallback structure manually
+      // REMOVED SELF-HEALING: Manual innerHTML injection destroys Lit's DOM tracking
       if (!container) {
-          console.warn("GrammatomyEditor: Container #cy not found via Lit. Injecting fallback DOM.");
-          this.innerHTML = `
-            <div class="flex flex-col h-full w-full bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm" style="min-height: 500px;">
-                <div class="flex flex-1 overflow-hidden relative min-h-0">
-                    <div class="flex-1 relative min-w-0">
-                        <div id="cy" class="absolute inset-0 bg-gray-50"></div>
-                    </div>
-                    <div id="inspector-slot" class="w-80 bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto hidden md:block shadow-inner">
-                        <!-- Inspector will be rendered here by Lit in next cycle if possible, or we rely on this structure -->
-                    </div>
-                </div>
-            </div>
-          `;
-          container = this.querySelector("#cy");
+          // If container is missing despite render(), we can't initialize Cytoscape yet.
+          // We rely on Lit to render the structure defined in render().
+          return;
       }
       
       if (container) {
@@ -221,24 +221,6 @@ export class GrammatomyEditor extends LitElement {
           },
         },
         {
-          selector: "node.punctuation",
-          style: {
-            "background-color": "#0072B2",
-            color: "#F4F4F4",
-            shape: "tag",
-          },
-        },
-        {
-          selector: "node.error",
-          style: {
-            "background-color": "#D55E00",
-            color: "#F4F4F4",
-            shape: "hexagon",
-            "border-width": 3,
-            "border-color": "#FFFFFF",
-          },
-        },
-        {
           selector: ".ghost",
           style: {
             "background-opacity": 0.5,
@@ -255,6 +237,9 @@ export class GrammatomyEditor extends LitElement {
             "background-color": "#ffffff",
             "border-color": "#009E73",
             color: "#009E73",
+            shape: "triangle",
+            padding: "20px",
+            "text-margin-y": "15px",
           },
         },
         {
@@ -263,6 +248,20 @@ export class GrammatomyEditor extends LitElement {
             "border-width": 4,
             "border-color": "#D55E00",
             "border-style": "dashed",
+          },
+        },
+        {
+          selector: "node.link-node",
+          style: {
+            "background-color": "#0072B2", // Palette: Dark Blue (Freed up from Punctuation)
+            "shape": "triangle",
+            "color": "#FFFFFF",
+            "border-color": "#000000",
+            "border-width": 1,
+            "font-weight": "bold",
+            "font-family": "Roboto Mono",
+            padding: "20px",
+            "text-margin-y": "15px",
           },
         },
         {
@@ -314,15 +313,6 @@ export class GrammatomyEditor extends LitElement {
           },
         },
         {
-          selector: "node.punctuation.subtree-highlight",
-          style: {
-            "background-color": "#F4F4F4",
-            color: "#0072B2",
-            "border-width": 2,
-            "border-color": "#0072B2",
-          },
-        },
-        {
           selector: "node.ghost-node.subtree-highlight",
           style: {
             "background-color": "#ffffff",
@@ -356,6 +346,53 @@ export class GrammatomyEditor extends LitElement {
     this.cy.on("dragfree", "node", () => {
       this.runLayout(false);
     });
+
+    // Navigation via Link Nodes (Manual Double Tap for robustness)
+    let lastTapTime = 0;
+    let lastTapTarget: string | null = null;
+
+    this.cy.on("tap", "node.link-node", (evt) => {
+      const node = evt.target;
+      const currentTime = Date.now();
+      const tapInterval = currentTime - lastTapTime;
+
+      if (tapInterval < 500 && tapInterval > 0 && lastTapTarget === node.id()) {
+          let label = node.data('label');
+          if (label && label.toString().startsWith("LINK-")) {
+              label = label.replace("LINK-", "");
+          }
+
+          this.dispatchEvent(new CustomEvent('request-navigation', {
+            detail: { label: label || "UP" }, // Default to UP if label is empty/0
+            bubbles: true,
+            composed: true
+          }));
+          
+          lastTapTime = 0;
+          lastTapTarget = null;
+      } else {
+          lastTapTime = currentTime;
+          lastTapTarget = node.id();
+      }
+    });
+
+    // Context Menu (Right Click)
+    this.cy.on("cxttap", (evt) => {
+        const target = evt.target;
+        const { x, y } = evt.renderedPosition;
+        
+        // Calculate screen coordinates for fixed positioning
+        const rect = this.container.getBoundingClientRect();
+        const menuX = rect.left + x;
+        const menuY = rect.top + y;
+
+        if (target === this.cy) {
+            this.contextMenu = { open: true, x: menuX, y: menuY, target: null, type: 'bg' };
+        } else if (target.isNode()) {
+            this.contextMenu = { open: true, x: menuX, y: menuY, target: target, type: 'node' };
+            this.selectNode(target); // Auto-select on right click for clarity
+        }
+    });
   }
 
   /**
@@ -365,22 +402,22 @@ export class GrammatomyEditor extends LitElement {
    */
   private recalculateGlobalIndices() {
     const roots = this.cy.nodes().filter((n) => n.incomers().length === 0);
-    // Sort roots by their local index (if forest)
-    roots.sort((a, b) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
+    // Sort roots by their local index (if forest) using toArray() to allow sort
+    const rootsArray = roots.toArray().sort((a, b) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
 
     let counter = 0;
     const traverse = (node: any) => {
       node.data("globalIndex", counter++);
-      const children = node.outgoers("node").sort((a: any, b: any) => {
+      const children = node.outgoers("node").toArray().sort((a: any, b: any) => {
         return (a.data("index") ?? 0) - (b.data("index") ?? 0);
       });
       children.forEach((child: any) => traverse(child));
     };
 
-    roots.forEach((root) => traverse(root));
+    rootsArray.forEach((root) => traverse(root));
   }
 
-  private handleKeyDown = (e: KeyboardEvent) => {
+  private readonly handleKeyDown = (e: KeyboardEvent) => {
     // Ignore if focus is on an input/textarea
     const target = e.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
@@ -390,13 +427,16 @@ export class GrammatomyEditor extends LitElement {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       if (e.shiftKey) {
-        this.handleRedo();
+        this.redo();
       } else {
-        this.handleUndo();
+        this.undo();
       }
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
       e.preventDefault();
-      this.handleRedo();
+      this.redo();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+      e.preventDefault();
+      this.fit();
     } else if (e.key === 'Escape') {
       e.preventDefault();
       this.cancelCut();
@@ -409,6 +449,7 @@ export class GrammatomyEditor extends LitElement {
   private loadPtb(ptbString: string, fit: boolean = true) {
     if (!this.cy) return;
 
+    this.clearSelection(); // Ensure panel is closed and state is clean
     const elements = parsePtbToCytoscape(ptbString);
 
     // Assign indices based on the strict order of the PTB string (insertion order)
@@ -453,6 +494,12 @@ export class GrammatomyEditor extends LitElement {
     this.cy.elements().remove();
     this.cy.add(elements);
 
+    // Visual Fix: Rename generic LINK-0 to specific parent label if available
+    if (this.parentLabel) {
+        const link0 = this.cy.nodes().filter((n: any) => n.data('label') === 'LINK-0');
+        link0.data('label', `LINK-${this.parentLabel}`);
+    }
+
     this.classifyNodes();
     this.recalculateGlobalIndices(); // Calculate global order before validation/layout
     this.validateAllNodes();
@@ -496,6 +543,7 @@ export class GrammatomyEditor extends LitElement {
       for (let i = 0; i < sortedNodes.length; i++) {
           await this.validateNode(sortedNodes[i]);
       }
+      this.cy?.style().update(); // Force style refresh after batch validation
       console.log("Initial tree validation complete.");
     } catch (e) {
       console.error("Error during initial batch validation:", e);
@@ -513,19 +561,26 @@ export class GrammatomyEditor extends LitElement {
     const nodeData = nodeElement.data();
     const isLeaf = !nodeElement.isParent() && nodeElement.outgoers().length === 0;
     const isGhost = nodeData.isGhost || nodeData.label.includes("👻");
+    const isLink = nodeElement.hasClass("link-node") || nodeData.label.startsWith("LINK-");
 
-    nodeElement.removeClass("error");
+    // Reset any direct style overrides from previous validation
+    nodeElement.removeStyle();
+    nodeElement.incomers("edge").removeStyle();
 
-    if (isLeaf && !isGhost) {
+    if ((isLeaf && !isGhost) || isLink) {
       return { isValid: true, errors: [], validTags: [], trace: [] };
     }
 
     const incomingEdges = nodeElement.incomers("edge");
     let parentTag: string | null = null;
+    let isParentLink = false;
     if (incomingEdges.length > 0) {
       const source = incomingEdges.source();
       if (source && source.length > 0) {
         parentTag = source.data("label");
+        if (source.hasClass("link-node") || parentTag?.startsWith("LINK-")) {
+            isParentLink = true;
+        }
       }
     }
 
@@ -535,6 +590,7 @@ export class GrammatomyEditor extends LitElement {
     );
     const cleanChildrenLabels = childrenNodes
       .filter((n) => !n.data("isGhost") && !n.data("label").includes("👻"))
+      .filter((n) => !n.hasClass("link-node") && !n.data("label").startsWith("LINK-"))
       .map((n) => n.data("label"));
     const descendantLabels = nodeElement
       .successors("node")
@@ -544,84 +600,135 @@ export class GrammatomyEditor extends LitElement {
     let localErrors: string[] = [];
     let localTrace: string[] = [];
     let isContextValid = false;
-    let isStructureValid = false;
+    let isLaxValid = true;
+    let isStrictValid = true;
 
     const isRoot = nodeData.label === "ROOT" && !parentTag;
 
-    try {
-      const convResponse = await fetch("/api/validation/options", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          parent_tag: parentTag,
-          current_tag: nodeData.label,
-          children_tags: cleanChildrenLabels,
-        }),
-      });
-      if (convResponse.ok) {
-        const result = await convResponse.json();
-        localValidTags = result.options || [];
-        if (result.trace) localTrace.push(...result.trace);
-        
-        if (isRoot) {
-          isContextValid = true;
-          if (!localValidTags.includes("ROOT")) localValidTags.push("ROOT");
-        } else {
-          isContextValid = isGhost || result.valid;
+    if (isParentLink) {
+        isContextValid = true;
+    } else {
+        try {
+          const convResponse = await fetch("/api/validation/options", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              parent_tag: parentTag,
+              current_tag: nodeData.label,
+              children_tags: cleanChildrenLabels,
+            }),
+          });
+          if (convResponse.ok) {
+            const result = await convResponse.json();
+            localValidTags = result.options || [];
+            if (result.trace) localTrace.push(...result.trace);
+            
+            if (isRoot) {
+              isContextValid = true;
+              if (!localValidTags.includes("ROOT")) localValidTags.push("ROOT");
+            } else {
+              isContextValid = isGhost || result.valid;
+            }
+          } else {
+            if (isRoot) isContextValid = true;
+            else if (!isGhost) {
+                isContextValid = false;
+                localErrors.push("Server error during context validation.");
+            }
+          }
+        } catch (e) {
+          console.error("Context validation failed", e);
+          if (isRoot) isContextValid = true;
+          else localErrors.push("Network error.");
         }
-      } else {
-        if (isRoot) isContextValid = true;
-        else {
-            isContextValid = false;
-            localErrors.push("Server error during context validation.");
-        }
-      }
-    } catch (e) {
-      console.error("Context validation failed", e);
-      if (isRoot) isContextValid = true;
-      else localErrors.push("Network error.");
     }
+    
+    // DISABLED FOR TESTING LAX VALIDATION ISOLATION
+    // if (!isContextValid) {
+    //     localErrors.push(`Context Error: Tag '${nodeData.label}' is incompatible with parent '${parentTag || "ROOT"}'.`);
+    //     // Apply direct style override for context error
+    //     nodeElement.incomers("edge").style({
+    //         "line-color": "#D55E00",
+    //         "target-arrow-color": "#D55E00",
+    //         "width": 3,
+    //         "z-index": 9999 // Ensure it's drawn on top
+    //     });
+    // }
 
     if (!isContextValid) {
         localErrors.push(`Context Error: Tag '${nodeData.label}' is incompatible with parent '${parentTag || "ROOT"}'.`);
+        // Apply direct style override for context error
+        nodeElement.incomers("edge").style({
+            "line-color": "#D55E00",
+            "target-arrow-color": "#D55E00",
+            "width": 3,
+            "z-index": 9999 // Ensure it's drawn on top
+        });
     }
 
+    // 2. Strict Validation (Mild -> Red Edge) - MOVED UP
     try {
-      const reqResponse = await fetch("/api/validation/check/requirements", {
+      const strictResponse = await fetch("/api/validation/check/requirements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tag: nodeData.label,
           children_tags: cleanChildrenLabels,
           descendant_tags: descendantLabels,
-          strategy: this.validationStrategy,
+          strategy: "strict",
         }),
       });
-      if (reqResponse.ok) {
-        const reqResult = await reqResponse.json();
-        isStructureValid = reqResult.allowed;
-        if (reqResult.trace) localTrace.push(...reqResult.trace);
-        if (!isStructureValid) {
+      if (strictResponse.ok) {
+        const res = await strictResponse.json();
+        isStrictValid = res.allowed;
+        if (res.trace) localTrace.push(...res.trace); // Keep strict trace for detail
+        if (!isStrictValid) {
           if (!hasGhostChild) {
-            localErrors.push(reqResult.reason);
+            localErrors.push(`[Strict] ${res.reason}`);
           } else {
-            isStructureValid = true;
+            isStrictValid = true;
           }
         }
-      } else {
-        isStructureValid = false;
-        localErrors.push("Server error during requirements validation.");
       }
     } catch (e) {
-      console.error("Requirements validation failed", e);
-      localErrors.push("Network error.");
+      console.error("Strict validation failed", e);
     }
 
-    const isValid = isContextValid && isStructureValid;
-    if (!isValid) {
-      nodeElement.addClass("error");
+    // 3. Lax Validation (Severe -> Hexagon) - MOVED DOWN
+    try {
+      const laxResponse = await fetch("/api/validation/check/requirements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tag: nodeData.label,
+          children_tags: cleanChildrenLabels,
+          descendant_tags: descendantLabels,
+          strategy: "lax",
+        }),
+      });
+      if (laxResponse.ok) {
+        const res = await laxResponse.json();
+        isLaxValid = res.allowed;
+        // Only trace lax if it fails or if we want full verbosity
+        if (!isLaxValid) {
+          if (!hasGhostChild) {
+            localErrors.push(`[Lax] ${res.reason}`);
+            // Apply direct style override for lax error
+            nodeElement.style({
+                "background-color": "#D55E00",
+                "color": "#F4F4F4",
+                "shape": "hexagon",
+            });
+          } else {
+            isLaxValid = true;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Lax validation failed", e);
     }
 
+    const isValid = isContextValid && isLaxValid && isStrictValid;
     return { isValid, errors: localErrors, validTags: localValidTags, trace: localTrace };
   }
 
@@ -642,39 +749,38 @@ export class GrammatomyEditor extends LitElement {
 
   private classifyNodes() {
     this.cy.batch(() => {
-      this.cy.nodes().forEach((node) => {
+      this.cy.nodes().toArray().forEach((node: any) => {
         const isLeaf = node.outdegree(false) === 0;
         const label = node.data("label");
+        
+        if (label && label.toString().startsWith("LINK-")) {
+            node.addClass("link-node");
+            node.unselectify();
+        }
+        const isLink = node.hasClass("link-node");
 
-        const hasError = node.hasClass("error");
-        node.classes([]);
-        if (hasError) node.addClass("error");
+        // Reset structural classes only, preserving validation state (error)
+        node.removeClass("pos leaf punctuation ghost-node");
 
         if (label.includes("👻") || label.includes("ERR") || node.data('isGhost')) {
-          if (label.includes("ERR")) {
-            node.addClass("error");
-          } else {
-            node.removeClass("error");
-          }
           if (label.includes("👻") || node.data('isGhost')) node.addClass("ghost-node");
           return;
         }
 
         const isPunctuation =
-          /^[\.,:;'"\(\)\[\]\{}\-–—\?!]+$/.test(label) ||
+          /^[.,:;'"()[\]{}\-–—?!]+$/.test(label) ||
           ["fp", "fc", "fg", "fz", "fs", "fd", "punct"].includes(label.toLowerCase());
+
+        if (isLeaf && !isLink) {
+          node.addClass("leaf");
+        } else {
+          if (!isLink && (isPunctuation || KNOWN_POS_TAGS.has(label) || KNOWN_POS_TAGS.has(label.toUpperCase()))) {
+            node.addClass("pos");
+          }
+        }
 
         if (isPunctuation) {
           node.addClass("punctuation");
-          return;
-        }
-
-        if (isLeaf) {
-          node.addClass("leaf");
-        } else {
-          if (KNOWN_POS_TAGS.has(label) || KNOWN_POS_TAGS.has(label.toUpperCase())) {
-            node.addClass("pos");
-          }
         }
       });
     });
@@ -683,6 +789,11 @@ export class GrammatomyEditor extends LitElement {
   // --- Interaction Methods ---
 
   private async selectNode(node: any) {
+    if (node.hasClass("link-node") || node.data("label").startsWith("LINK-")) {
+        this.clearSelection();
+        return;
+    }
+
     this.cy.elements().removeClass("subtree-highlight");
     node.successors().addClass("subtree-highlight");
 
@@ -690,6 +801,12 @@ export class GrammatomyEditor extends LitElement {
     this.pendingLabel = this.selectedNode.label;
     this.validationErrors = [];
     
+    this.dispatchEvent(new CustomEvent('selection-changed', {
+        detail: this.selectedNode,
+        bubbles: true,
+        composed: true
+    }));
+
     this.requestUpdate();
 
     try {
@@ -729,7 +846,7 @@ export class GrammatomyEditor extends LitElement {
     }
   }
 
-  private clearSelection() {
+  public clearSelection() {
     this.cy.elements().removeClass("subtree-highlight");
     this.selectedNode = null;
     this.selectedNodeRule = {};
@@ -737,6 +854,13 @@ export class GrammatomyEditor extends LitElement {
     this.validationErrors = [];
     this.validationTrace = [];
     this.feedbackMsg = "";
+
+    this.dispatchEvent(new CustomEvent('selection-changed', {
+        detail: null,
+        bubbles: true,
+        composed: true
+    }));
+
     this.requestUpdate();
   }
 
@@ -778,14 +902,14 @@ export class GrammatomyEditor extends LitElement {
     }
 
     // Sort by logical index, NOT visual position
-    const children = parent.outgoers("node").sort((a, b) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
+    const children = parent.outgoers("node").toArray().sort((a: any, b: any) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
     
     if (children.length <= 1) return;
 
     // Normalize indices to 0, 1, 2... to prevent collisions/gaps
-    children.forEach((child, i) => child.data("index", i));
+    children.forEach((child: any, i: number) => child.data("index", i));
 
-    const currentIndex = children.findIndex((n) => n.id() === nodeToMove.id());
+    const currentIndex = children.findIndex((n: any) => n.id() === nodeToMove.id());
     if (currentIndex === -1) return;
 
     const newIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
@@ -808,15 +932,15 @@ export class GrammatomyEditor extends LitElement {
 
     const label = this.selectedNode.label;
     const isPunctuation = 
-      /^[\.,:;'"\(\)\[\]\{}\-–—\?!]+$/.test(label) || 
+      /^[.,:;'"()[\]{}\-–—?!]+$/.test(label) || 
       ["fp", "fc", "fg", "fz", "fs", "fd", "punct", "PUNCT"].includes(label.toLowerCase());
     
     const isPos = KNOWN_POS_TAGS.has(label) || KNOWN_POS_TAGS.has(label.toUpperCase());
 
     // Calculate next index safely (max + 1) to avoid collisions with existing siblings
-    const children = this.cy.$id(this.selectedNode.id).outgoers("node");
+    const children = (this.cy.$id(this.selectedNode.id) as any).outgoers("node");
     let maxIndex = -1;
-    children.forEach(child => {
+    children.toArray().forEach((child: any) => {
         const idx = child.data("index");
         if (typeof idx === 'number' && idx > maxIndex) maxIndex = idx;
     });
@@ -853,8 +977,8 @@ export class GrammatomyEditor extends LitElement {
         this.feedbackMsg = "Ghost node added.";
         
         // Assign index to the newly spawned ghost (it's the one we just added)
-        const children = this.cy.$id(this.selectedNode.id).outgoers("node");
-        children.forEach(child => { if (child.data("index") === undefined) child.data("index", nextIndex); });
+        const children = (this.cy.$id(this.selectedNode.id) as any).outgoers("node");
+        children.forEach((child: any) => { if (child.data("index") === undefined) child.data("index", nextIndex); });
       }
     });
 
@@ -867,7 +991,7 @@ export class GrammatomyEditor extends LitElement {
   private reindexChildren(parentNode: any) {
     if (!parentNode || parentNode.empty()) return;
     
-    const children = parentNode.outgoers("node").sort((a: any, b: any) => {
+    const children = (parentNode.outgoers("node") as any).toArray().sort((a: any, b: any) => {
         const idxA = a.data('index');
         const idxB = b.data('index');
         
@@ -897,7 +1021,7 @@ export class GrammatomyEditor extends LitElement {
     const nodeElement = this.cy.$id(this.selectedNode.id);
     if (nodeElement.empty()) return;
 
-    if (nodeElement.data("label") === "ROOT") {
+    if ((nodeElement as any).data("label") === "ROOT") {
       this.feedbackMsg = "Cannot delete ROOT.";
       return;
     }
@@ -952,6 +1076,76 @@ export class GrammatomyEditor extends LitElement {
 
     this.clearSelection();
     this.runLayout(false);
+  }
+
+  private async handleContextExport(format: string) {
+      if (!this.contextMenu) return;
+      
+      let ptb = "";
+      let filename = "tree";
+      
+      if (this.contextMenu.type === 'node' && this.contextMenu.target) {
+          ptb = serializeNodeToPtb(this.contextMenu.target);
+          const label = this.contextMenu.target.data('label') || 'node';
+          filename = `subtree_${label.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      } else {
+          ptb = this.getCurrentPtb();
+          filename = "full_tree";
+      }
+      
+      this.contextMenu = null; // Close menu
+      this.requestUpdate();
+
+      // Call API
+      try {
+          let endpoint = '/api/export/image';
+          let isText = false;
+          let ext = format;
+          
+          if (format === 'ascii') {
+              endpoint = '/api/export/ascii';
+              isText = true;
+              ext = 'txt';
+          } else if (format === 'latex') {
+              endpoint = '/api/export/latex';
+              isText = true;
+              ext = 'tex';
+          }
+
+          const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ptb, format })
+          });
+
+          if (!response.ok) throw new Error(await response.text());
+
+          if (isText) {
+              const text = await response.text();
+              const blob = new Blob([text], { type: 'text/plain' });
+              this.downloadBlob(blob, `.`);
+          } else {
+              const blob = await response.blob();
+              this.downloadBlob(blob, `.`);
+          }
+          
+          this.feedbackMsg = `Exported ${format.toUpperCase()} successfully.`;
+      } catch (e) {
+          console.error("Export failed:", e);
+          this.feedbackMsg = "Export failed.";
+      }
+      this.requestUpdate();
+  }
+
+  private downloadBlob(blob: Blob, name: string) {
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      globalThis.URL.revokeObjectURL(url);
   }
 
   // --- Clipboard Operations ---
@@ -1025,11 +1219,11 @@ export class GrammatomyEditor extends LitElement {
     this.pushState();
 
     // Parse clipboard content into elements
-    const elements = parsePtbToCytoscape(this.clipboard);
+    const elements = parsePtbToCytoscape(this.clipboard) as any[];
     
     // Find the root of the pasted tree (node with no source in the elements list)
-    const targets = new Set(elements.filter(e => 'source' in e.data).map(e => e.data.target));
-    const rootElement = elements.find(e => !('source' in e.data) && !targets.has(e.data.id));
+    const targets = new Set(elements.filter((e: any) => 'source' in e.data).map((e: any) => e.data.target));
+    const rootElement = elements.find((e: any) => !('source' in e.data) && !targets.has(e.data.id));
     
     if (!rootElement) {
         this.feedbackMsg = "Invalid clipboard content.";
@@ -1039,17 +1233,17 @@ export class GrammatomyEditor extends LitElement {
     // Generate unique IDs for pasted elements to avoid collisions
     const idMap = new Map<string, string>();
     const timestamp = Date.now();
-    elements.forEach((el, i) => {
+    elements.forEach((el: any, i: number) => {
         const oldId = el.data.id;
         if (!('source' in el.data)) {
-            const newId = `paste_${timestamp}_${i}`;
+            const newId = `paste__`;
             idMap.set(oldId, newId);
             el.data.id = newId;
         }
     });
 
     // Update edges with new IDs
-    elements.forEach(el => {
+    elements.forEach((el: any) => {
         if ('source' in el.data) {
             el.data.source = idMap.get(el.data.source) || el.data.source;
             el.data.target = idMap.get(el.data.target) || el.data.target;
@@ -1070,10 +1264,10 @@ export class GrammatomyEditor extends LitElement {
                 if (parent.length > 0) {
                     this.cy.add({
                         group: "edges",
-                        data: { source: parent.id(), target: rootElement.data.id }
+                        data: { source: parent.id(), target: (rootElement as any).data.id }
                     });
                     // Assign index to new root
-                    this.cy.$id(rootElement.data.id).data("index", ghostIndex);
+                    this.cy.$id((rootElement as any).data.id).data("index", ghostIndex);
                 }
                 
                 // Remove ghost
@@ -1081,9 +1275,9 @@ export class GrammatomyEditor extends LitElement {
                 this.feedbackMsg = "Pasted: Replaced ghost node.";
             } else {
                 // Append as last child
-                const children = targetNode.outgoers("node");
+                const children = (targetNode as any).outgoers("node");
                 let maxIndex = -1;
-                children.forEach(child => {
+                children.toArray().forEach(child => {
                     const idx = child.data("index");
                     if (typeof idx === 'number' && idx > maxIndex) maxIndex = idx;
                 });
@@ -1095,11 +1289,11 @@ export class GrammatomyEditor extends LitElement {
                 // Link target to new root
                 this.cy.add({
                     group: "edges",
-                    data: { source: targetNode.id(), target: rootElement.data.id }
+                    data: { source: targetNode.id(), target: (rootElement as any).data.id }
                 });
                 
                 // Assign index
-                this.cy.$id(rootElement.data.id).data("index", nextIndex);
+                this.cy.$id((rootElement as any).data.id).data("index", nextIndex);
                 this.feedbackMsg = "Pasted: Appended as child.";
             }
         });
@@ -1109,7 +1303,7 @@ export class GrammatomyEditor extends LitElement {
         this.runLayout(false);
         
         // Validate the modified branch
-        const newRootId = rootElement.data.id;
+        const newRootId = (rootElement as any).data.id;
         if (newRootId) {
             const newRoot = this.cy.$id(newRootId);
             const parent = newRoot.incomers("edge").source();
@@ -1178,16 +1372,7 @@ export class GrammatomyEditor extends LitElement {
     this.requestUpdate();
   }
 
-  private _dispatchStrategyChange(e: Event) {
-    const newValue = (e.target as HTMLSelectElement).value;
-    this.dispatchEvent(new CustomEvent('strategy-change', {
-      detail: { strategy: newValue },
-      bubbles: true,
-      composed: true
-    }));
-  }
-
-  private handleUndo() {
+  public undo() {
     if (this.undoStack.length === 0) return;
 
     const currentPtb = this.getCurrentPtb();
@@ -1201,7 +1386,7 @@ export class GrammatomyEditor extends LitElement {
     }
   }
 
-  private handleRedo() {
+  public redo() {
     if (this.redoStack.length === 0) return;
 
     const currentPtb = this.getCurrentPtb();
@@ -1222,6 +1407,134 @@ export class GrammatomyEditor extends LitElement {
     this.cy.layout({ ...this.layoutConfig, fit: fit }).run();
   }
 
+  public fit() {
+    this.runLayout(true);
+  }
+
+  public focusNode(nodeId: string) {
+    if (!this.cy) return;
+    const node = this.cy.$id(nodeId);
+    if (node.empty()) return;
+
+    node.emit('tap'); // Trigger selection and inspector
+
+    this.cy.animate({
+      center: { eles: node },
+      zoom: 1.5,
+      duration: 800,
+      easing: 'ease-in-out'
+    });
+  }
+
+  public focusNodeByGlobalIndex(index: number) {
+    if (!this.cy) return;
+    const node = this.cy.nodes().filter((n: any) => n.data('globalIndex') === index);
+    if (node.empty()) return;
+
+    // Do not select (tap) to keep the inspector closed and view centered
+
+    this.cy.animate({
+      center: { eles: node },
+      zoom: 1.5,
+      duration: 800,
+      easing: 'ease-in-out'
+    });
+  }
+
+  public focusNodeByLabel(label: string) {
+    if (!this.cy) return;
+    const node = this.cy.nodes().filter((n: any) => n.data('label') === label);
+    if (node.empty()) return;
+
+    this.cy.animate({
+      center: { eles: node },
+      zoom: 1.5,
+      duration: 800,
+      easing: 'ease-in-out'
+    });
+  }
+
+  public getSelectedNodeId(): string | null {
+      return this.selectedNode ? this.selectedNode.id : null;
+  }
+
+  public executeDetach(nodeId: string, label: string): { mainPtb: string, fragmentPtb: string } | null {
+      const node = this.cy.$id(nodeId);
+      if (node.empty()) return null;
+
+      // Strategy: Detach Content (Keep Container)
+      // We keep the selected node in the main tree but move its children to the fragment.
+      const children = node.outgoers().nodes().sort((a: any, b: any) => (a.data('index') || 0) - (b.data('index') || 0));
+      
+      if (children.length === 0) {
+          return null; // Cannot detach empty node
+      }
+
+      // 1. Extract Content (Children)
+      const contentPtb = children.map((child: any) => serializeNodeToPtb(child)).join(' ');
+      const containerLabel = node.data('label');
+      
+      // 2. Construct Fragment PTB (Wrapper: ROOT -> LINK -> Content)
+      // Strategy: Children Only. We do NOT duplicate the container.
+      const fragmentPtb = `(ROOT LINK-${containerLabel} ${contentPtb})`;
+
+      // 3. Replace in Main Graph (Surgery)
+      this.cy.batch(() => {
+          // Remove children edges (effectively removing children from this node)
+          node.outgoers().remove();
+
+          // Add Link Node as the ONLY child of the container
+          const linkId = `link_${Date.now()}`;
+          this.cy.add({
+              group: 'nodes',
+              data: { id: linkId, label: `LINK-${label}`, index: 0 },
+              classes: 'link-node'
+          });
+          
+          this.cy.add({
+              group: 'edges',
+              data: { source: node.id(), target: linkId }
+          });
+      });
+
+      // 4. Serialize Modified Main Graph
+      const mainPtb = this.getCurrentPtb();
+
+      return { mainPtb, fragmentPtb };
+  }
+
+  public getDetachPayload(): { ptb: string, nodeIndex: number, label: string } | null {
+      if (!this.selectedNode) return null;
+      
+      // Ensure global indices are up to date with current structure
+      // (They should be, as they are updated on layout/modification)
+      const globalIndex = this.selectedNode.globalIndex;
+      const label = this.selectedNode.label;
+      
+      return { ptb: this.getCurrentPtb(), nodeIndex: globalIndex, label };
+  }
+
+  override render() {
+    const isPanelOpen = !!this.selectedNode;
+
+    return html`
+      <div class="h-full w-full relative overflow-hidden bg-white">
+        <!-- Cytoscape Container (Full Screen Layer) -->
+        <div id="cy" class="absolute inset-0 z-0 bg-gray-50"></div>
+
+        <!-- Inspector & Toolbar Overlay (Sliding Panel) -->
+        <div 
+            class="absolute top-0 right-0 h-full w-80 bg-white shadow-2xl border-l border-gray-200 z-20 flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}"
+        >
+            <!-- Inspector Content -->
+            <div id="inspector-slot" class="flex-1 p-4 overflow-y-auto">
+                ${this.renderNodeInspector()}
+            </div>
+        </div>
+      </div>
+    `;
+  }
+
   private renderValidationIssues(errors: string[], trace: string[]) {
     if (errors.length === 0) return html``;
     return html`
@@ -1233,14 +1546,14 @@ export class GrammatomyEditor extends LitElement {
           Validation Issues
         </div>
         <ul class="list-disc list-inside text-red-600 space-y-1 leading-tight">
-          ${errors.map((e) => html`<li>${e}</li>`)}
+          ${errors.map((e) => html`<li></li>`)}
         </ul>
         <div class="mt-2 pt-2 border-t border-red-200">
             <div class="font-bold text-red-800 mb-1 text-[10px] uppercase">Trace Log</div>
             <ul class="font-mono text-[10px] text-gray-600 space-y-1">
-                ${trace.map(t => html`<li>${t}</li>`)}
+                ${trace.map(t => html`<li></li>`)}
             </ul>
-        </ul>
+        </div>
       </div>
     `;
   }
@@ -1283,7 +1596,7 @@ export class GrammatomyEditor extends LitElement {
           @change=${this.handlePendingLabelChange}
         >
           ${PUNCTUATION_MARKS.map(mark => html`
-            <option value="${mark}" ?selected=${mark === this.pendingLabel}>${mark}</option>
+            <option value="" ?selected=${mark === this.pendingLabel}></option>
           `)}
         </select>
       `;
@@ -1295,15 +1608,15 @@ export class GrammatomyEditor extends LitElement {
           ? "border-gray-300"
           : "border-red-500 bg-red-50"} rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         @change=${this.handlePendingLabelChange}
-        ?disabled=${isDropdownDisabled}
+        ?disabled=
       >
         ${isGhostLeaf
           ? html`<option value="" disabled selected>Select tag...</option>`
           : html``}
         ${validTags.map(
           (tag) => html`
-            <option value="${tag}" ?selected=${tag === this.pendingLabel}>
-              ${tag}
+            <option value="" ?selected=${tag === this.pendingLabel}>
+              
             </option>
           `,
         )}
@@ -1327,39 +1640,6 @@ export class GrammatomyEditor extends LitElement {
     `;
   }
 
-  private renderToolbar() {
-    return html`
-      <div class="flex gap-2 justify-end items-center">
-        <button
-          @click=${this.handleUndo}
-          class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Undo (Ctrl+Z)"
-          ?disabled=${this.undoStack.length === 0}
-        >
-          <span class="material-symbols-outlined text-[18px]">undo</span>
-        </button>
-        <button
-          @click=${this.handleRedo}
-          class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Redo (Ctrl+Y)"
-          ?disabled=${this.redoStack.length === 0}
-        >
-          <span class="material-symbols-outlined text-[18px]">redo</span>
-        </button>
-        <div class="flex-1"></div>
-        <div class="flex items-center gap-2">
-          <label for="strategy-select" class="text-xs text-gray-500 font-medium">Validation:</label>
-          <select id="strategy-select" class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" .value=${this.validationStrategy} @change=${this._dispatchStrategyChange}>
-            <option value="lax">Lax (Neural)</option>
-            <option value="strict">Strict (AnCora)</option>
-          </select>
-        </div>
-        <div class="flex-1"></div>
-        <button @click=${() => this.runLayout(true)} class="p-1.5 text-gray-600 hover:text-ibm-blue hover:bg-gray-200 rounded transition-colors" title="Fit View"><span class="material-symbols-outlined text-[18px]">fit_screen</span></button>
-      </div>
-    `;
-  }
-
   private renderNodeInspector() {
     if (!this.selectedNode) {
       return html`
@@ -1370,11 +1650,13 @@ export class GrammatomyEditor extends LitElement {
       `;
     }
 
+    try {
     const nodeElement = this.cy.$id(this.selectedNode.id);
     const isLeaf =
-      !nodeElement.isParent() && nodeElement.outgoers().length === 0;
+      !(nodeElement as any).isParent() && nodeElement.outgoers().length === 0;
     const isPos = nodeElement.hasClass("pos");
     const isPunctuation = nodeElement.hasClass("punctuation");
+    const isLink = nodeElement.hasClass("link-node");
     
     let isWordLeaf = false;
     let isPunctuationLeaf = false;
@@ -1383,13 +1665,13 @@ export class GrammatomyEditor extends LitElement {
       const incoming = nodeElement.incomers("edge");
       if (incoming.length > 0) {
         const parent = incoming.source();
-        if (parent && parent.length > 0 && parent.hasClass("pos")) isWordLeaf = true;
+        if (parent && parent.length > 0 && parent.hasClass("pos") && !parent.hasClass("punctuation")) isWordLeaf = true;
         if (parent && parent.length > 0 && parent.hasClass("punctuation")) isPunctuationLeaf = true;
       }
     }
 
     const isGhost = this.selectedNode.isGhost || this.selectedNode.label.includes("👻");
-    const canEditLabel = true;
+    const canEditLabel = !isLink;
     const isGhostLeaf = isLeaf && isGhost;
     const isTerminal = nodeElement.hasClass("pos") || nodeElement.hasClass("punctuation") || nodeElement.hasClass("leaf");
     
@@ -1415,10 +1697,6 @@ export class GrammatomyEditor extends LitElement {
       headerBg = "#D55E00";
       headerText = "#F4F4F4";
       typeLabel = "Invalid / Error";
-    } else if (isPunctuation) {
-      headerBg = "#0072B2";
-      headerText = "#F4F4F4";
-      typeLabel = "Punctuation";
     } else if (isLeaf) {
       headerBg = "#009E73";
       headerText = "#F4F4F4";
@@ -1427,6 +1705,10 @@ export class GrammatomyEditor extends LitElement {
       headerBg = "#56B4E9";
       headerText = "#161616";
       typeLabel = "Syntactic Category";
+    } else if (isLink) {
+      headerBg = "#0072B2";
+      headerText = "#FFFFFF";
+      typeLabel = "Subtree Link";
     }
 
     let nodeToCheck = nodeElement;
@@ -1454,8 +1736,8 @@ export class GrammatomyEditor extends LitElement {
     let canMoveRight = false;
     if (parent && parent.length > 0) {
         // Use logical index for button state too
-        const children = parent.outgoers("node").sort((a, b) => (a.data('index') ?? 0) - (b.data('index') ?? 0));
-        const currentIndex = children.findIndex(n => n.id() === nodeElement.id());
+        const children = parent.outgoers("node").toArray().sort((a: any, b: any) => (a.data('index') ?? 0) - (b.data('index') ?? 0));
+        const currentIndex = children.findIndex((n: any) => n.id() === nodeElement.id());
         if (currentIndex > 0) {
             canMoveLeft = true;
         }
@@ -1468,12 +1750,12 @@ export class GrammatomyEditor extends LitElement {
       <div class="flex flex-col gap-6">
         <div
           class="rounded-lg p-4 shadow-sm flex flex-col items-center justify-center gap-2 transition-colors duration-300"
-          style="background-color: ${headerBg}; color: ${headerText};"
+          style="background-color: ; color: ;"
         >
           <div
             class="text-[10px] uppercase tracking-widest opacity-80 font-bold"
           >
-            ${typeLabel}
+            
           </div>
           <div class="text-2xl font-mono font-bold tracking-tight">
             ${this.selectedNode.label}
@@ -1511,7 +1793,7 @@ export class GrammatomyEditor extends LitElement {
           <div class="grid grid-cols-4 gap-2 mb-2">
             <button
               @click=${this.cutSelected}
-              ?disabled=${isOnlyChild}
+              ?disabled=
               class="p-2 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
               title="Cut Subtree"
             >
@@ -1545,47 +1827,16 @@ export class GrammatomyEditor extends LitElement {
           <!-- Row 2: Structure & Reorder -->
           <div class="grid grid-cols-4 gap-2 mb-2">
             <button @click=${this.handleAddChild} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-ibm-blue disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${canAddChild ? "Add Child" : "Cannot add child to Terminal/POS"}" ?disabled=${!canAddChild}><span class="material-symbols-outlined">add_circle</span></button>
-            <button @click=${this.deleteSelected} ?disabled=${isOnlyChild} class="p-2 bg-white border border-gray-300 rounded hover:bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${isOnlyChild ? "Cannot delete: Parent would be empty" : "Delete Node"}"><span class="material-symbols-outlined">delete</span></button>
+            <button @click=${this.deleteSelected} ?disabled= class="p-2 bg-white border border-gray-300 rounded hover:bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${isOnlyChild ? "Cannot delete: Parent would be empty" : "Delete Node"}"><span class="material-symbols-outlined">delete</span></button>
             <button @click=${() => this.handleReorder("left")} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center" title="Move Left" ?disabled=${!canMoveLeft}><span class="material-symbols-outlined">arrow_back</span></button>
             <button @click=${() => this.handleReorder("right")} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center" title="Move Right" ?disabled=${!canMoveRight}><span class="material-symbols-outlined">arrow_forward</span></button>
           </div>
         </div>
       </div>
     `;
-  }
-
-  override render() {
-    try {
-    return html`
-      <div
-        class="flex flex-col h-full w-full bg-base-light rounded-lg overflow-hidden border border-gray-200 shadow-sm"
-      >
-        <div class="flex flex-1 overflow-hidden relative min-h-0">
-          <div class="flex-1 relative min-w-0">
-            <div id="cy" class="absolute inset-0 bg-base-light bg-gray-50"></div>
-          </div>
-
-          <div
-            class="w-80 bg-base-light-dim border-l border-gray-200 flex flex-col hidden md:flex shadow-inner"
-          >
-            <div class="p-4 border-b border-gray-200 bg-white/50">
-                ${this.renderToolbar()}
-            </div>
-            <div class="flex-1 p-4 overflow-y-auto">
-                ${this.renderNodeInspector()}
-            </div>
-            <div class="p-3 border-t border-gray-200 bg-white/50 min-h-[40px]">
-                 <div class="rounded ${this.feedbackMsg ? "bg-blue-50 border border-blue-100 text-ibm-blue p-2" : ""} text-xs transition-all">
-                    ${this.feedbackMsg}
-                 </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
     } catch (e) {
         console.error("GrammatomyEditor: Error in render()", e);
-        return html`<div class="text-red-500 p-4">Render Error: ${e}</div>`;
+        return html`<div class="text-red-500 p-4">Render Error: </div>`;
     }
   }
 }

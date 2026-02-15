@@ -1,7 +1,6 @@
 import logging
 
 import pytest
-import spacy
 import stanza
 
 logger = logging.getLogger(__name__)
@@ -48,6 +47,8 @@ def test_probe_stanza_es():
 @pytest.mark.slow
 def test_probe_spacy_benepar_en():
     """Probe English Benepar parsing."""
+    spacy = pytest.importorskip("spacy")
+
     try:
         # pylint: disable=import-outside-toplevel, unused-import
         import benepar

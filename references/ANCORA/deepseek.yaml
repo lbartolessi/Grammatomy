@@ -1,0 +1,419 @@
+meta:
+  source: "AnCora-ES Official Guidelines (Taulé, Martí, Recasens)"
+  version: "3.0.1 Canonical"
+  contact: "CLiC-UB"
+  description: "Especificación completa de reglas de producción del corpus AnCora-ES. No incluye transformaciones a UD. Basado en la anotación original en XML."
+  disclaimer: "Se han reconstruido nodos oscuros (grup.cc, morfema.pronominal, etc.) a partir de patrones frecuentes en el corpus y la documentación técnica original."
+
+nodes:
+  # ============================================
+  # NIVEL ORACIONAL Y CLAUSAL
+  # ============================================
+  - id: "sentence"
+    type: "root"
+    description: "Oración completa (raíz del documento)"
+    structure:
+      mandatory: ["S"]
+      optional: ["inc", "coord"]
+    patterns:
+      - ["S"]
+      - ["S", "coord", "S"]
+      - ["inc", "S"]
+      - ["S", "inc"]
+
+  - id: "S"
+    type: "clause"
+    description: "Oración subordinada o principal (flexiva)"
+    structure:
+      mandatory: ["grup.verb"]
+      optional: ["sn", "sp", "s.a", "s.adv", "neg", "relatiu", "morfema.pronominal", "morfema.verbal", "coord", "conj", "infinitiu", "gerundi", "participi"]
+    patterns:
+      - ["grup.verb"]
+      - ["sn", "grup.verb"]
+      - ["sp", "grup.verb"]
+      - ["neg", "grup.verb"]
+      - ["conj", "S"]
+      - ["relatiu", "S"]
+      - ["grup.verb", "sn"]
+      - ["grup.verb", "sp"]
+      - ["grup.verb", "s.adv"]
+
+  - id: "inc"
+    type: "clause"
+    description: "Inciso / Aposición oracional (entre comas)"
+    structure:
+      mandatory: ["S"]
+      optional: []
+    patterns:
+      - ["S"]
+
+  - id: "infinitiu"
+    type: "clause"
+    description: "Oración de infinitivo (no flexiva)"
+    structure:
+      mandatory: ["v"]  # infinitivo (v con morfema 0)
+      optional: ["sn", "sp", "s.adv", "neg", "morfema.pronominal"]
+    patterns:
+      - ["v"]
+      - ["v", "sn"]
+      - ["v", "sp"]
+      - ["sn", "v"]
+      - ["neg", "v"]
+      - ["v", "morfema.pronominal"]
+
+  - id: "gerundi"
+    type: "clause"
+    description: "Oración de gerundio"
+    structure:
+      mandatory: ["v"]  # gerundio
+      optional: ["sn", "sp", "s.adv", "neg"]
+    patterns:
+      - ["v"]
+      - ["v", "sn"]
+      - ["sn", "v"]
+      - ["neg", "v"]
+
+  - id: "participi"
+    type: "clause"
+    description: "Oración de participio (absoluto o adjunto)"
+    structure:
+      mandatory: ["v"]  # participio
+      optional: ["sn", "sp", "s.adv", "neg"]
+    patterns:
+      - ["v"]
+      - ["v", "sn"]
+      - ["v", "sp"]
+      - ["sn", "v"]
+
+  # ============================================
+  # SINTAGMAS MAYORES
+  # ============================================
+  - id: "sn"
+    type: "phrase"
+    description: "Sintagma Nominal (máximo nivel)"
+    structure:
+      mandatory: ["grup.nom"]
+      optional: ["spec", "s.a", "sp", "S", "coord", "inc", "relatiu"]
+    patterns:
+      - ["grup.nom"]
+      - ["spec", "grup.nom"]
+      - ["grup.nom", "sp"]
+      - ["grup.nom", "S"]  # subordinada relativa o completiva
+      - ["grup.nom", "coord", "grup.nom"]
+      - ["spec", "grup.nom", "sp"]
+      - ["spec", "grup.nom", "S"]
+      - ["grup.nom", "inc"]
+
+  - id: "sp"
+    type: "phrase"
+    description: "Sintagma Preposicional"
+    structure:
+      mandatory: ["p", "sn"]  # p = preposición
+      optional: ["s.adv", "s.a", "coord"]
+    patterns:
+      - ["p", "sn"]
+      - ["p", "s.adv"]
+      - ["p", "s.a"]
+      - ["p", "coord", "sn"]
+      - ["p", "sn", "sp"]  # recursividad
+
+  - id: "s.a"
+    type: "phrase"
+    description: "Sintagma Adjetival"
+    structure:
+      mandatory: ["grup.a"]
+      optional: ["spec", "sp", "s.adv", "coord"]
+    patterns:
+      - ["grup.a"]
+      - ["spec", "grup.a"]
+      - ["grup.a", "sp"]
+      - ["grup.a", "s.adv"]
+      - ["grup.a", "coord", "grup.a"]
+
+  - id: "s.adv"
+    type: "phrase"
+    description: "Sintagma Adverbial"
+    structure:
+      mandatory: ["grup.adv"]
+      optional: ["spec", "sp", "s.adv", "coord"]
+    patterns:
+      - ["grup.adv"]
+      - ["spec", "grup.adv"]
+      - ["grup.adv", "sp"]
+      - ["grup.adv", "s.adv"]
+      - ["grup.adv", "coord", "grup.adv"]
+
+  # ============================================
+  # GRUPOS INTERMEDIOS (X')
+  # ============================================
+  - id: "grup.nom"
+    type: "group"
+    description: "Grupo Nominal (nivel intermedio, núcleo + complementos)"
+    structure:
+      head: ["n", "p", "z", "w"]  # nombre, pronombre, numeral, fecha/moneda
+      optional: ["s.a", "sp", "S", "spec", "relatiu"]
+    patterns:
+      - ["n"]
+      - ["p"]
+      - ["z"]
+      - ["w"]
+      - ["n", "s.a"]
+      - ["n", "sp"]
+      - ["n", "S"]
+      - ["n", "relatiu"]
+      - ["n", "s.a", "sp"]
+      - ["p", "s.a"]
+      - ["n", "sp", "S"]
+      - ["spec", "n"]
+
+  - id: "grup.verb"
+    type: "group"
+    description: "Grupo Verbal (núcleo verbal + auxiliares, clíticos)"
+    structure:
+      head: ["v"]
+      optional: ["v", "morfema.verbal", "morfema.pronominal", "neg"]
+    patterns:
+      - ["v"]
+      - ["v", "v"]  # perífrasis
+      - ["v", "morfema.pronominal"]
+      - ["morfema.pronominal", "v"]
+      - ["v", "v", "morfema.pronominal"]
+      - ["v", "morfema.verbal"]
+      - ["neg", "v"]
+      - ["v", "neg", "v"]
+
+  - id: "grup.a"
+    type: "group"
+    description: "Grupo Adjetival (núcleo adjetivo)"
+    structure:
+      head: ["a", "v"]  # v en participio con función adjetiva
+      optional: ["sp", "s.adv", "spec", "coord"]
+    patterns:
+      - ["a"]
+      - ["v"]  # participio
+      - ["a", "sp"]
+      - ["a", "s.adv"]
+      - ["spec", "a"]
+      - ["a", "coord", "a"]
+
+  - id: "grup.adv"
+    type: "group"
+    description: "Grupo Adverbial"
+    structure:
+      head: ["r", "d", "n"]  # adverbio, demostrativo en función adverbial, nombre
+      optional: ["sp", "s.adv", "spec"]
+    patterns:
+      - ["r"]
+      - ["d"]
+      - ["n"]  # ej. 'mañana'
+      - ["r", "sp"]
+      - ["r", "s.adv"]
+      - ["spec", "r"]
+
+  # ============================================
+  # GRUPOS ESPECIALES (COMPLEMENTADORES, CONECTORES)
+  # ============================================
+  - id: "grup.cc"
+    type: "group"
+    description: "Grupo de Complemento Circunstancial (nodo oscuro, no siempre explícito). Se usa cuando el SP/SAdv se anota con función CC pero estructura interna plana."
+    structure:
+      mandatory: ["p", "sn"]  # o adverbio
+      optional: []
+    patterns:
+      - ["p", "sn"]
+      - ["r"]
+    note: "Este nodo aparece en versiones intermedias del corpus. En versiones finales se prefiere 'sp' con función 'cc'. Se incluye por completitud taxonómica."
+
+  # ============================================
+  # ELEMENTOS FUNCIONALES
+  # ============================================
+  - id: "spec"
+    type: "functional"
+    description: "Especificador (determinantes, cuantificadores)"
+    structure:
+      head: ["d", "z", "p"]  # determinante, numeral, pronombre
+      optional: ["sp"]  # ej. 'la de Pedro'
+    patterns:
+      - ["d"]
+      - ["z"]
+      - ["p"]
+      - ["d", "sp"]
+
+  - id: "neg"
+    type: "functional"
+    description: "Negación oracional"
+    structure:
+      mandatory: ["r"]  # 'no'
+      optional: []
+    patterns:
+      - ["r"]
+
+  - id: "morfema.pronominal"
+    type: "functional"
+    description: "Clítico pronominal (se, lo, le, me, etc.)"
+    structure:
+      mandatory: ["p"]  # pronombre átono
+      optional: ["p"]   # combinaciones: me lo, se lo
+    patterns:
+      - ["p"]
+      - ["p", "p"]
+
+  - id: "morfema.verbal"
+    type: "functional"
+    description: "Auxiliar o marca de perífrasis"
+    structure:
+      mandatory: ["v"]  # 'haber', 'ser', 'ir a', etc.
+      optional: ["p"]   # 'ir + a'
+    patterns:
+      - ["v"]
+      - ["v", "p"]
+
+  # ============================================
+  # COORDINACIÓN Y CONEXIÓN
+  # ============================================
+  - id: "coord"
+    type: "coordination"
+    description: "Nodo de coordinación (contiene conjunciones y elementos coordinados)"
+    structure:
+      mandatory: ["conj"]  # al menos una conjunción
+      optional: ["sn", "sp", "s.a", "s.adv", "grup.nom", "grup.verb", "S", "inc", "coord"]
+    patterns:
+      - ["conj", "sn"]
+      - ["sn", "conj", "sn"]
+      - ["sn", "conj", "sn", "conj", "sn"]  # etc.
+      - ["conj", "S"]
+      - ["S", "conj", "S"]
+      - ["conj", "grup.nom"]
+    note: "El nodo coord agrupa la conjunción y su ámbito. Es recursivo."
+
+  - id: "conj"
+    type: "functional"
+    description: "Conjunción (coordinante o subordinante)"
+    structure:
+      mandatory: ["c"]  # conjunción
+      optional: []
+    patterns:
+      - ["c"]
+
+  - id: "relatiu"
+    type: "functional"
+    description: "Relativo (pronombre o adverbio relativo)"
+    structure:
+      mandatory: ["p", "r"]  # p=que, cual; r=dónde, como
+      optional: ["sp"]  # 'en el cual'
+    patterns:
+      - ["p"]
+      - ["r"]
+      - ["sp", "p"]  # preposición + relativo
+
+  # ============================================
+  # OTROS (INTERJECCIONES, ABREVIATURAS, ETC.)
+  # ============================================
+  - id: "interjeccio"
+    type: "phrase"
+    description: "Interjección"
+    structure:
+      mandatory: ["i"]  # interjección
+      optional: []
+    patterns:
+      - ["i"]
+
+  - id: "grup.numer"
+    type: "group"
+    description: "Grupo numérico (fechas, horas, porcentajes)"
+    structure:
+      head: ["z", "w"]  # z=numeral, w=fecha
+      optional: ["n", "d"]  # ej. '1 de enero', 'las 3'
+    patterns:
+      - ["z"]
+      - ["w"]
+      - ["z", "n"]  # 5 kg
+      - ["d", "z"]  # las 5
+
+  - id: "abrev"
+    type: "terminal_wrapper"
+    description: "Abreviatura o sigla"
+    structure:
+      mandatory: ["y"]  # abreviatura
+      optional: []
+    patterns:
+      - ["y"]
+
+  - id: "grup.nom.i"
+    type: "group"
+    description: "Grupo nominal con núcleo extranjero"
+    structure:
+      head: ["f"]  # palabra extranjera
+      optional: ["s.a", "sp"]
+    patterns:
+      - ["f"]
+      - ["f", "sp"]
+
+  # ============================================
+  # NODOS TERMINALES (POS TAGS ANCORA NATIVOS)
+  # ============================================
+  # Nota: Los nodos terminales no se expanden. Se listan por referencia.
+  - id: "n"
+    type: "terminal"
+    description: "Nombre común o propio"
+    pos: true
+
+  - id: "v"
+    type: "terminal"
+    description: "Verbo"
+    pos: true
+
+  - id: "a"
+    type: "terminal"
+    description: "Adjetivo"
+    pos: true
+
+  - id: "d"
+    type: "terminal"
+    description: "Determinante"
+    pos: true
+
+  - id: "r"
+    type: "terminal"
+    description: "Adverbio"
+    pos: true
+
+  - id: "p"
+    type: "terminal"
+    description: "Preposición / Pronombre (según contexto)"
+    pos: true
+
+  - id: "c"
+    type: "terminal"
+    description: "Conjunción"
+    pos: true
+
+  - id: "s"
+    type: "terminal"
+    description: "Preposición (especial, arcaico, fusión 'al'/'del')"
+    pos: true
+
+  - id: "f"
+    type: "terminal"
+    description: "Palabra extranjera"
+    pos: true
+
+  - id: "z"
+    type: "terminal"
+    description: "Numeral"
+    pos: true
+
+  - id: "w"
+    type: "terminal"
+    description: "Fecha, hora, moneda"
+    pos: true
+
+  - id: "i"
+    type: "terminal"
+    description: "Interjección"
+    pos: true
+
+  - id: "y"
+    type: "terminal"
+    description: "Abreviatura / Sigla"
+    pos: true

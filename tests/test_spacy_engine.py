@@ -9,6 +9,10 @@ def test_spacy_integration_spanish():
     Integration test using a Spanish model (via Hugging Face) to verify the spaCy+Benepar pipeline.
     Downloads model -> Parses -> Returns AnyTree.
     """
+    # Skip if optional dependencies are missing
+    pytest.importorskip("spacy")
+    pytest.importorskip("nltk")
+
     # A sentence with some structure: Subject, Verb, Subordinate Clause
     text = "El científico confirmó que los resultados contradicen las teorías anteriores."
 

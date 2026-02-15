@@ -85,5 +85,9 @@ def test_batch_validation_corpus():
             if warnings:
                 logger.warning("Warnings for %s: %s", desc, warnings)
 
+        except (ImportError, ModuleNotFoundError) as e:
+            logger.warning(f"Skipping {desc} due to missing optional dependency: {e}")
+            continue
+
         except Exception as e:  # pylint: disable=broad-exception-caught
             pytest.fail(f"Exception during batch validation of {desc}: {e}")

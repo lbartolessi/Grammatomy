@@ -1,298 +1,655 @@
 tree_config:
   language: es
-  description: "AnCora Native Rules (Stanza Output)"
-  version: "2.2"
-
+  description: Hybrid AnCora + UD Rules (Auto-compiled)
+  version: 2.3-auto
 nodes:
-  # --- ROOT & SENTENCE LEVEL ---
-  - id: ROOT
-    type: group
-    description: "Raíz del Árbol"
-    allowed_children:
-      optional: [PUNCT, SYM]
-    patterns:
-      - [sentence]
-
-  - id: sentence
-    type: group
-    description: "Oración Principal"
-    allowed_children:
-      optional: [sn, sp, grup.adv, grup.a, S, coord, inc, interjeccio, conj, neg, morfema.verbal, morfema.pronominal, PUNCT]
-    patterns:
-      - [grup.verb]                   # Oración simple (solo verbo)
-      - [sadv, sn, neg, grup.verb, S] # Patrón complejo con negación y adverbio
-      - [sadv, sn, grup.verb]         # Patrón con adverbio inicial
-      - [sn, grup.verb]               # Juan (sn) come (grup.verb)
-      - [grup.verb, sn]               # Viene (grup.verb) el tren (sn)
-      - [sn, grup.verb, sn]           # Yo (sn) quiero (grup.verb) eso (sn)
-      - [sn, grup.verb, sp]           # Ella (sn) va (grup.verb) a casa (sp)
-      - [sn, grup.verb, S]            # Ella dijo que...
-      - [grup.verb, sn, sp]           # Entregó (grup.verb) el libro (sn) a Luis (sp)
-      # Patrones con 'Se' (Pasiva refleja / Impersonal)
-      - [morfema.verbal, grup.verb]
-      - [morfema.verbal, S]           # Se (morf) [necesitan voluntarios] (S)
-      # Patrones de Coordinación Oracional
-      - [S, conj, S]                  # Oración coordinada
-      # Patrones con Adjuntos Iniciales (Topicalización)
-      - [sn, S]                       # [Durante la reunión] (sn) [se discutió...] (S)
-      - [sp, S]                       # [En la reunión] (sp) [se discutió...] (S)
-      - [grup.adv, S]                 # [Ayer] (grup.adv) [se discutió...] (S)
-      - [S, conj, sn]                 # Gapping (El gobierno aprobó X y la oposición, Y)
-      # Patrones de Oraciones Nominales / Fragmentos
-      - [sn, coord]                   # Fragmento con coordinación final (Stanza quirk)
-      - [sn, PUNCT]                   # Oración nominal (Títulos)
-    root_allowed: true
-
-  - id: S
-    type: group
-    description: "Oración Subordinada / Recursiva"
-    allowed_children:
-      optional: [sn, sp, grup.adv, grup.a, S, conj, relatiu, neg, sadv, grup.verb, morfema.verbal, morfema.pronominal, PUNCT]
-    patterns:
-      - [grup.verb]                   # Verbo finito solo
-      - [infinitiu]                   # Infinitivo
-      - [gerundi]                     # Gerundio
-      - [participi]                   # Participio
-      - [relatiu, grup.verb]          # que (relatiu) viene (grup.verb)
-      - [relatiu, sn, grup.verb]      # que (relatiu) el comité (sn) evaluó (grup.verb)
-      # Patrones con adjuntos (sadv, sp)
-      - [relatiu, grup.verb, sadv]    # que llegó tarde
-      - [relatiu, grup.verb, sadv, sp] # que llegó tarde a la reunión
-      - [relatiu, grup.verb, sp]      # que trabaja en el hospital
-      # Patrones con 'Se'
-      - [morfema.verbal, grup.verb]
-      - [S, conj, S]                  # Coordinación de oraciones subordinadas/recursivas
-      # Patrones de Elipsis (Gapping)
-      - [sn, sp]                      # Gapping: otros (sn) [prefieren] en avión (sp)
-      - [sn, grup.adv]                # Gapping: otros (sn) [fueron] allí (grup.adv)
-      - [sn, PUNCT, sp]               # Gapping con coma: otros, en avión
-      - [sn, PUNCT, grup.adv]         # Gapping con coma: otros, allí
-      - [sn, coord, sp]               # Gapping donde la coma es vista como coord
-      - [sn, coord, grup.adv]         # Gapping donde la coma es vista como coord
-      - [sn, sn]                      # Gapping: Sujeto, Objeto (la oposición, la de sanidad)
-      - [sn, PUNCT, sn]               # Gapping con coma: Sujeto, Objeto
-      - [sn, coord, sn]               # Gapping con coord: Sujeto, Objeto
-      # Patrones de Gapping Complejo (Sujeto + Objeto/Adjunto + Adjunto)
-      - [sn, PUNCT, sn, sp]           # María, bebidas (sn) para acompañar (sp)
-      - [sn, PUNCT, sp, sp]           # Otros, en avión (sp) por la mañana (sp)
-
-  # --- PHRASAL NODES (Sintagmas) ---
-  - id: sn
-    type: group
-    description: "Sintagma Nominal (Completo)"
-    allowed_children:
-      optional: [spec, grup.nom, sintagma.nom, coord, conj, sn, sp, S, PUNCT]
-    patterns:
-      - [grup.nom]                    # Núcleo solo
-      - [spec, grup.nom]              # La (spec) casa (grup.nom)
-      - [DET, NOUN]                   # El (DET) informe (NOUN) - Atajo directo
-      - [spec, NOUN]                  # La (spec) casa (NOUN) - Atajo directo
-      - [DET, grup.nom]               # El (DET) informe (grup.nom) - Atajo
-      - [NOUN]                        # Juan (nombres propios o escuetos) - Atajo directo
-      - [spec, grup.nom, sn]          # El (spec) presidente (grup.nom) Obama (sn en aposición)
-      - [spec, spec, grup.nom]        # Todos (spec) los (spec) días (grup.nom)
-      - [spec, grup.nom, sp]          # El libro de la selva
-      - [spec, grup.nom, S]           # El libro que leí
-      - [grup.nom, sp]                # Agua de mayo
-      # Patrones de Coordinación
-      - [sn, conj, sn]                # Juan y María
-      - [sn, coord, sn]               # Juan, María
-      - [sn, coord, sn, conj, sn]     # Juan, Pedro y María
-      - [sn, sn]                      # Aposición o coordinación asindética (Juan, el médico)
-
-  - id: grup.nom
-    type: group
-    description: "Grupo Nominal (Núcleo + Adyacentes)"
-    allowed_children:
-      optional: [sp, grup.a, S, sn, grup.nom, coord, s.a, PUNCT]
-    patterns:
-      - [NOUN]                        # perro
-      - [PROPN]                       # María
-      - [PRON]                        # nosotros
-      - [NUM]                         # tres
-      - [SYM]                         # %
-      - [NOUN, grup.a]                # perro (NOUN) blanco (grup.a)
-      - [NOUN, ADJ]                   # perro blanco (ADJ directo)
-      - [ADJ, NOUN]                   # gran perro
-      - [NOUN, sp]                    # perro (NOUN) con rabia (sp)
-      - [NOUN, S]                     # el hecho (NOUN) de que venga (S)
-      - [NOUN, grup.nom]              # calle Mayor
-      - [NOUN, S, S]                  # Doble modificación: El libro [que leí] [que me gustó]
-      - [relatiu]                     # El hombre [a quien] (grup.nom -> relatiu) vi
-      # Patrones complejos observados en Stanza
-      - [sn, s.a]                     # libros (sn) antiguos (s.a) - Stanza a veces anida sn en grup.nom
-      # Patrones de Coordinación en grup.nom
-      - [sn, conj, sn]                # Coordinación interna
-      - [grup.nom, conj, grup.nom]    # Coordinación de grupos
-      - [sn, coord, sn]               # Coordinación con coma
-      # Patrones de Elipsis Nominal (Núcleo elidido)
-      - [sp]                          # Elipsis: [la] de sanidad
-      - [s.a]                         # Elipsis: [el] rojo
-      - [grup.a]                      # Elipsis: [el] muy rojo
-      - [PUNCT, sp]                   # Elipsis con puntuación previa
-      - [PUNCT, s.a]                  # Elipsis con puntuación previa
-      - [S]                           # Elipsis/Sustantivación: [el] que vino
-
-  - id: grup.verb
-    type: group
-    description: "Grupo Verbal (Solo Verbos)"
-    allowed_children:
-      optional: [morfema.pronominal, neg, ADV, PUNCT, infinitiu, gerundi, participi]
-    patterns:
-      - [VERB]                        # come
-      - [AUX]                         # ha (auxiliar solo)
-      - [AUX, VERB]                   # ha (AUX) comido (VERB/participio)
-      - [AUX, ADP, VERB]              # tiene (AUX) que (ADP) comer (VERB/infinitivo)
-      - [AUX, infinitiu]              # Perífrasis: debía (AUX) [revisar] (infinitiu)
-      - [AUX, gerundi]                # Perífrasis: está (AUX) [comiendo] (gerundi)
-      - [AUX, participi]              # Tiempos compuestos: ha (AUX) [comido] (participi)
-      - [AUX, grup.verb]              # ha (AUX) [podido ser] (grup.verb) - Recursividad parcial
-      - [AUX, AUX, VERB]              # ha podido ser
-      - [grup.adv, VERB]              # no (adv) viene (verb)
-
-  - id: sp
-    type: group
-    description: "Sintagma Preposicional"
-    allowed_children:
-      optional: [grup.adv, PUNCT]
-    patterns:
-      - [ADP, sn]                     # de (ADP) la casa (sn)
-      - [ADP, NOUN]                   # de madera (Atajo)
-      - [prep, sn]                    # de la casa (prep es alias de ADP en AnCora)
-      - [prep, S]                     # para (prep) acompañar (S)
-      - [ADP, grup.nom]               # por (ADP) suerte (grup.nom)
-      - [ADP, S]                      # para (ADP) que vengas (S)
-      - [ADP, grup.adv]               # desde (ADP) ayer (grup.adv)
-      # Patrones complejos (Stanza)
-      - [PUNCT, prep, sn]             # Puntuación interna: , en avión
-      - [prep, sn, sp]                # Recursividad: en avión por la mañana
-      - [PUNCT, prep, sn, sp]         # Complejo: , en avión por la mañana
-      - [PUNCT, ADP, sn]              # Variante sin nodo 'prep' intermedio
-
-  - id: grup.a
-    type: group
-    description: "Grupo Adjetival"
-    allowed_children:
-      optional: [grup.adv, sp, spec, sn, PUNCT]
-    patterns:
-      - [ADJ]                         # rápido
-      - [grup.adv, ADJ]               # muy (adv) rápido (ADJ)
-      - [ADV, ADJ]                    # muy rápido (ADV directo)
-      - [ADJ, sp]                     # libre (ADJ) de culpa (sp)
-      - [sn]                          # Stanza quirk: su directo (grup.a -> sn)
-
-  - id: grup.adv
-    type: group
-    description: "Grupo Adverbial"
-    allowed_children:
-      optional: [sp, spec, sn, PUNCT]
-    patterns:
-      - [ADV]                         # cerca
-      - [grup.adv, ADV]               # muy (adv) cerca (ADV)
-      - [ADV, ADV]                    # muy cerca
-      - [ADV, sp]                     # cerca (ADV) de aquí (sp)
-      - [sn]                          # Stanza quirk: por completo (grup.adv -> sn)
-
-  - id: spec
-    type: group
-    description: "Especificador / Determinante"
-    allowed_children:
-      optional: []
-    patterns:
-      - [DET]
-      - [NUM]
-      - [ADV]
-
-  # --- SPECIAL NODES ---
-  - id: relatiu
-    type: group
-    description: "Pronombre Relativo (Estructural)"
-    allowed_children:
-      optional: []
-    patterns:
-      - [PRON]
-      - [DET] # el cual...
-      - [ADV] # donde, cuando...
-
-  - id: coord
-    type: group
-    description: "Nodo de Coordinación"
-    allowed_children:
-      optional: [CCONJ, PUNCT, sn, grup.nom, grup.verb, S, sp]
-    patterns:
-      - [CCONJ]
-      - [PUNCT] # Coma en enumeraciones
-
-  - id: inc
-    type: group
-    description: "Inciso"
-    allowed_children:
-      optional: [grup.nom, sp, S, PUNCT]
-    # Eliminamos patrones unarios para evitar que 'inc' capture sintagmas legítimos vorazmente.
-
-  - id: morfema.pronominal
-    type: group
-    description: "Morfema Pronominal (se, te, me...)"
-    allowed_children:
-      optional: [PRON, P0000000]
-    patterns:
-      - [PRON]
-
-  - id: infinitiu
-    type: group
-    allowed_children:
-      optional: [VERB, AUX, sn, sp, grup.adv, neg, PUNCT, grup.verb]
-    patterns:
-      - [VERB]
-      - [AUX]
-      - [grup.verb]
-
-  - id: gerundi
-    type: group
-    allowed_children:
-      optional: [VERB, AUX, sn, sp, grup.adv, neg, PUNCT, grup.verb]
-    patterns:
-      - [VERB]
-      - [AUX]
-      - [grup.verb]
-
-  - id: participi
-    type: group
-    allowed_children:
-      optional: [VERB, AUX, sn, sp, grup.adv, neg, PUNCT, ADJ, grup.a, grup.verb]
-    patterns:
-      - [VERB]
-      - [ADJ]         # Stanza a veces etiqueta participios como ADJ
-      - [grup.a]
-      - [grup.verb]
-      - [PRON]
-
-  # --- POS NODES (Universal Dependencies) ---
-  - id: NOUN
-    type: leaf
-  - id: PROPN
-    type: leaf
-  - id: VERB
-    type: leaf
-  - id: AUX
-    type: leaf
-  - id: ADJ
-    type: leaf
-  - id: ADV
-    type: leaf
-  - id: ADP
-    type: leaf
-  - id: PRON
-    type: leaf
-  - id: CCONJ
-    type: leaf
-  - id: SCONJ
-    type: leaf
-  - id: NUM
-    type: leaf
-  - id: PUNCT
-    type: leaf
-  - id: SYM
-    type: leaf
-  - id: INTJ
-    type: leaf
+- id: ROOT
+  type: meta
+  description: Nodo Raíz Técnico
+  allowed_children:
+    mandatory:
+    - sentence
+  patterns:
+  - - sentence
+- id: sentence
+  type: root
+  description: Oración Principal (Raíz)
+  allowed_children:
+    optional:
+    - PUNCT
+    - S
+    - SYM
+    - conj
+    - coord
+    - grup.verb
+    - inc
+    - interjeccio
+    - morfema.pronominal
+    - morfema.verbal
+    - neg
+    - sadv
+    - sn
+    - sp
+  patterns:
+  - - sn
+    - grup.verb
+  - - grup.verb
+    - sn
+  - - grup.verb
+  - - S
+  - - S
+    - coord
+    - S
+  - - S
+    - conj
+    - S
+  - - S
+    - conj
+    - sn
+  - - sn
+    - grup.verb
+    - sn
+    - conj
+    - sn
+  - - sn
+    - grup.verb
+    - conj
+    - sn
+  - - S
+    - sn
+  - - sadv
+    - S
+  - - sp
+    - S
+  - - inc
+  - - morfema.verbal
+    - inc
+  - - morfema.pronominal
+    - inc
+  - - sn
+    - grup.verb
+    - s.a
+  - - inc
+    - conj
+    - inc
+    - coord
+  - - inc
+    - conj
+    - inc
+- id: S
+  type: clause
+  description: Oración / Cláusula (Subordinada o Principal)
+  allowed_children:
+    optional:
+    - PUNCT
+    - SYM
+    - conj
+    - gerundi
+    - grup.a
+    - grup.adv
+    - grup.verb
+    - inc
+    - infinitiu
+    - morfema.pronominal
+    - morfema.verbal
+    - neg
+    - participi
+    - relatiu
+    - s.a
+    - sn
+    - sp
+    - spec
+  patterns:
+  - - grup.verb
+  - - sn
+    - grup.verb
+  - - grup.verb
+    - sn
+  - - conj
+    - S
+  - - relatiu
+    - grup.verb
+  - - relatiu
+    - sn
+    - grup.verb
+  - - infinitiu
+  - - gerundi
+  - - participi
+  - - s.a
+  - - inc
+  - - sn
+    - sp
+  - - sn
+    - sadv
+  - - sn
+    - sn
+  - - sn
+    - grup.nom
+  - - sn
+    - PUNCT
+    - grup.nom
+  - - sn
+    - SYM
+    - grup.nom
+  - - sn
+    - PUNCT
+    - sn
+  - - sn
+    - SYM
+    - sn
+- id: sn
+  type: phrase
+  description: Sintagma Nominal
+  allowed_children:
+    mandatory:
+    - grup.nom
+    optional:
+    - PUNCT
+    - S
+    - SYM
+    - coord
+    - inc
+    - s.a
+    - sp
+    - spec
+  patterns:
+  - - grup.nom
+  - - spec
+    - grup.nom
+  - - spec
+    - grup.nom
+    - sp
+  - - spec
+    - grup.nom
+    - s.a
+  - - spec
+    - grup.nom
+    - S
+  - - grup.nom
+    - sp
+  - - grup.nom
+    - s.a
+  - - sn
+    - coord
+    - sn
+  - - inc
+    - conj
+    - inc
+    - coord
+  - - inc
+    - conj
+    - inc
+  - - inc
+  - - sn
+    - conj
+    - sn
+  - - sn
+    - conj
+    - sn
+    - grup.nom
+  - - sn
+    - conj
+    - sn
+    - sn
+  - - sn
+    - sn
+  - - sn
+    - sn
+    - conj
+    - sn
+  - - sn
+    - sn
+    - sn
+  - - sn
+    - PUNCT
+    - sn
+    - conj
+    - sn
+  - - sn
+    - SYM
+    - sn
+    - conj
+    - sn
+- id: sp
+  type: phrase
+  description: Sintagma Preposicional
+  allowed_children:
+    mandatory:
+    - prep
+    - sn
+    optional:
+    - S
+    - grup.adv
+    - inc
+    - s.a
+  patterns:
+  - - prep
+    - sn
+  - - prep
+    - S
+  - - prep
+    - grup.adv
+  - - prep
+    - s.a
+  - - inc
+- id: grup.nom
+  type: group
+  description: Grupo Nominal (Núcleo)
+  allowed_children:
+    optional:
+    - NOUN
+    - NUM
+    - PRON
+    - PROPN
+    - PUNCT
+    - S
+    - SYM
+    - coord
+    - inc
+    - relatiu
+    - s.a
+    - sn
+    - sp
+  patterns:
+  - - NOUN
+  - - PROPN
+  - - PRON
+  - - NOUN
+  - - NUM
+  - - NUM
+  - - NOUN
+    - s.a
+  - - PROPN
+    - s.a
+  - - NOUN
+    - sp
+  - - PROPN
+    - sp
+  - - NOUN
+    - S
+  - - PROPN
+    - S
+  - - NOUN
+    - sn
+  - - PROPN
+    - sn
+  - - relatiu
+  - - inc
+  - - grup.nom
+    - conj
+    - grup.nom
+  - - sp
+  - - s.a
+  - - sadv
+  - - grup.nom
+    - PUNCT
+    - grup.nom
+    - conj
+    - grup.nom
+  - - grup.nom
+    - SYM
+    - grup.nom
+    - conj
+    - grup.nom
+  - - grup.nom
+    - sp
+  - - grup.nom
+    - s.a
+- id: grup.verb
+  type: group
+  description: Grupo Verbal
+  allowed_children:
+    optional:
+    - AUX
+    - PUNCT
+    - SYM
+    - VERB
+    - gerundi
+    - grup.adv
+    - grup.verb
+    - inc
+    - infinitiu
+    - morfema.pronominal
+    - morfema.verbal
+    - neg
+    - participi
+    - sn
+    - sp
+  patterns:
+  - - VERB
+  - - AUX
+  - - VERB
+    - VERB
+  - - VERB
+    - AUX
+  - - AUX
+    - VERB
+  - - AUX
+    - AUX
+  - - neg
+    - VERB
+  - - neg
+    - AUX
+  - - morfema.pronominal
+    - VERB
+  - - morfema.pronominal
+    - AUX
+  - - VERB
+    - morfema.pronominal
+  - - AUX
+    - morfema.pronominal
+  - - VERB
+    - sn
+  - - AUX
+    - sn
+  - - VERB
+    - sp
+  - - AUX
+    - sp
+  - - inc
+  - - grup.verb
+    - sn
+  - - grup.verb
+    - sp
+  - - grup.verb
+    - grup.adv
+  - - grup.verb
+    - sn
+    - sp
+  - - grup.verb
+    - sp
+    - sp
+  - - grup.verb
+    - s.a
+- id: grup.a
+  type: group
+  description: Grupo Adjetival
+  allowed_children:
+    optional:
+    - ADJ
+    - PUNCT
+    - SYM
+    - grup.adv
+    - inc
+    - sp
+    - spec
+  patterns:
+  - - ADJ
+  - - ADJ
+    - sp
+  - - spec
+    - ADJ
+  - - grup.adv
+    - ADJ
+  - - inc
+- id: s.a
+  type: phrase
+  description: Sintagma Adjetival
+  allowed_children:
+    mandatory:
+    - grup.a
+    optional:
+    - PUNCT
+    - SYM
+    - grup.adv
+    - inc
+    - sp
+    - spec
+  patterns:
+  - - grup.a
+  - - spec
+    - grup.a
+  - - grup.adv
+    - grup.a
+  - - inc
+- id: sadv
+  type: phrase
+  description: Sintagma Adverbial
+  allowed_children:
+    mandatory:
+    - grup.adv
+    optional:
+    - PUNCT
+    - SYM
+    - inc
+    - sp
+    - spec
+  patterns:
+  - - grup.adv
+  - - spec
+    - grup.adv
+  - - grup.adv
+    - sp
+  - - inc
+- id: grup.adv
+  type: group
+  description: Grupo Adverbial
+  allowed_children:
+    optional:
+    - ADV
+    - PUNCT
+    - SYM
+    - inc
+    - sp
+    - spec
+  patterns:
+  - - ADV
+  - - ADV
+    - sp
+  - - spec
+    - ADV
+  - - sp
+  - - inc
+- id: prep
+  type: functional
+  description: Preposición (Contenedor)
+  allowed_children:
+    optional:
+    - ADP
+    - grup.prep
+  patterns:
+  - - ADP
+  - - grup.prep
+- id: grup.prep
+  type: group
+  description: Grupo Preposicional (Locuciones)
+  allowed_children:
+    optional:
+    - ADJ
+    - ADP
+    - ADV
+    - NOUN
+    - PROPN
+  patterns:
+  - - ADV
+    - ADP
+  - - ADJ
+    - ADP
+  - - NOUN
+    - ADP
+  - - PROPN
+    - ADP
+- id: spec
+  type: functional
+  description: Especificador
+  allowed_children:
+    optional:
+    - DET
+    - PUNCT
+    - SYM
+    - inc
+    - sadv
+  patterns:
+  - - DET
+  - - sadv
+  - - inc
+- id: neg
+  type: functional
+  description: Negación
+  allowed_children:
+    optional:
+    - ADV
+  patterns:
+  - - ADV
+- id: morfema.pronominal
+  type: functional
+  description: Morfema Pronominal (se, te...)
+  allowed_children:
+    optional:
+    - PRON
+  patterns:
+  - - PRON
+- id: morfema.verbal
+  type: functional
+  description: Morfema Verbal (Pasiva/Impersonal)
+  allowed_children:
+    optional:
+    - PRON
+  patterns:
+  - - PRON
+- id: relatiu
+  type: functional
+  description: Relativo
+  allowed_children:
+    optional:
+    - ADV
+    - DET
+    - PRON
+  patterns:
+  - - PRON
+  - - ADV
+  - - DET
+- id: conj
+  type: functional
+  description: Conjunción Subordinante
+  allowed_children:
+    optional:
+    - CCONJ
+    - SCONJ
+  patterns:
+  - - CCONJ
+  - - SCONJ
+- id: coord
+  type: functional
+  description: Coordinación
+  allowed_children:
+    optional:
+    - CCONJ
+    - PUNCT
+    - SCONJ
+    - SYM
+  patterns:
+  - - CCONJ
+  - - SCONJ
+- id: infinitiu
+  type: group
+  allowed_children:
+    optional:
+    - AUX
+    - VERB
+    - grup.adv
+    - sn
+    - sp
+  patterns:
+  - - VERB
+  - - AUX
+- id: gerundi
+  type: group
+  allowed_children:
+    optional:
+    - AUX
+    - VERB
+    - grup.adv
+    - sn
+    - sp
+  patterns:
+  - - VERB
+  - - AUX
+- id: participi
+  type: group
+  allowed_children:
+    optional:
+    - ADJ
+    - AUX
+    - VERB
+    - sn
+    - sp
+  patterns:
+  - - VERB
+  - - AUX
+  - - ADJ
+- id: inc
+  type: phrase
+  description: Inciso
+  allowed_children:
+    optional:
+    - PUNCT
+    - S
+    - SYM
+    - grup.nom
+    - sn
+    - sp
+  patterns:
+  - - S
+  - - sn
+- id: interjeccio
+  type: phrase
+  allowed_children:
+    optional:
+    - INTJ
+  patterns:
+  - - INTJ
+- id: n
+  type: leaf
+- id: v
+  type: leaf
+- id: a
+  type: leaf
+- id: d
+  type: leaf
+- id: r
+  type: leaf
+- id: p
+  type: leaf
+- id: c
+  type: leaf
+- id: s
+  type: leaf
+- id: f
+  type: leaf
+- id: z
+  type: leaf
+- id: w
+  type: leaf
+- id: i
+  type: leaf
+- id: ADJ
+  type: leaf
+- id: ADP
+  type: leaf
+- id: ADV
+  type: leaf
+- id: AUX
+  type: leaf
+- id: CCONJ
+  type: leaf
+- id: DET
+  type: leaf
+- id: INTJ
+  type: leaf
+- id: NOUN
+  type: leaf
+- id: NUM
+  type: leaf
+- id: PRON
+  type: leaf
+- id: PROPN
+  type: leaf
+- id: PUNCT
+  type: leaf
+- id: SCONJ
+  type: leaf
+- id: SYM
+  type: leaf
+- id: VERB
+  type: leaf
