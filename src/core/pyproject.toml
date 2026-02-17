@@ -28,3 +28,5 @@ where = ["."]  # Busca el paquete 'grammatomy' aquí mismo
 
 [project.optional-dependencies]
 dev = ["pytest", "black", "pylint"]
+[tool.pylint.format]
+max-line-length = 120

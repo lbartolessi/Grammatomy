@@ -1,0 +1,1 @@
+(LINK-0 (S (conj (SCONJ que)) (S LINK-L) (sp (prep (ADP de)) (sn (spec (DET su)) (grup.nom (s.a (grup.a (ADJ tierno))) (NOUN fin) (S LINK-C))) (PUNCT ,)) (sn (grup.nom (PRON él))) (S LINK-M) (sn (PUNCT :) (sn (PUNCT «) (grup.nom (NOUN Almas)) (PUNCT »)) (PUNCT ,)) (sn (grup.nom (PRON les))) (grup.verb (VERB dice)) (S LINK-N) (S LINK-O) (S LINK-P)))

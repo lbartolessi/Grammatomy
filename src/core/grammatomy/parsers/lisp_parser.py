@@ -45,7 +45,7 @@ def _load_reserved_tags() -> set:
                 if nid:
                     ids.add(nid)
             return ids
-    except Exception:
+    except (OSError, yaml.YAMLError):
         pass
 
     # If YAML cannot be loaded, return empty set to signal an error
@@ -55,6 +55,63 @@ def _load_reserved_tags() -> set:
 
 # Master set of reserved tags used by the parser (structural tags + POS + punctuation)
 RESERVED_TAGS = _load_reserved_tags()
+
+
+def _handle_open_paren(
+    tokens: List[str], i: int, stack: List[SyntaxNode], root_ref: List[Optional[SyntaxNode]]
+) -> int:
+    """Handle opening parenthesis token.
+
+    Returns the updated token index.
+    """
+    if i + 1 < len(tokens):
+        label = tokens[i + 1]
+        is_reserved = label in RESERVED_TAGS or label.startswith("LINK-")
+
+        if is_reserved:
+            # Create a structural node
+            node = SyntaxNode(label, label=label)
+            if stack:
+                node.parent = stack[-1]
+            else:
+                root_ref[0] = node
+            stack.append(node)
+            i += 2
+        else:
+            # Non-reserved label in parens: it's a terminal attached to parent
+            _attach_terminal_to_parent(stack, label)
+            i += 2
+            # Skip closing paren if it follows immediately
+            if i < len(tokens) and tokens[i] == ")":
+                i += 1
+    else:
+        i += 1
+
+    return i
+
+
+def _attach_terminal_to_parent(stack: List[SyntaxNode], word: str) -> None:
+    """Attach a terminal (leaf) node to the current parent."""
+    if stack:
+        parent = stack[-1]
+        word = word.replace("-LRB-", "(").replace("-RRB-", ")")
+        # Only add if parent doesn't already have children
+        if not parent.children:
+            SyntaxNode(word, parent=parent, label=word, word=word)
+
+
+def _handle_bare_word(stack: List[SyntaxNode], tok: str) -> None:
+    """Handle a bare word token (terminal)."""
+    word_text = tok.replace("-LRB-", "(").replace("-RRB-", ")")
+    if stack:
+        parent = stack[-1]
+        # Only add if parent doesn't have children yet
+        if not parent.children:
+            SyntaxNode(word_text, parent=parent, label=word_text, word=word_text)
+            # Mark preterminal: the parent's pos is its label
+            parent.pos = parent.label
+            # Also set the parent's word attribute
+            parent.word = word_text
 
 
 def to_anytree(lisp_str: str) -> Optional[SyntaxNode]:
@@ -72,63 +129,24 @@ def to_anytree(lisp_str: str) -> Optional[SyntaxNode]:
     # Tokenize: split on parentheses and whitespace
     tokens = re.findall(r"(\(|\)|[^\s()]+)", lisp_str)
     stack: List[SyntaxNode] = []
-    root: Optional[SyntaxNode] = None
+    root_ref: List[Optional[SyntaxNode]] = [None]  # Use list to allow mutation in nested function
 
     i = 0
     while i < len(tokens):
         tok = tokens[i]
 
         if tok == "(":
-            # Next token should be a label
-            if i + 1 < len(tokens):
-                label = tokens[i + 1]
-                is_reserved = label in RESERVED_TAGS or label.startswith("LINK-")
-
-                if is_reserved:
-                    # Create a structural node
-                    node = SyntaxNode(label, label=label)
-                    if stack:
-                        node.parent = stack[-1]
-                    else:
-                        root = node
-                    stack.append(node)
-                    i += 2
-                else:
-                    # Non-reserved label in parens: it's a terminal attached to parent
-                    # e.g. (Juan) where Juan is the terminal for the parent NP
-                    if stack:
-                        parent = stack[-1]
-                        word = label.replace("-LRB-", "(").replace("-RRB-", ")")
-                        # Only add if parent doesn't already have children
-                        if not parent.children:
-                            SyntaxNode(word, parent=parent, label=word, word=word)
-                    i += 2
-                    # Skip closing paren if it follows immediately
-                    if i < len(tokens) and tokens[i] == ")":
-                        i += 1
-            else:
-                i += 1
-
+            i = _handle_open_paren(tokens, i, stack, root_ref)
         elif tok == ")":
             if stack:
                 stack.pop()
             i += 1
-
         else:
-            # Bare word (terminal): attach to current parent
-            word_text = tok.replace("-LRB-", "(").replace("-RRB-", ")")
-            if stack:
-                parent = stack[-1]
-                # Only add if parent doesn't have children yet
-                if not parent.children:
-                    child = SyntaxNode(word_text, parent=parent, label=word_text, word=word_text)
-                    # Mark preterminal: the parent's pos is its label
-                    parent.pos = parent.label
-                    # Also set the parent's word attribute
-                    parent.word = word_text
+            # Bare word (terminal)
+            _handle_bare_word(stack, tok)
             i += 1
 
-    return root
+    return root_ref[0]
 
 
 class LispParser:

@@ -29,3 +29,5 @@ filterwarnings = [
     # Ignorar advertencia de torch_struct (dependencia de Benepar) sobre arg_constraints
     "ignore:.*TreeCRF.*:UserWarning",
 ]
+[tool.pylint.format]
+max-line-length = 120

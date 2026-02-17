@@ -410,6 +410,7 @@ class EssentialStructureValidator:
 
 if __name__ == "__main__":
     # Example Usage (Simulation)
+    validator = EssentialStructureValidator()
 
     # Caso 1: SN aplanado (sn -> n)
     # sn requiere grup.nom, grup.nom requiere n.
@@ -423,5 +424,3 @@ if __name__ == "__main__":
 
     # Caso 3: SP incompleto (solo prep)
     print(f"SP con 'prep': {validator.validate_node('sp', ['prep'])}")  # False
-
-    validator = EssentialStructureValidator()

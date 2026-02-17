@@ -5,7 +5,10 @@ import logging.handlers
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+
+from core.grammatomy.config import config
+
+DEFAULT_LOG_FILE = "logs/grammatomy.log"
 
 
 class ColoredFormatter(logging.Formatter):
@@ -60,30 +63,36 @@ class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
         os.remove(source)
 
 
-def setup_logging(
-    name: str = "grammatomy",
-    log_file: Optional[Path] = None,
-    console_level: int = logging.INFO,
-    file_level: int = logging.WARNING,
-    rotate: bool = True,
-    max_bytes: int = 5 * 1024 * 1024,  # 5 MB
-    backup_count: int = 3,
-) -> logging.Logger:
+def setup_logging(name: str = "grammatomy") -> logging.Logger:
     """
-    Sets up the application logger with console and rotating file support.
+    Sets up the application logger based on global configuration.
+
+    Logic:
+      - If config.debug is True: Level = DEBUG (Verbose)
+      - If config.debug is False: Level = WARNING (Quiet)
+      - Log file path is read from config.system.log_file
 
     Args:
         name: Name of the logger.
-        log_file: Path to the log file. If None, only logs to console.
-        console_level: Level for standard output (default: INFO).
-        file_level: Level for the log file (default: WARNING).
-        rotate: If True, use RotatingFileHandler to limit file size.
-        max_bytes: Maximum file size before rotating.
-        backup_count: Number of backup files to keep.
     """
+    # Lazy import to avoid circular dependency with config module
+    try:
+        is_debug = config.debug
+        # Attempt to retrieve log_file safely from system config
+        system_conf = getattr(config, "system", {})
+        if isinstance(system_conf, dict):
+            log_path_str = system_conf.get("log_file", DEFAULT_LOG_FILE)
+        else:
+            log_path_str = getattr(system_conf, "log_file", DEFAULT_LOG_FILE)
+    except ImportError:
+        # Fallback defaults if config cannot be loaded
+        is_debug = True
+        log_path_str = DEFAULT_LOG_FILE
+
+    level = logging.DEBUG if is_debug else logging.WARNING
+
     logger = logging.getLogger(name)
-    # The base logger must capture the lowest level of its handlers
-    logger.setLevel(min(console_level, file_level))
+    logger.setLevel(level)
 
     # Avoid duplicating handlers on multiple calls (e.g., Streamlit reruns)
     if logger.hasHandlers():
@@ -92,30 +101,28 @@ def setup_logging(
     # 1. Console Handler (with colors)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(ColoredFormatter("%(levelname)s - %(message)s"))
-    console_handler.setLevel(console_level)
+    console_handler.setLevel(level)
     logger.addHandler(console_handler)
 
     # 2. File Handler (optional, with rotation)
-    if log_file:
+    if log_path_str:
         try:
-            log_path = Path(log_file)
+            log_path = Path(log_path_str)
             log_path.parent.mkdir(parents=True, exist_ok=True)
 
-            if rotate:
-                file_handler = CompressedRotatingFileHandler(
-                    log_path,
-                    maxBytes=max_bytes,
-                    backupCount=backup_count,
-                    encoding="utf-8",
-                )
-            else:
-                file_handler = logging.FileHandler(log_path, encoding="utf-8")
+            # Always use rotation for safety
+            file_handler = CompressedRotatingFileHandler(
+                log_path,
+                maxBytes=5 * 1024 * 1024,  # 5MB fixed
+                backupCount=3,
+                encoding="utf-8",
+            )
 
             file_formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             file_handler.setFormatter(file_formatter)
-            file_handler.setLevel(file_level)
+            file_handler.setLevel(level)
             logger.addHandler(file_handler)
         except Exception as e:  # pylint: disable=broad-exception-caught
             # Fallback to console if filesystem fails (e.g., permissions on HFS)

@@ -27,9 +27,7 @@ class AppConfig:
 
     def _load(self):
         if not CONFIG_FILE.exists():
-            raise FileNotFoundError(
-                f"Critical: Configuration file missing at {CONFIG_FILE}"
-            )
+            raise FileNotFoundError(f"Critical: Configuration file missing at {CONFIG_FILE}")
 
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             self._data = yaml.safe_load(f)
@@ -44,6 +42,11 @@ class AppConfig:
         """Retrieves available local models for a specific engine and language."""
         engines_conf = self._data.get("engines", {})
         return engines_conf.get(engine, {}).get("languages", {}).get(lang, [])
+
+    @property
+    def debug(self) -> bool:
+        """Returns True if debug mode is enabled (default: False)."""
+        return self._data.get("system", {}).get("debug", False)
 
 
 # Global instance

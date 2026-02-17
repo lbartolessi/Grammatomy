@@ -1,6 +1,6 @@
 import pytest
-from anytree import Node
 
+from core.grammatomy.parsers.lisp_parser import SyntaxNode
 from core.grammatomy.visualization.ascii_renderer import render_ascii_colored
 from core.grammatomy.visualization.graphviz_renderer import get_graphviz_dot
 from core.grammatomy.visualization.json_renderer import render_json_colored
@@ -12,17 +12,17 @@ def visual_tree():
     """Creates a standard tree for rendering tests using YAML-defined tags."""
     # (S (sn (spec Det) (n cat)) (grup.verb (v sat)) (PUNCT .))
     # Note: terminal nodes (words) are direct children in this representation
-    root = Node("S")
-    sn = Node("sn", parent=root)
-    spec = Node("spec", parent=sn)
+    root = SyntaxNode("S")
+    sn = SyntaxNode("sn", parent=root)
+    spec = SyntaxNode("spec", parent=sn)
     spec.word = "The"
-    n = Node("n", parent=sn)
+    n = SyntaxNode("n", parent=sn)
     n.word = "cat"
-    gv = Node("grup.verb", parent=root)
-    v = Node("v", parent=gv)
+    gv = SyntaxNode("grup.verb", parent=root)
+    v = SyntaxNode("v", parent=gv)
     v.word = "sat"
     # Add a punctuation node
-    punct = Node("PUNCT", parent=root)
+    punct = SyntaxNode("PUNCT", parent=root)
     punct.word = "."
     return root
 

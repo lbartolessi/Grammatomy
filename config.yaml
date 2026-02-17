@@ -4,7 +4,8 @@
 system:
   model_sovereignty: true
   resources_path: "models"  # Relative to project root
-  log_level: "INFO"
+  log_file: "logs/grammatomy.log"
+  debug: true
 
 engines:
   stanza:

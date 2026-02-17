@@ -2,6 +2,7 @@ import unittest
 
 from anytree import PreOrderIter
 
+from core.grammatomy import to_ptb
 from src.core.grammatomy.parsers.lisp_parser import LispParser
 
 
@@ -29,6 +30,7 @@ class TestChapter008Integrity(unittest.TestCase):
         # Path: S -> sn -> grup.nom -> n
         # We use robust navigation to find the 'n' node regardless of exact path if possible,
         # but here we expect strict structure.
+        assert root is not None
         n_node = root.children[0].children[0].children[0]
 
         # Assertions
@@ -76,26 +78,21 @@ class TestChapter008Integrity(unittest.TestCase):
 
         # 1. Parse
         root = self.parser.to_anytree(original_lisp)
+        assert root is not None
 
         # 2. Export (Reconstruct string)
-        # We assume LispParser has a symmetric to_lisp method.
-        # If this fails, it means we need to expose the export logic in the parser class.
-        if hasattr(self.parser, "to_lisp"):
-            exported_lisp = self.parser.to_lisp(root)
+        # Use the standard exporter
+        exported_lisp = to_ptb(root)
 
-            # Normalize strings (remove spaces for comparison)
-            def normalize(s):
-                return s.replace(" ", "").replace("\n", "")
+        # Normalize strings (remove spaces for comparison)
+        def normalize(s):
+            return s.replace(" ", "").replace("\n", "")
 
-            self.assertEqual(
-                normalize(original_lisp),
-                normalize(exported_lisp),
-                "Exported LISP does not match original input. Reconstruction failed.",
-            )
-        else:
-            # If the method doesn't exist on the parser, we skip but warn.
-            # Ideally, the parser should be symmetric.
-            print("WARNING: LispParser.to_lisp() not found. Skipping round-trip test.")
+        self.assertEqual(
+            normalize(original_lisp),
+            normalize(exported_lisp),
+            "Exported LISP does not match original input. Reconstruction failed.",
+        )
 
 
 if __name__ == "__main__":

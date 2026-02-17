@@ -34,6 +34,8 @@ disable = [
     "missing-function-docstring",
     "too-few-public-methods",
 ]
+[tool.pylint.format]
+max-line-length = 120
 good-names = [
     "e", "i", "j", "k", "v", # common loop variables
     "ex", # common exception variable

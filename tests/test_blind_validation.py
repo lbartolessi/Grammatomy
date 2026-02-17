@@ -1,4 +1,6 @@
+# pylint: disable=line-too-long
 import unittest
+from typing import List, Optional
 
 from anytree import PreOrderIter, RenderTree
 
@@ -34,7 +36,7 @@ DEEPSEEK_TEST_SENTENCES = {
     "Categoría 4: Coordinación con Elipsis (Gapping)": [
         "La streamer comenzó su directo a las ocho, y sus seguidores, a las diez.",
         "Nuestra arquitecta propuso un diseño vanguardista, y la cliente, uno más conservador.",
-        "El primer equipo anotó dos goles en el primer tiempo, y el rival, tres.",
+        ("El primer equipo anotó dos goles en el primer tiempo, y el rival, tres."),
     ],
     "Categoría 5: Anidamiento Profundo de Subordinadas": [
         "El informe que sugeriste que encargáramos al consultor externo que recomendaste ha llegado.",
@@ -102,8 +104,10 @@ MISTRAL_TEST_SENTENCES = {
     "Categoría 1: Ambigüedad de Adjunción de Cláusula Relativa": [
         "El informe del comité que incluye los datos actualizados fue revisado por la auditora.",
         "La propuesta de la consultora que presenta las recomendaciones clave aún no se ha aprobado.",
-        "El análisis del grupo que contiene los resultados preliminares será discutido en la reunión.",
-        "El documento del departamento que detalla los procedimientos está en revisión.",
+        (
+            "El análisis del grupo que contiene los resultados preliminares será discutido en la reunión."
+        ),
+        ("El documento del departamento que detalla los procedimientos está en revisión."),
         "La investigación del equipo que aborda los temas clave fue publicada recientemente.",
     ],
     "Categoría 2: Construcciones Ambiguas con 'se'": [
@@ -125,9 +129,13 @@ MISTRAL_TEST_SENTENCES = {
         "La empresa lanzó un nuevo producto y su competencia, una campaña publicitaria.",
     ],
     "Categoría 5: Anidamiento Profundo de Subordinadas": [
-        "La película que el crítico dijo que el director había modificado sin avisar resultó ser un fracaso.",
-        "El libro que el profesor recomendó que los estudiantes leyeran fue un éxito de ventas.",
-        "El proyecto que el gerente anunció que el equipo había completado antes de tiempo fue premiado.",
+        (
+            "La película que el crítico dijo que el director había modificado sin avisar resultó ser un fracaso."
+        ),
+        ("El libro que el profesor recomendó que los estudiantes leyeran fue un éxito de ventas."),
+        (
+            "El proyecto que el gerente anunció que el equipo había completado antes de tiempo fue premiado."
+        ),
     ],
     "Categoría 6: Ambigüedad de Adjunción de Sintagmas Preposicionales": [
         "El guardabosques avistó al oso con el telescopio.",
@@ -187,63 +195,9 @@ class TestBlindValidation(unittest.TestCase):
                 return False, error_msg
         return True, "OK"
 
-    def test_blind_cases(self):
-        results = {
-            "untouched": 0,
-            "refined": 0,
-            "failed": 0,
-            "valid_final": 0,
-            "invalid_final": 0,
-        }
-        failures = []  # Collect detailed failure reasons
-
-        # Combinar ambos bancos de pruebas para el reporte
-        test_suites = [
-            ("DEEPSEEK", DEEPSEEK_TEST_SENTENCES),
-            ("CLAUDE", CLAUDE_TEST_SENTENCES),
-            ("MISTRAL", MISTRAL_TEST_SENTENCES),
-        ]
-
-        for source_name, suite in test_suites:
-            print(f"\n>>> EJECUTANDO SUITE: {source_name} <<<")
-            self._process_suite(suite, results)
-
-            # Capture failures from this suite
-            if results["invalid_final"] > len(failures):
-                # We can't easily grab them here without refactoring _process_suite,
-                # so we'll rely on _process_sentence appending to a list if we pass it.
-                pass
-
-        print("\n" + "=" * 80)
-        print("RESUMEN BLIND TEST")
-        print("-" * 80)
-        total_sentences = sum(len(v) for _, s in test_suites for v in s.values())
-        print(f"  Total Frases: {total_sentences}")
-        print(f"  Válidos:      {results['valid_final']}")
-        print(f"  Inválidos:    {results['invalid_final']}")
-        print("=" * 80)
-
-        if failures:
-            print("\n>>> DETALLE DE FALLOS (Muestra de los primeros 5) <<<")
-            for i, f in enumerate(failures[:5], 1):
-                print(f"{i}. {f}")
-
-        # Assert final success for regression testing
-        self.assertEqual(
-            results["invalid_final"],
-            0,
-            f"Regression: Found {results['invalid_final']} invalid trees. First failure: {failures[0] if failures else 'None'}",
-        )
-
-    def _process_suite(self, suite, results, failures=None):
-        for category, sentences in suite.items():
-            print("\n" + "=" * 80)
-            print(f"{category}")
-            print("=" * 80)
-            for i, text in enumerate(sentences, 1):
-                self._process_sentence(i, text, results, failures)
-
-    def _process_sentence(self, index: int, text: str, results: dict, failures: list = None):
+    def _process_sentence(
+        self, index: int, text: str, results: dict, failures: Optional[List[str]] = None
+    ):
         print(f"\n--- FRASE {index}: '{text}' ---")
 
         original_root = get_syntax_tree(text, self.params)
@@ -274,15 +228,6 @@ class TestBlindValidation(unittest.TestCase):
             results["invalid_final"] += 1
             if failures is not None:
                 failures.append(f"'{text[:30]}...': {reason}")
-
-    # Override _process_suite to pass failures list
-    def _process_suite(self, suite, results):
-        # We attach the failures list to the instance or pass it down.
-        # For simplicity, let's use a list bound to the test method scope (passed as arg).
-        # But since _process_suite signature in the loop above didn't have it, we need to fix the call site.
-        # Actually, let's just use a bound variable or pass it.
-        # Refactoring slightly to be cleaner:
-        pass
 
     # Redefining test_blind_cases to properly pass the list
     def test_blind_cases(self):
@@ -327,7 +272,10 @@ class TestBlindValidation(unittest.TestCase):
         self.assertEqual(
             results["invalid_final"],
             0,
-            f"Regression: Found {results['invalid_final']} invalid trees. First failure: {failures[0] if failures else 'None'}",
+            (
+                f"Regression: Found {results['invalid_final']} invalid trees. "
+                f"First failure: {failures[0] if failures else 'None'}"
+            ),
         )
 
 

@@ -138,3 +138,13 @@ module.exports = {
 - **CVD Simulator:** Use Chrome DevTools (`Ctrl+Shift+P` -> "Emulate vision deficiency").
 - **Font Helper:** [Google Webfonts Helper](https://www.google.com/search?q=https://google-webfonts-helper.herokuapp.com/) (For WOFF2 local downloads).
 - **IPA Standards:** [International Phonetic Association](https://www.internationalphoneticassociation.org/content/ipa-chart).
+
+---
+
+## 8. Interaction & Animation Philosophy
+
+### 8.1 Cognitive Continuity
+
+- **Principle:** UI transitions between complex data views (e.g., syntax trees) must be animated. Instantaneous "teleportation" is strictly avoided as it causes cognitive dissonance and mental fatigue.
+- **Implementation:** Smooth, animated transitions (pan, zoom, cross-fade) provide spatial awareness, helping the user understand the path taken through the data. This makes the application psychologically friendly and reduces fatigue during long work sessions.
+- **Standard Duration:** Default transition time is set to `1200ms` to create a deliberate, cinematic feel.

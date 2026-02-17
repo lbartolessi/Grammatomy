@@ -59,3 +59,15 @@ NEXT IMMEDIATE STEP: Scaffold the `grammatomy-editor` component structure and in
 - [2026-02-14] [Infrastructure: MNEMOSYNE] Created `.mnemosyne/quick-sync.md` (state snapshot), `.mnemosyne/live-state.json` (background sync), `.mnemosyne/prompts/auto-detection.md` (detection rules).
 - [2026-02-14] [Infrastructure: MNEMOSYNE] Updated `.vscode/copilot-instructions.md` with AUTO-STARTUP section 0, auto-detection workflows 2b-2j, and streamlined sections 3-12.
 - [2026-02-14] [Session] Session closed. Next: Test AUTO-STARTUP in fresh session.
+- [2026-02-15] [Cleanup] Removed `tests/benchmark.py` and legacy QT6 Studio files (`src/core/grammatomy/studio.py`, `tests/studio.py`) to reduce noise and dependencies.
+- [2026-02-15] [Feature: Logging] Completed standard logging implementation across core modules. [QA] Verified 100% pass rate (65/65 tests) after refactoring.
+- [2026-02-16] [Fix: Fragmentation] Resolved critical integrity failure in `defragment` logic (`sn != Link...`) by implementing dynamic iteration limits based on subtree count. Verified via logs on complex sentences.
+- [2026-02-16] [QA: Coverage] Added `tests/test_fragmentation_engine.py` and `tests/test_mutation_engine.py` to harden the "Góngora Mode" and surgical operations. Validated recursion limits and detach/reabsorb cycles.
+- [2026-02-16] [Milestone: QA] Achieved 72% test coverage with 71 passing tests. Core logic for parsing, validation, fragmentation, and mutation is now fully regression-tested.
+- [2026-02-16] [Refactoring: Backend] Implemented `ProjectEngine` and `/api/project/create` endpoint. Migrated project creation logic (segmentation, parsing loop, fragmentation) from Frontend to Backend to improve performance and stability.
+- [2026-02-16] [Analysis: Model Limitation] Identified Stanza failure on archaic Spanish ('Do' -> 'donde'). Model tags it as 'X' (unknown) or 'CCONJ', breaking the relative clause structure. Accepted as a known limitation of SOTA models trained on modern corpora (AnCora).
+- [2026-02-16] [Plan: Feature] Proposed "Lexical Normalization" feature to handle arcaism substitution (e.g., 'do' -> 'donde') pre-parsing. Added to itinerary as candidate for future implementation.
+- [2026-02-16] [Plan: Feature] Prioritized "Project Metadata" (author, title, date) for project creation workflow. Essential for academic reporting and future TreeBank integration.
+- [2026-02-16] [Fix: UX] Resolved visual selection issue in Structural Search. Target nodes now correctly display the vermilion border upon navigation by enforcing Cytoscape selection state in `selectNode`.
+- [2026-02-16] [Feature: UX] Added Master Map toggle button (`map` icon) to the main header for quick access. [Impact: Improved navigation]
+- [2026-02-16] [Analysis: Requirements] Ingested `references/LATEX.md`. Defined requirements for "Academic Publication Engine" (Metadata, Templates, Regional Presets) and added Phase 3 to Itinerary.

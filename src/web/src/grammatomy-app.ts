@@ -84,6 +84,15 @@ export class GrammatomyApp extends LitElement {
   @state()
   private isPendingRender = false;
 
+  @state()
+  private viewMode: 'edit' | 'master_map' = 'edit';
+
+  @state()
+  private masterTreeElements: any[] = [];
+
+  @state()
+  private masterFocusSelector: string = "";
+
   // Desactivamos Shadow DOM para usar Tailwind globalmente sin problemas
   override createRenderRoot() {
     return this;
@@ -166,12 +175,12 @@ export class GrammatomyApp extends LitElement {
     // Enclosed: [1], (1), {1}
     content = content.replace(/\[\d+\]/g, '');
     content = content.replace(/\(\d+\)/g, '');
-    content = content.replace(/\{\d+\}/g, '');
+    content = content.replace(/\{\d+}/g, '');
 
     // Attached suffix numbers (e.g. "word1", "word,2")
     // Match a non-digit/non-space char followed by digits
     // We replace "char+digits" with just "char"
-    content = content.replace(/([^\d\s])\d+/g, '$1');
+    content = content.replace(/([^\d\s])\d+/g, '');
 
     // 4. Normalize whitespace
     return content.replace(/\s+/g, ' ').trim();
@@ -190,74 +199,36 @@ export class GrammatomyApp extends LitElement {
 
     this.isLoading = true;
     try {
-        // 1. Create Project Structure
-        const segmenter = new (Intl as any).Segmenter("es", { granularity: "sentence" });
-        const segments = Array.from(segmenter.segment(text));
-        
-        const units: TreeUnit[] = segments.map((seg: any, i: number) => ({
-            id: `u${i + 1}`,
-            sentence: seg.segment,
-            original_ptb: "(ROOT (S (NP (NN ...)) (VP (VB ...))))", // Placeholder until parsed
-            current_ptb: "", 
-            status: 'draft',
-            metadata: {}
-        }));
-
-        this.project = {
-            meta: {
-                version: "1.0",
+        // Call the new unified endpoint
+        const response = await fetch('/api/project/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
                 name: "New Project",
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            },
-            source_text: text,
-            units: units
-        };
+                lang: "es"
+            })
+        });
 
-        // 2. Process ALL units (Parse + Fragment)
-        // We do this sequentially to avoid overwhelming the backend/browser
-        for (let i = 0; i < units.length; i++) {
-            const unit = units[i];
-            try {
-                // A. Parse
-                const parseRes = await fetch('/api/parse', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: unit.sentence, engine: 'stanza', lang: 'es' })
-                });
-                const parseData = await parseRes.json();
-                const fullPtb = parseData.ptb;
+        if (!response.ok) throw new Error(await response.text());
+        
+        const projectData = await response.json();
+        this.project = projectData;
 
-                // B. Fragment
-                const fragRes = await fetch('/api/tools/fragment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ptb: fullPtb })
-                });
-                const fragData = await fragRes.json();
-
-                // Sanitize backend artifacts from notes
-                if (fragData.subtrees) {
-                    fragData.subtrees.forEach((st: any) => {
-                        if (st.notes && st.notes.startsWith("Extracted from")) {
-                            st.notes = "";
-                        }
+        // Post-process units to calculate lineage for UI navigation
+        if (this.project && this.project.units) {
+            this.project.units.forEach(unit => {
+                // Sanitize notes if needed (optional, backend usually handles this well now)
+                if (unit.subtrees) {
+                    unit.subtrees.forEach((st: any) => {
+                        if (st.notes && st.notes.startsWith("Extracted from")) st.notes = "";
                     });
                 }
-
-                // C. Update Unit
-                unit.original_ptb = fullPtb;
-                unit.current_ptb = fragData.main_ptb;
-                unit.subtrees = fragData.subtrees;
-                
                 this.recalculateLineage(unit);
-            } catch (e) {
-                console.error(`Error processing unit ${i + 1}:`, e);
-            }
-        }
+            });
 
-        if (units.length > 0) {
-            this.activeUnitId = units[0].id;
+            // Select first unit
+            this.activeUnitId = this.project.units[0].id;
             this.requestUpdate();
         }
 
@@ -267,6 +238,49 @@ export class GrammatomyApp extends LitElement {
     } finally {
         this.isLoading = false;
     }
+  }
+
+  private assignColorsTopologically(unit: TreeUnit) {
+      if (!unit.subtrees) return;
+
+      // 1. Build hierarchy map (Parent ID -> List of Children)
+      const childrenMap = new Map<string | null, any[]>();
+      unit.subtrees.forEach(st => {
+          // Normalize parent_id: null if undefined or not found in subtrees (pointing to main)
+          let pid: string | null = st.parent_subtree_id || null;
+          // Verify parent exists in subtrees list, otherwise it's Main (null)
+          if (pid && !unit.subtrees!.some(s => s.id === pid)) pid = null;
+          
+          if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+          childrenMap.get(pid).push(st);
+      });
+
+      // 2. Process queue (BFS)
+      // Start with Main Tree children (pid = null)
+      // Parent color for Main Tree is 0 (Vermilion)
+      const queue: { parentId: string | null, parentColor: number }[] = [];
+      queue.push({ parentId: null, parentColor: 0 });
+
+      while (queue.length > 0) {
+          const { parentId, parentColor } = queue.shift()!;
+          const children = childrenMap.get(parentId) || [];
+          
+          // Sort children deterministically by label (A, B, C...) to ensure stable colors
+          children.sort((a: any, b: any) => a.label.localeCompare(b.label));
+
+          // Available colors excluding parent
+          // Colors: 0=Vermilion, 1=Orange, 2=SkyBlue, 3=Blue
+          const allColors = [0, 1, 2, 3];
+          const availableColors = allColors.filter(c => c !== parentColor);
+
+          children.forEach((child: any, index: number) => {
+              // Assign color
+              child.colorIndex = availableColors[index % availableColors.length];
+              
+              // Add to queue to process its children
+              queue.push({ parentId: child.id, parentColor: child.colorIndex });
+          });
+      }
   }
 
   private handleFragmentation(e: CustomEvent) {
@@ -281,7 +295,10 @@ export class GrammatomyApp extends LitElement {
               const unit = this.project.units[idx];
               unit.current_ptb = ptb;
               unit.subtrees = subtrees;
-              this.recalculateLineage(unit); // Update hierarchy links
+              this.recalculateLineage(unit); // Calculate parents first
+              
+              // Assign colors topologically (Top-Down)
+              this.assignColorsTopologically(unit);
               this.requestUpdate();
               console.log("Project updated with fragments:", unit);
           }
@@ -335,9 +352,10 @@ export class GrammatomyApp extends LitElement {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   main_ptb: payload.ptb,
-                  node_index: payload.nodeIndex,
+                  node_path: payload.nodePath,
                   fragment_label: newLabel,
-                  parent_context_label: this.activeParentLabel
+                  parent_context_label: this.activeParentLabel,
+                  target_label: payload.label
               })
           });
 
@@ -347,7 +365,19 @@ export class GrammatomyApp extends LitElement {
           // Update State
           this.updateTreeWithFragment(data.main_ptb, data.fragment_ptb, newLabel);
           
-          console.log(`Detached node '${payload.label}' into Fragment ${newLabel}`);
+          console.log(`Detached node '${payload.label}' into Fragment `);
+
+          // Integrity Check Feedback (Debug Mode)
+          if (data.integrity_check) {
+              const check = data.integrity_check;
+              if (check.status === 'passed') {
+                  alert(`✅ Integrity Check Passed\n\nThe detach operation was verified as fully reversible.`);
+              } else if (check.status === 'failed') {
+                  alert(`⚠️ Integrity Check Failed\n\nDifferences found:\n${check.diffs.slice(0, 5).join('\n')}`);
+              } else if (check.status === 'error') {
+                  alert(`⚠️ Integrity Check Crashed\n\nError: ${check.message}`);
+              }
+          }
 
       } catch (e) {
           console.error("Detach failed:", e);
@@ -366,6 +396,9 @@ export class GrammatomyApp extends LitElement {
 
       this.isLoading = true;
       try {
+          console.log(`[handleFragmentRequest] Starting fragmentation for unit ${this.activeUnitId}`);
+          console.log(`  Input PTB length: ${unit.current_ptb.length}`);
+          
           const response = await fetch('/api/tools/fragment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -377,14 +410,54 @@ export class GrammatomyApp extends LitElement {
           if (!response.ok) throw new Error(await response.text());
           const data = await response.json();
 
+          // Log fragmentation results
+          console.log(`[handleFragmentRequest] Fragmentation successful:`);
+          console.log(`  main_ptb length: ${data.main_ptb.length}`);
+          console.log(`  subtrees created: ${data.subtrees.length}`);
+          
+          // Temporary assignment for logging (will be recalculated properly with lineage)
+          data.subtrees.forEach((st: any, idx: number) => {
+              // We can't assign smart colors yet because we don't have lineage.
+              // We'll do it after updating the project unit.
+              st.colorIndex = 0; 
+
+              const linkMatches = st.ptb.match(/LINK-\w+(-\w+)?/g) || [];
+              console.log(`    [] label=${st.label}, ptb_len=${st.ptb.length}, links=${linkMatches.join(', ')}`);
+          });
+          
+          const mainLinks = data.main_ptb.match(/LINK-\w+(-\w+)?/g) || [];
+          console.log(`  main_ptb LINK nodes: ${mainLinks.join(', ')}`);
+
           // Update state
           const idx = this.project.units.findIndex(u => u.id === this.activeUnitId);
           if (idx !== -1) {
+              console.log(`[handleFragmentRequest] Saving main_ptb to unit (${data.main_ptb.length} chars)`);
               this.project.units[idx].current_ptb = data.main_ptb;
               this.project.units[idx].subtrees = data.subtrees;
+              
+              // Calculate Lineage & Assign Smart Colors
               this.recalculateLineage(this.project.units[idx]);
+              this.assignColorsTopologically(this.project.units[idx]);
+              
+              // Verify that main_ptb was actually saved
+              const savedMainPtb = this.project.units[idx].current_ptb;
+              const savedLinks = savedMainPtb.match(/LINK-\w+(-\w+)?/g) || [];
+              console.log(`[handleFragmentRequest] After saving, main_ptb contains: ${savedLinks.join(', ')}`);
+              
               this.requestUpdate();
-              console.log("Fragmentation successful (Backend).");
+              console.log("Fragmentation state updated successfully.");
+
+              // Integrity Check Feedback (Debug Mode)
+              if (data.integrity_check) {
+                  const check = data.integrity_check;
+                  if (check.status === 'passed') {
+                      alert(`✅ Integrity Check Passed\n\nFragmentation verified: Master Map matches original.`);
+                  } else if (check.status === 'failed') {
+                      alert(`⚠️ Integrity Check Failed\n\nDifferences found:\n${check.diffs.slice(0, 5).join('\n')}`);
+                  } else if (check.status === 'error') {
+                      alert(`⚠️ Integrity Check Crashed\n\nError: ${check.message}`);
+                  }
+              }
           }
       } catch (e) {
           console.error("Fragmentation failed:", e);
@@ -411,13 +484,16 @@ export class GrammatomyApp extends LitElement {
           label: label,
           ptb: fragmentPtb,
           notes: "",
-          parent_subtree_id: this.activeSubtreeId || null // Link to current view
+          parent_subtree_id: this.activeSubtreeId || null, // Link to current view
+          colorIndex: 0 // Placeholder, will be fixed by topological assignment
       };
 
       if (!this.activeUnit.subtrees) this.activeUnit.subtrees = [];
       this.activeUnit.subtrees.push(newSubtree);
 
       this.recalculateLineage(this.activeUnit);
+      this.assignColorsTopologically(this.activeUnit);
+      if (this.viewMode === 'master_map') this.buildMasterTree(); // Refresh map if open
       this.requestUpdate();
   }
 
@@ -425,7 +501,7 @@ export class GrammatomyApp extends LitElement {
       e.stopPropagation();
       if (!this.activeUnit || !this.activeUnit.subtrees) return;
 
-      console.log(`handleReabsorb: called for subtreeId ${subtreeId}`);
+      console.log(`handleReabsorb: called for subtreeId `);
 
       if (!this.editor) {
           console.error("handleReabsorb: Editor is null!");
@@ -466,13 +542,30 @@ export class GrammatomyApp extends LitElement {
       // 3. Merge PTB (Server-Side Structural Reabsorption)
       this.isLoading = true;
       try {
+          // Diagnostic logging
+          const mainPtb = parentObj.current_ptb || parentObj.ptb || "";
+          const fragmentPtb = subtree.ptb;
+          const linkLabel = subtree.label;
+          
+          console.log(`[handleReabsorb] Attempting reabsorb:`);
+          console.log(`  subtree.label: `);
+          console.log(`  parent type: ${parentId === null ? 'Main' : 'Subtree'}`);
+          console.log(`  main_ptb length: ${mainPtb.length}`);
+          console.log(`  main_ptb snippet: ${mainPtb.substring(0, 200)}...`);
+          console.log(`  fragment_ptb length: ${fragmentPtb.length}`);
+          console.log(`  fragment_ptb snippet: ${fragmentPtb.substring(0, 200)}...`);
+          
+          // Check for LINK nodes in main
+          const linkMatches = mainPtb.match(/LINK-\w+(-\w+)?/g) || [];
+          console.log(`  LINK nodes in main: ${linkMatches.join(', ')}`);
+          
           const response = await fetch('/api/mutation/reabsorb', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                  main_ptb: parentObj.current_ptb || parentObj.ptb || "",
-                  fragment_ptb: subtree.ptb,
-                  link_label: subtree.label
+                  main_ptb: mainPtb,
+                  fragment_ptb: fragmentPtb,
+                  link_label: linkLabel
               })
           });
 
@@ -512,11 +605,8 @@ export class GrammatomyApp extends LitElement {
 
           // 6. Focus the reabsorbed node (Wait for render)
           if (data.focus_index !== undefined && data.focus_index !== -1) {
-              setTimeout(() => {
-                  // Check if editor is still present (navigation may have unmounted it)
-                  if (this.editor) this.editor.focusNodeByGlobalIndex(data.focus_index);
-                  console.log(`handleReabsorb: Focused node ${data.focus_index}.`);
-              }, 300);
+              await this.updateComplete;
+              if (this.editor) this.editor.focusNodeByGlobalIndex(data.focus_index);
           }
 
       } catch (e) {
@@ -528,8 +618,198 @@ export class GrammatomyApp extends LitElement {
       }
   }
 
+  private buildMasterTree() {
+      if (!this.activeUnit) return;
+      
+      // 1. Start with Main Tree elements
+      let elements = parsePtbToCytoscape(this.activeUnit.current_ptb);
+      
+      // Prefix IDs to avoid collisions and tag with source
+      elements.forEach((el: any) => {
+          if (el.data.id) el.data.id = 'main_' + el.data.id;
+          if (el.data.source) el.data.source = 'main_' + el.data.source;
+          if (el.data.target) el.data.target = 'main_' + el.data.target;
+          if (!('source' in el.data)) {
+              el.data.subtreeId = 'main'; // Explicit ID for selector
+              // Apply Main Tree Color (0 = Vermilion) to Master Map elements
+              (el as any).classes = ((el as any).classes ? (el as any).classes + " " : "") + `subtree-color-0`;
+          }
+      });
+
+      // 2. Iteratively resolve LINKs
+      let linksFound = true;
+      let iterations = 0;
+      const maxIterations = 50; // Safety break
+      const processedLinkIds = new Set<string>(); // Track processed links to avoid loops
+
+      while (linksFound && iterations < maxIterations) {
+          linksFound = false;
+          iterations++;
+
+          // Find a LINK node in the current graph that hasn't been processed
+          const linkNode = elements.find((el: any) => 
+              !('source' in el.data) && el.data.label && el.data.label.toString().startsWith('LINK-') && !processedLinkIds.has(el.data.id)
+          );
+          
+          if (linkNode) {
+              const labelParts = linkNode.data.label.toString().split('-');
+              // LINK-A-uid -> A
+              const label = labelParts.length >= 2 ? labelParts[1] : linkNode.data.label.replace('LINK-', '');
+              
+              const subtree = this.activeUnit.subtrees?.find(st => st.label === label);
+              
+              if (subtree) {
+                  // Ensure color index exists (fallback for legacy data)
+                  if (subtree.colorIndex === undefined) {
+                      // Fallback: simple cycle if we can't determine sequence easily
+                      subtree.colorIndex = (this.activeUnit.subtrees?.indexOf(subtree) || 0) % 4;
+                  }
+                  const colorIndex = subtree.colorIndex;
+                  processedLinkIds.add(linkNode.data.id); // Mark as processed
+
+                  // Parse Subtree
+                  const stElements = parsePtbToCytoscape(subtree.ptb);
+                  const prefix = `st_${subtree.id}_`;
+                  
+                  stElements.forEach((el: any) => {
+                      if (el.data.id) el.data.id = prefix + el.data.id;
+                      if (el.data.source) el.data.source = prefix + el.data.source;
+                      if (el.data.target) el.data.target = prefix + el.data.target;
+                      if (!('source' in el.data)) {
+                          el.data.subtreeId = subtree.id;
+                          // Add color class
+                          (el as any).classes = ((el as any).classes ? (el as any).classes + " " : "") + `subtree-color-${colorIndex}`;
+                      }
+                  });
+
+                  // Find graft point (Incoming edge to LINK node)
+                  const incomingEdge = elements.find((el: any) => 'source' in el.data && el.data.target === linkNode.data.id);
+                  
+                  // Find Subtree Content Root (The child of the LINK-Parent wrapper)
+                  // Subtree PTB: (LINK-Parent (S ...)) -> Root is LINK-Parent
+                  const stRoots = stElements.filter((el: any) => !('source' in el.data) && !stElements.some((e: any) => 'source' in e.data && e.data.target === el.data.id));
+                  const stRoot = stRoots[0];
+
+                  if (stRoot) {
+                      // Get children of the wrapper root
+                      const childrenEdges = stElements.filter((el: any) => 'source' in el.data && el.data.source === stRoot.data.id);
+                      let nodesToConnect = childrenEdges.map((el: any) => el.data.target);
+
+                      // KEEP LINK node and incoming edge.
+                      // Style the link node as a "Master Link" (Ghostly bridge)
+                      linkNode.classes = (linkNode.classes || "") + " master-link";
+
+                      // Add subtree elements (excluding the wrapper root and its outgoing edges)
+                      let stContent = stElements.filter((el: any) => el.data.id !== stRoot.data.id && el.data.source !== stRoot.data.id);
+                      
+                      // Note: We removed the duplication check (unwrap) logic here.
+                      // In Master Map with explicit LINK nodes, we want to see the full structure:
+                      // Parent -> LINK -> Child. Even if Parent and Child are both 'S', the LINK separates them visually.
+
+                      elements = elements.concat(stContent);
+
+                      // Connect LINK node to subtree content roots
+                      if (linkNode) {
+                          nodesToConnect.forEach((childId: any) => {
+                              elements.push({
+                                  data: { source: linkNode.data.id, target: childId }
+                              });
+                          });
+                      }
+                      linksFound = true; // We modified the graph, check again for nested links
+                  } else {
+                      // Malformed subtree? Just remove the link to avoid loop
+                      elements = elements.filter((el: any) => el.data.id !== linkNode.data.id);
+                  }
+              } else {
+                  // Subtree not found (maybe deleted?), mark as resolved to stop loop
+                  processedLinkIds.add(linkNode.data.id);
+                  linkNode.data.label = "MISSING-" + label;
+              }
+          }
+      }
+      
+      this.masterTreeElements = elements;
+  }
+
+  private handleMasterMapToggle() {
+      if (this.viewMode === 'edit') {
+          this.toggleMasterView();
+      } else {
+          this.viewMode = 'edit';
+          setTimeout(() => globalThis.dispatchEvent(new Event('resize')), 50);
+      }
+  }
+
+  private toggleMasterView() {
+      // Save any pending changes from the current editable view before switching
+      this.saveCurrentEditorState();
+      
+      // Determine focus target for the transition (Where are we coming from?)
+      if (this.activeSubtreeId) {
+          // Coming from a subtree: Focus on its nodes in the Master Map
+          this.masterFocusSelector = `[subtreeId = "${this.activeSubtreeId}"]`;
+      } else {
+          // Coming from Main Tree: Focus on main nodes
+          this.masterFocusSelector = `[subtreeId = "main"]`;
+      }
+
+      // 1. Switch to Master Map mode
+      // This triggers the Editor's 'updated' lifecycle, which:
+      // a) Takes a snapshot of the current view (Sidebar OPEN)
+      // b) Loads the Master Tree elements
+      // c) Animates the layout (Zoom Out) over 1200ms
+      this.viewMode = 'master_map';
+      this.buildMasterTree();
+      
+      // 2. Wait for the transition to finish BEFORE closing the sidebar.
+      // This ensures the snapshot overlay matches the container size throughout the cross-fade.
+      setTimeout(() => {
+          this.isSidebarOpen = false; // Collapse sidebar
+          
+          // 3. After sidebar animation (300ms), trigger resize to fill the screen
+          setTimeout(() => {
+              globalThis.dispatchEvent(new Event('resize'));
+          }, 350);
+      }, 1250); // 1200ms transition + buffer
+
+      // Integrity Check disabled for Master Map with explicit LINK nodes.
+      // The visual structure (with LINKs) intentionally differs from the logical defragmented tree (without LINKs).
+  }
+
+  private async verifyMasterMapIntegrity(unit: TreeUnit) {
+      // Only run if we have original data to compare against
+      if (!unit.original_ptb) return;
+
+      try {
+          const response = await fetch('/api/tools/defragment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  main_ptb: unit.current_ptb,
+                  subtrees: unit.subtrees || [],
+                  reference_ptb: unit.original_ptb
+              })
+          });
+
+          if (response.ok) {
+              const data = await response.json();
+              if (data.integrity_check) {
+                  const check = data.integrity_check;
+                  setTimeout(() => {
+                      if (check.status === 'passed') alert(`✅ Master Map Integrity Verified\n\nReconstructed tree matches original source.`);
+                      else if (check.status === 'failed') alert(`⚠️ Master Map Divergence\n\nCurrent tree differs from original source.\n(This is expected if you have made edits)\n\nDiffs:\n${check.diffs.slice(0, 5).join('\n')}`);
+                  }, 600); // Wait for transition animation
+              }
+          }
+      } catch (e) {
+          console.error("Integrity check failed:", e);
+      }
+  }
+
   private handleRequestNavigation(e: CustomEvent) {
       const { label } = e.detail;
+      console.log("GrammatomyApp: Navigation requested to label:", label);
       if (!this.activeUnit) return;
       
       // Find subtree by label (e.g., "A")
@@ -540,6 +820,46 @@ export class GrammatomyApp extends LitElement {
           // If not a known child subtree, assume it's a back-link to parent
           this.navigateToParent();
       }
+  }
+
+  private handleMasterNodeDblClick(e: CustomEvent) {
+      const nodeData = e.detail;
+      let subtreeId = nodeData.subtreeId;
+      
+      // Intelligent Navigation:
+      // If the user double-clicks a LINK node (e.g. LINK-F) inside Tree E,
+      // they expect to go to Tree F, not Tree E.
+      if (nodeData.label && nodeData.label.toString().startsWith('LINK-')) {
+          const labelParts = nodeData.label.toString().split('-');
+          // LINK-Label-ID -> Label
+          const targetLabel = labelParts.length >= 2 ? labelParts[1] : nodeData.label.replace('LINK-', '');
+          const targetSubtree = this.activeUnit?.subtrees?.find(st => st.label === targetLabel);
+          if (targetSubtree) {
+              subtreeId = targetSubtree.id;
+          }
+      }
+
+      // 1. Zoom into the clicked node in Master Map (Visual Feedback)
+      if (this.editor) {
+          // We can't easily get the node object from here without querying cy, 
+          // but we can assume the user just clicked it, so it's centered or we can animate zoom.
+          // For simplicity, let's just switch view mode which triggers a layout animation in the editor.
+          
+          console.log("MasterMap: Navigate to", subtreeId, "node", nodeData.label);
+          
+          this.viewMode = 'edit';
+          if (subtreeId) {
+              this.navigateToSubtree(subtreeId);
+          } else {
+              this.navigateToMain();
+          }
+          
+          // The editor will auto-fit on load. 
+          // To make it "zoom to node", we would need to pass the target node ID to the editor
+          // and have it focus on it after layout.
+      }
+
+      // TODO: Focus specific node (requires mapping ID back to original, which is tricky due to prefixing)
   }
 
   private navigateToParent() {
@@ -588,19 +908,41 @@ export class GrammatomyApp extends LitElement {
       if (!unit.subtrees) return;
       
       const labelToSubtree = new Map<string, any>();
-      unit.subtrees.forEach(st => labelToSubtree.set(st.label, st));
+      unit.subtrees.forEach(st => {
+          st.parent_subtree_id = undefined; // Reset to ensure clean state
+          labelToSubtree.set(st.label, st);
+      });
       
+      // Helper to extract label from LINK string
+      const extractLabel = (s: string) => {
+          const parts = s.split('-');
+          // parts[0] is "LINK", parts[1] is Label (e.g. "A"), parts[2+] is ID
+          if (parts.length >= 2) return parts[1];
+          return s.replace('LINK-', '');
+      };
+
       // Helper to find links in a PTB string
-      const findLinks = (ptb: string) => {
-          return (ptb.match(/LINK-([^\s\)]+)/g) || []).map(s => s.replace('LINK-', ''));
+      const findLinks = (ptb: string, isSubtree: boolean) => {
+          const allLinks = (ptb.match(/LINK-([^\s\)]+)/g) || []);
+          // For subtrees, the first LINK node is the Root (Back-link to parent).
+          // We must exclude it to avoid circular lineage (Child thinking it is parent of Parent).
+          const childLinks = isSubtree ? allLinks.slice(1) : allLinks;
+          
+          return childLinks.map(extractLabel);
       };
 
       // 1. Main Tree Children
-      findLinks(unit.current_ptb).forEach(label => { const st = labelToSubtree.get(label); if(st) st.parent_subtree_id = null; });
+      findLinks(unit.current_ptb, false).forEach(label => { 
+          const st = labelToSubtree.get(label); 
+          if(st) st.parent_subtree_id = null; 
+      });
 
       // 2. Subtree Children (Recursive)
       unit.subtrees.forEach(parent => {
-          findLinks(parent.ptb).forEach(label => { const st = labelToSubtree.get(label); if(st) st.parent_subtree_id = parent.id; });
+          findLinks(parent.ptb, true).forEach(label => { 
+              const st = labelToSubtree.get(label); 
+              if(st) st.parent_subtree_id = parent.id; 
+          });
       });
   }
 
@@ -649,8 +991,16 @@ export class GrammatomyApp extends LitElement {
 
   private saveCurrentEditorState() {
       if (!this.activeUnitId || !this.project || !this.editor) return;
-      console.log("saveCurrentEditorState: called.");
 
+      // FIX: Do not save state if the editor is in read-only mode (i.e., Master Map).
+      // This is more robust than checking `this.viewMode`, which can change just before this call,
+      // causing a race condition where the master map content overwrites the real tree.
+      if (this.editor.readOnly) {
+          console.log("saveCurrentEditorState: Aborted (editor is read-only).");
+          return;
+      }
+      
+      console.log("saveCurrentEditorState: called.");
       if (this.isPendingRender) {
           console.warn("Skipping save: Model is ahead of View (Pending Render)");
           return;
@@ -661,16 +1011,20 @@ export class GrammatomyApp extends LitElement {
       if (unitIndex === -1) return;
 
       if (this.activeSubtreeId) {
-          // Save to subtree
+          // IMPORTANT: Save ONLY to the subtree, NEVER overwrite the main unit's current_ptb
+          // The main unit's current_ptb contains LINK nodes that reference all subtrees.
+          // Overwriting it would corrupt the fragmentation structure.
           const unit = this.project.units[unitIndex];
           if (unit.subtrees) {
               const stIndex = unit.subtrees.findIndex(st => st.id === this.activeSubtreeId);
               if (stIndex !== -1) {
                   unit.subtrees[stIndex].ptb = currentPtb;
+                  console.log(`  Saved subtree ${this.activeSubtreeId} (${currentPtb.length} chars)`);
               }
           }
       } else {
-          // Save to main unit
+          // Save to main unit (only when viewing main, not when viewing subtrees)
+          console.log(`  Saving main unit current_ptb (${currentPtb.length} chars)`);
           this.project.units[unitIndex].current_ptb = currentPtb;
       }
   }
@@ -683,6 +1037,7 @@ export class GrammatomyApp extends LitElement {
   private navigateToMain() {
       this.saveCurrentEditorState();
       this.activeSubtreeId = null;
+      this.viewMode = 'edit';
       setTimeout(() => globalThis.dispatchEvent(new Event('resize')), 50);
   }
 
@@ -690,6 +1045,7 @@ export class GrammatomyApp extends LitElement {
       this.saveCurrentEditorState();
       this.activeSubtreeId = subtreeId;
       setTimeout(() => globalThis.dispatchEvent(new Event('resize')), 50);
+      this.viewMode = 'edit';
   }
 
   private async selectUnit(unitId: string) {
@@ -701,6 +1057,7 @@ export class GrammatomyApp extends LitElement {
       // 2. Switch
       this.activeUnitId = unitId;
       this.activeSubtreeId = null; // Reset to main tree of new unit
+      this.viewMode = 'edit';
       
       // 3. Parse if needed
       await this.parseActiveUnit();
@@ -756,8 +1113,8 @@ export class GrammatomyApp extends LitElement {
           const a = document.createElement('a');
           a.href = url;
           const name = this.activeSubtreeId 
-            ? `${this.project.meta.name}_${this.activeUnitId}_${this.activeSubtreeId}.${format}`
-            : `${this.project.meta.name}_${this.activeUnitId}.${format}`;
+            ? `${this.project.meta.name}_${this.activeUnitId}_${this.activeSubtreeId}.`
+            : `${this.project.meta.name}_${this.activeUnitId}.`;
             
           a.download = name;
           document.body.appendChild(a);
@@ -784,29 +1141,49 @@ export class GrammatomyApp extends LitElement {
   }
 
   private async handleSidebarExport(format: string) {
-      if (!this.sidebarContextMenu || !this.project) return;
-      
-      const unit = this.project.units.find(u => u.id === this.sidebarContextMenu!.unitId);
+      if (!this.project) return;
+
+      // If called from a sidebar row context menu, use that unit. Otherwise
+      // allow certain global exports (e.g., PTB) to operate on the active unit.
+      let unit: TreeUnit | undefined;
+      if (this.sidebarContextMenu) {
+          unit = this.project.units.find(u => u.id === this.sidebarContextMenu!.unitId);
+      } else if (format === 'ptb') {
+          unit = this.activeUnit;
+      }
+
       if (!unit) return;
 
-      const ptb = unit.current_ptb;
+      const ptb = this.activeSubtreeId
+          ? (unit.subtrees?.find(st => st.id === this.activeSubtreeId)?.ptb || unit.current_ptb)
+          : unit.current_ptb;
       const filename = `${this.project.meta.name}_${unit.id}`;
-      
+
       this.sidebarContextMenu = null; // Close menu
       this.requestUpdate();
 
       try {
+          // Client-side PTB export: simply download the PTB text
+          if (format === 'ptb') {
+              const blob = new Blob([ptb], { type: 'text/plain;charset=utf-8' });
+              const url = globalThis.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `.ptb`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              globalThis.URL.revokeObjectURL(url);
+              return;
+          }
+
           let endpoint = '/api/export/image';
-          let isText = false;
           let ext = format;
-          
           if (format === 'ascii') {
               endpoint = '/api/export/ascii';
-              isText = true;
               ext = 'txt';
           } else if (format === 'latex') {
               endpoint = '/api/export/latex';
-              isText = true;
               ext = 'tex';
           }
 
@@ -822,7 +1199,7 @@ export class GrammatomyApp extends LitElement {
           const url = globalThis.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${filename}.${ext}`;
+          a.download = `.`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -891,7 +1268,7 @@ export class GrammatomyApp extends LitElement {
   }
 
   private get activeParentLabel(): string {
-      if (!this.activeSubtreeId || !this.activeUnit) return "";
+      if (!this.activeSubtreeId || !this.activeUnit) return "Main";
       const currentSubtree = this.activeUnit.subtrees?.find(st => st.id === this.activeSubtreeId);
       
       if (currentSubtree && currentSubtree.parent_subtree_id !== undefined) {
@@ -903,6 +1280,12 @@ export class GrammatomyApp extends LitElement {
           }
       }
       return "ROOT";
+  }
+
+  private get activeColorIndex(): number {
+      if (!this.activeSubtreeId || !this.activeUnit) return 0; // Main Tree = 0 (Vermilion)
+      const st = this.activeUnit.subtrees?.find(s => s.id === this.activeSubtreeId);
+      return st?.colorIndex !== undefined ? st.colorIndex : -1;
   }
 
   private isTerminalSubtree(subtree: SubTree): boolean {
@@ -930,12 +1313,12 @@ export class GrammatomyApp extends LitElement {
       if (!this.sidebarContextMenu || !this.sidebarContextMenu.open) return html``;
       
       const { x, y } = this.sidebarContextMenu;
-      const style = `top: ${y}px; left: ${x}px;`;
+      const style = `top: px; left: px;`;
 
       return html`
         <div 
             class="fixed z-50 bg-white border border-gray-200 shadow-xl rounded-lg py-1 min-w-[160px] flex flex-col text-sm animate-in fade-in zoom-in-95 duration-100 font-sans" 
-            style="${style}"
+            style=""
             @mouseleave=${() => this.sidebarContextMenu = null}
         >
             <button @click=${() => this.handleSidebarExport('png')} class="text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 transition-colors"><span class="material-symbols-outlined text-base not-italic">image</span> <span class="font-sans">PNG</span></button>
@@ -991,7 +1374,7 @@ export class GrammatomyApp extends LitElement {
                     ${this.isExportMenuOpen ? html`
                         <div class="fixed inset-0 z-40" @click=${() => this.isExportMenuOpen = false}></div>
                         <div class="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 flex flex-col py-1 animate-in fade-in zoom-in-95 duration-100">
-                            <button @click=${() => { this.handleExportImage('ascii'); this.isExportMenuOpen = false; }} class="text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 text-sm"><span class="material-symbols-outlined text-lg">notes</span> Export PTB</button>
+                            <button @click=${() => { this.handleSidebarExport('ptb'); this.isExportMenuOpen = false; }} class="text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 text-sm"><span class="material-symbols-outlined text-lg">notes</span> Export PTB</button>
 
 
                             <button @click=${() => { this.handleExportImage('png'); this.isExportMenuOpen = false; }} class="text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 text-sm"><span class="material-symbols-outlined text-lg">image</span> Export PNG</button>
@@ -1003,6 +1386,14 @@ export class GrammatomyApp extends LitElement {
             
             <!-- Editor Controls (Right Aligned) -->
             <div class="flex items-center gap-2">
+                <button 
+                    @click=${this.handleMasterMapToggle}
+                    ?disabled=${!this.activeUnit}
+                    class="p-1.5 rounded transition-colors ${this.viewMode === 'master_map' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'} disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="${this.viewMode === 'master_map' ? 'Back to Editor' : 'Master Map'}"
+                >
+                    <span class="material-symbols-outlined text-[24px]">map</span>
+                </button>
                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
                 <button @click=${() => this.editor?.undo()} class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors" title="Undo (Ctrl+Z)">
                     <span class="material-symbols-outlined text-[20px]">undo</span>
@@ -1014,7 +1405,7 @@ export class GrammatomyApp extends LitElement {
                     <span class="material-symbols-outlined text-[20px]">fit_screen</span>
                 </button>
                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
-                <button @click=${this.handleManualDetach} ?disabled=${isDetachDisabled} class="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Detach Selected Node">
+                <button @click=${this.handleManualDetach} ?disabled= class="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Detach Selected Node">
                     <span class="material-symbols-outlined text-[20px]">extension</span>
                 </button>
             </div>
@@ -1091,16 +1482,23 @@ export class GrammatomyApp extends LitElement {
             <div class="${isSplitView ? 'w-1/2' : 'w-full'} h-full relative transition-all duration-300 z-0">
                 <div class="w-full h-full overflow-hidden relative">
                     ${this.activeUnit ? html`
-                        <grammatomy-editor 
-                            class="w-full h-full block"
-                            .ptb=${this.currentPtbToDisplay}
-                            .parentLabel=${this.activeParentLabel}
-                            .subtrees=${this.activeUnit.subtrees || []}
-                            .isMainTree=${this.activeSubtreeId === null}
+                        ${this.viewMode === 'master_map' ? html`<div class="absolute top-4 left-4 z-10 bg-white/90 px-3 py-1 rounded shadow text-xs font-bold text-blue-800 border border-blue-100">MASTER MAP (Read Only)</div>` : ''}
+                        <grammatomy-editor
+                            class="w-full h-full block ${this.viewMode === 'master_map' ? 'bg-slate-50' : ''}"
+                            .readOnly=${this.viewMode === 'master_map'}
+                            .elements=${this.viewMode === 'master_map' ? this.masterTreeElements : []}
+                            .ptb=${this.viewMode === 'edit' ? this.currentPtbToDisplay : ""}
+                            .parentLabel=${this.viewMode === 'edit' ? this.activeParentLabel : ""}
+                            .subtrees=${this.viewMode === 'edit' ? (this.activeUnit.subtrees || []) : []}
+                            .isMainTree=${this.viewMode === 'edit' ? (this.activeSubtreeId === null) : false}
+                            .activeColorIndex=${this.viewMode === 'edit' ? this.activeColorIndex : -1}
+                            .initialFocusSelector=${this.viewMode === 'master_map' ? this.masterFocusSelector : ""}
                             @save-fragmentation=${this.handleFragmentation}
                             @request-navigation=${this.handleRequestNavigation}
                             @selection-changed=${this.handleSelectionChanged}
-                        ></grammatomy-editor>
+                            @node-dblclick=${this.handleMasterNodeDblClick}
+                        >
+                        </grammatomy-editor>
                     ` : html`
                         <div class="w-full h-full flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 shadow-inner">
                             <div class="text-center text-gray-400">
@@ -1192,7 +1590,7 @@ export class GrammatomyApp extends LitElement {
                         <div class="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
                                 <div>
-                                    <h2 class="font-bold text-gray-800">${this.project.meta.name}</h2>
+                                    <h2 @click=${this.toggleMasterView} class="font-bold cursor-pointer hover:text-blue-600 transition-colors ${this.viewMode === 'master_map' ? 'text-blue-700 underline decoration-2 underline-offset-4' : 'text-gray-800'}" title="View Full Project Map">${this.project.meta.name}</h2>
                                     <div class="text-xs text-gray-500 mt-1">${this.project.units.length} sentences</div>
                                 </div>
                                 <button 
@@ -1230,16 +1628,16 @@ export class GrammatomyApp extends LitElement {
                                             <div class="ml-4 pl-2 border-l-2 border-gray-100 space-y-1 mt-1 mb-2">
                                                 <div 
                                                     @click=${(e: Event) => { e.stopPropagation(); this.navigateToMain(); }}
-                                                    class=${`text-xs px-2 py-1 rounded cursor-pointer flex items-center justify-between ${!this.activeSubtreeId ? 'bg-blue-100 text-blue-800 font-bold' : 'text-gray-500 hover:bg-gray-100'}`}
+                                                    class=${`text-xs px-2 py-1 rounded cursor-pointer flex items-center justify-between ${!this.activeSubtreeId && this.viewMode === 'edit' ? 'bg-blue-100 text-blue-800 font-bold' : 'text-gray-500 hover:bg-gray-100'}`}
                                                 >
                                                     <div class="flex items-center gap-2">
                                                         <span class="material-symbols-outlined text-[14px]">account_tree</span> Main Tree
                                                     </div>
                                                 </div>
-                                                ${unit.subtrees.map(st => html`
+                                                ${unit.subtrees.slice().sort((a, b) => a.label.localeCompare(b.label)).map(st => html`
                                                     <div 
                                                         @click=${(e: Event) => { e.stopPropagation(); this.navigateToSubtree(st.id); }}
-                                                        class=${`text-xs px-2 py-1 rounded cursor-pointer flex items-center justify-between ${this.activeSubtreeId === st.id ? 'bg-blue-100 text-blue-800 font-bold' : 'text-gray-500 hover:bg-gray-100'}`}
+                                                        class=${`text-xs px-2 py-1 rounded cursor-pointer flex items-center justify-between ${this.activeSubtreeId === st.id && this.viewMode === 'edit' ? 'bg-blue-100 text-blue-800 font-bold' : 'text-gray-500 hover:bg-gray-100'}`}
                                                     >
                                                         <div class="flex items-center gap-2">
                                                             <span class="w-4 h-4 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-[9px] font-mono">${st.label}</span>
@@ -1248,7 +1646,6 @@ export class GrammatomyApp extends LitElement {
                                                         <div class="flex items-center gap-1">
                                                         <button 
                                                             @click=${(e: Event) => this.handleReabsorb(e, st.id)}
-                                                            ?disabled=${!this.isTerminalSubtree(st)}
                                                             class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-purple-600 transition-colors"
                                                             title="Reabsorb Fragment (Merge Up)"
                                                         >
@@ -1398,8 +1795,8 @@ export class GrammatomyApp extends LitElement {
           if (!ptb) return;
           const elements = parsePtbToCytoscape(ptb) as any[];
           const childrenMap = new Map<string, any[]>();
-          
-          // Build graph
+
+          // Build parent -> children map
           elements.forEach(el => {
               if ('source' in el.data) {
                   const pid = el.data.source;
@@ -1409,50 +1806,49 @@ export class GrammatomyApp extends LitElement {
               }
           });
 
-          // Check rules
+          // Iterate potential parent nodes
           elements.forEach(el => {
-              const isTargetNode = this.selectedSearchType === "IMPLICIT" ? !('source' in el.data) : (!('source' in el.data) && el.data.label === this.selectedSearchType);
-              if (isTargetNode) {
-                  const children = childrenMap.get(el.data.id) || [];
-                  const currentRhs = children.map(c => {
-                      // Apply same abstraction logic for matching
-                      const grandChildren = childrenMap.get(c.data.id);
-                      const isLeaf = !grandChildren || grandChildren.length === 0;
-                      
-                      if (isLeaf) {
-                          if (c.data.label.includes("👻")) return c.data.label;
-                          if (c.data.label.startsWith("LINK")) return c.data.label;
-                          return "<terminal>";
-                      }
-                      return c.data.label;
-                  });
-                  
-                  // Compare arrays (Exact match for explicit type, Subsequence for IMPLICIT)
-                  let match = false;
-                  if (this.selectedSearchType === "IMPLICIT") {
-                      // Check if targetRhs is a sub-sequence of currentRhs
-                      if (currentRhs.length >= targetRhs.length) {
-                          for (let i = 0; i <= currentRhs.length - targetRhs.length; i++) {
-                              if (currentRhs.slice(i, i + targetRhs.length).every((val, k) => val === targetRhs[k])) {
-                                  match = true;
-                                  break;
-                              }
-                          }
-                      }
-                  } else {
-                      // Exact match
-                      match = (currentRhs.length === targetRhs.length && currentRhs.every((val, i) => val === targetRhs[i]));
-                  }
+              const isTargetNode = this.selectedSearchType === "IMPLICIT"
+                ? !('source' in el.data)
+                : (!('source' in el.data) && el.data.label === this.selectedSearchType);
 
-                  if (match) {
-                    results.push({
-                        unitId,
-                        subtreeId,
-                        nodeId: el.data.id,
-                        text: contextText.substring(0, 40) + (contextText.length > 40 ? "..." : ""),
-                        context: `${el.data.label} -> ... ${this.selectedSearchRule} ...`
-                    });
+              if (!isTargetNode) return;
+
+              const children = childrenMap.get(el.data.id) || [];
+              if (children.length === 0) return;
+
+              const currentRhs = children.map((c: any) => {
+                  const grandChildren = childrenMap.get(c.data.id);
+                  const isLeaf = !grandChildren || grandChildren.length === 0;
+                  if (isLeaf) {
+                      if (c.data.label.includes("👻")) return c.data.label;
+                      if (c.data.label.startsWith("LINK")) return c.data.label;
+                      return "<terminal>";
                   }
+                  return c.data.label;
+              });
+
+              // Check for contiguous subsequence match (or exact match)
+              let match = false;
+              if (targetRhs.length <= currentRhs.length) {
+                  for (let i = 0; i <= currentRhs.length - targetRhs.length; i++) {
+                      if (currentRhs.slice(i, i + targetRhs.length).every((val, k) => val === targetRhs[k])) {
+                          match = true;
+                          break;
+                      }
+                  }
+              } else {
+                  match = (currentRhs.length === targetRhs.length && currentRhs.every((val, i) => val === targetRhs[i]));
+              }
+
+              if (match) {
+                  results.push({
+                      unitId,
+                      subtreeId,
+                      nodeId: el.data.id,
+                      text: contextText.substring(0, 40) + (contextText.length > 40 ? "..." : ""),
+                      context: `${el.data.label} -> ... ${this.selectedSearchRule} ...`
+                  });
               }
           });
       };
@@ -1503,7 +1899,7 @@ export class GrammatomyApp extends LitElement {
                         .value=${this.selectedSearchType}
                     >
                         <option value="IMPLICIT">Implicit Structure</option>
-                        ${this.searchNodeTypes.map(t => html`<option value="${t}">${t}</option>`)}
+                        ${this.searchNodeTypes.map(t => html`<option value=""></option>`)}
                     </select>
                 </div>
 
@@ -1515,7 +1911,7 @@ export class GrammatomyApp extends LitElement {
                         .value=${this.selectedSearchRule}
                     >
                         <option value="">Select Rule...</option>
-                        ${this.searchRules.map(r => html`<option value="${r}">${this.selectedSearchType === 'IMPLICIT' ? '... ' + r + ' ...' : this.selectedSearchType + ' -> ' + r}</option>`)}
+                        ${this.searchRules.map(r => html`<option value="">${this.selectedSearchType === 'IMPLICIT' ? '... ' + r + ' ...' : this.selectedSearchType + ' -> ' + r}</option>`)}
                     </select>
                 </div>
 

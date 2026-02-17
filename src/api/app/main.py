@@ -6,7 +6,7 @@ import mimetypes
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import fastapi.responses
 import graphviz
@@ -15,15 +15,17 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from core.grammatomy import get_syntax_tree, to_json, to_latex, to_ptb
+from core.grammatomy.config import config
 from core.grammatomy.fragmentation import FragmentationEngine
 from core.grammatomy.grammar import GRAMMAR_RULES, NODE_DESCRIPTIONS
 from core.grammatomy.parsers.lisp_parser import LispParser
+from core.grammatomy.tree_comparator import TreeComparator
 from core.grammatomy.validation_engine import ValidationEngine
 from core.grammatomy.visualization.ascii_renderer import render_ascii_colored
 from core.grammatomy.visualization.graphviz_renderer import get_graphviz_dot
 
+from .routers import mutation, project
 from .schemas import ParseRequest, ParseResponse, RenderRequest, SyntaxNode
-from .routers import mutation
 
 app = FastAPI(
     title="Grammatomy API",
@@ -32,6 +34,7 @@ app = FastAPI(
 )
 
 app.include_router(mutation.router, prefix="/api/mutation", tags=["Mutation"])
+app.include_router(project.router, prefix="/api/project", tags=["Project"])
 
 ERROR_PARSER_FAILED = "Parser returned no tree"
 
@@ -63,6 +66,7 @@ class FragmentRequest(BaseModel):
 class DefragmentRequest(BaseModel):
     main_ptb: str
     subtrees: List[Dict[str, Any]]
+    reference_ptb: Optional[str] = None
 
 
 def _convert_to_syntax_node(node) -> SyntaxNode:
@@ -235,12 +239,12 @@ def get_validation_options(payload: dict):
         is_valid, reason = validator.can_add_child(parent, tag)
         trace = [reason]
         # 2. Get Valid Options (for dropdown)
-        valid_options = sorted(list(validator.allowed_children.get(parent, [])))
+        valid_options = sorted(validator.allowed_children.get(parent, []))
     else:
         # Root context check
         is_valid = tag in validator.root_allowed_tags
         trace = ["Root check"] if is_valid else [f"'{tag}' not allowed as Root"]
-        valid_options = sorted(list(validator.root_allowed_tags))
+        valid_options = sorted(validator.root_allowed_tags)
 
     # Fallback if no options found (e.g. terminal or unknown parent)
     if not valid_options and not parent:
@@ -298,6 +302,9 @@ def export_image(request: RenderRequest):
         # Generate DOT and Render
         dot_code = get_graphviz_dot(root)
         src = graphviz.Source(dot_code)
+        # Support ASCII rendering as a special-case: return plain text
+        if request.format == "ascii":
+            return fastapi.responses.PlainTextResponse(render_ascii_colored(root))
         data = src.pipe(format=request.format)
 
         media_type = "image/png"
@@ -354,9 +361,12 @@ def export_latex(request: RenderRequest):
 @app.post("/api/tools/fragment")
 def fragment_tree(request: FragmentRequest):
     try:
-        main_ptb, subtrees = fragmentation_engine.fragment(request.ptb)
-        return {"main_ptb": main_ptb, "subtrees": subtrees}
+        print(f"[fragment] ptb_len={len(request.ptb)}")
+        main_ptb, subtrees, integrity = fragmentation_engine.fragment(request.ptb)
+        print(f"[fragment] SUCCESS: generated {len(subtrees)} subtrees")
+        return {"main_ptb": main_ptb, "subtrees": subtrees, "integrity_check": integrity}
     except Exception as e:
+        print(f"[fragment] FAILED: {type(e).__name__}: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -364,26 +374,85 @@ def fragment_tree(request: FragmentRequest):
 @app.post("/api/tools/defragment")
 def defragment_tree(request: DefragmentRequest):
     try:
+        print(f"[defragment] main_ptb_len={len(request.main_ptb)} subtrees={len(request.subtrees)}")
         ptb = fragmentation_engine.defragment(request.main_ptb, request.subtrees)
-        return {"ptb": ptb}
+
+        integrity = None
+        if request.reference_ptb and config.debug:
+            try:
+                diffs = TreeComparator.compare_ptb(request.reference_ptb, ptb)
+                if diffs:
+                    print(f"[defragment] ⚠️ Integrity Check Failed! {len(diffs)} differences found.")
+                    integrity = {"status": "failed", "diffs": diffs}
+                else:
+                    print("[defragment] ✅ Integrity Check Passed.")
+                    integrity = {"status": "passed", "diffs": []}
+            except Exception as e:
+                print(f"[defragment] ⚠️ Integrity Check Crashed: {e}")
+                integrity = {"status": "error", "message": str(e)}
+
+        print(f"[defragment] SUCCESS")
+        return {"ptb": ptb, "integrity_check": integrity}
     except Exception as e:
+        print(f"[defragment] FAILED: {type(e).__name__}: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/api/export/ascii")
-def export_ascii(request: RenderRequest):
+# --- Debug Endpoints ---
+
+
+class DebugInspectRequest(BaseModel):
+    ptb: str
+
+
+@app.post("/api/debug/inspect-tree")
+def debug_inspect_tree(request: DebugInspectRequest):
+    """
+    Inspect a PTB tree and return information about its structure.
+    Useful for debugging link matching issues.
+    """
     try:
-        # Parse PTB to AnyTree
-        root = lisp_parser.to_anytree(request.ptb)
-        if not root:
-            raise HTTPException(status_code=400, detail="Invalid PTB string")
+        parser = LispParser()
+        tree = parser.to_anytree(request.ptb)
 
-        # Render ASCII (using the colored renderer but returning plain text response)
-        return fastapi.responses.PlainTextResponse(render_ascii_colored(root))
+        # Collect all nodes with their names
+        all_nodes = []
+        link_nodes = []
+        s_nodes = []
+
+        from anytree import PreOrderIter
+
+        for i, node in enumerate(PreOrderIter(tree)):
+            node_info = {
+                "index": i,
+                "name": node.name,
+                "is_leaf": node.is_leaf,
+                "children_count": len(node.children),
+            }
+            all_nodes.append(node_info)
+
+            if node.name.startswith("LINK-"):
+                link_nodes.append(node.name)
+            if node.name == "S":
+                s_nodes.append(f"S at index {i}")
+
+        return {
+            "total_nodes": len(all_nodes),
+            "link_nodes": link_nodes,
+            "link_count": len(link_nodes),
+            "s_nodes_count": len(s_nodes),
+            "tree_sample": all_nodes[:20],  # First 20 nodes
+            "ptb_length": len(request.ptb),
+        }
     except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        print(f"[debug_inspect_tree] FAILED: {type(e).__name__}: {str(e)}")
+        return {"error": str(e)}
+
+
+# NOTE: ASCII export is handled as a special-case in `/api/export/image` to
+# centralize rendering logic. The dedicated `/api/export/ascii` endpoint is
+# intentionally omitted to avoid duplicate handlers.
 
 
 # --- Static File Serving (Production) ---

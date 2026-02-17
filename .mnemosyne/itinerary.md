@@ -32,7 +32,7 @@
 - [x] Interactive Demo Application (Streamlit Polished)
 - [x] Model & Language Inventory [DONE: Stanza=ES/IT/PT, Benepar=EN/FR/DE]
 - [x] Local Model Registry & Updater [DONE: tools/manage_models.py]
-- [x] Performance Benchmark Suite [DONE: tests/benchmark.py]
+- [x] Performance Benchmark Suite [ARCHIVED]
 - [x] RESTful Service (FastAPI) [DONE]
   - [x] API Skeleton (FastAPI + Pydantic)
   - [x] Endpoint: /parse (Constituency Tree)
@@ -53,7 +53,9 @@
     - [x] Deploy FastAPI Backend (Docker)
     - [x] Deploy Static Frontend (Lit Build)
   - [x] Code Quality Audit (Pylint/SonarQube cleanup) [DONE]
-  - [ ] Standard Logging Implementation (Replace print statements)
+  - [ ] Methodology Audit (Capture missing architectural decisions) [PRIORITY]
+  - [x] Standard Logging Implementation (Replace print statements) [DONE]
+  - [x] [QA] Increase test coverage for Fragmentation/Reabsorption logic [DONE] (Coverage: 72%)
   - [ ] PyPI Packaging Strategy (Library vs Demo separation)
   - [ ] ReadTheDocs Integration (MkDocs setup)
   - [ ] Grammatomy Studio (Phased Roadmap) [NEXT TARGET]
@@ -79,9 +81,14 @@
       - [x] Refactor: Server-Side Mutation (Migration) [DONE]
         - [x] Endpoint: /api/mutation/detach [DONE]
         - [x] Endpoint: /api/mutation/reabsorb [DONE]
-      - [ ] UX Polish: Mutation Workflow [NEXT TARGET]
-        - [ ] Fix: Auto-focus/Centering after Reabsorb
-        - [ ] Fix: Selection state management during transitions
+      - [x] Refactor: Server-Side Project Management [DONE]
+        - [x] Endpoint: /api/project/create (Segmentation + Parse + Fragment) [DONE]
+      - [ ] [CANDIDATE] [Feature] Lexical Normalization (Arcaisms) - User-defined substitution list (e.g. 'do'->'donde') [Detected in Session-2026-02-16]
+      - [ ] [CANDIDATE] [Feature] Extend Project Creation with Metadata (author, title, etc.) [Detected in Session-2026-02-16]
+      - [x] [Fix] Repair LINK node navigation & Reabsorb S-duplication (Góngora) [DONE]
+      - [x] UX Polish: Mutation Workflow [DONE]
+        - [x] Fix: Auto-focus/Centering after Reabsorb
+        - [x] Fix: Selection state management during transitions (Search Border)
     - [ ] Phase 1: v0.1.0 (Foundation & Persistence) [TARGET]
       - [x] Verify Ghost Node Logic (Recursive Delete / Auto-Spawn Child) [DONE]
       - [x] Implement Sibling Node Reordering (Move Left/Right) [DONE - Visual Only]
@@ -123,12 +130,17 @@
       - [ ] Configuration & Controls
         - [ ] Implement Parsing Mode Toggle (Constituency vs Universal Dependencies)
   - [ ] Algorithmic Tooling [NEW]
-    - [ ] Implement Tree Edit Distance (Tree Levenshtein) for comparison
+    - [x] Implement Tree Comparator (Strict Structural Diff) [DONE: src/core/grammatomy/tree_comparator.py]
   - [ ] Pedagogical App (Component Validation) [NEW]
     - [ ] Scaffold simple "Student vs Solution" app reusing Editor Component
   - [ ] Telemetry System (Data Flywheel) [NEW]
     - [ ] Design data schema (SQLite) and FastAPI endpoint
     - [ ] Implement user consent UI in Studio
     - [ ] Implement data collection logic on tree edit/save
+  - [ ] Phase 3: Academic Publication Engine (LaTeX) [FUTURE]
+    - [ ] [Analysis] Review `references/LATEX.md` for implementation details
+    - [ ] [Feature] Metadata Collection Form (ORCID, ISO 639-3, Methodology)
+    - [ ] [Feature] LaTeX Template Engine (LSA, LangSci, Generic)
+    - [ ] [Feature] Regional Presets (Iberian vs Euro vs Atlantic)
 - [ ] Linguistic Edge-Case Suite (Native/Non-Translated) [POSTPONED]
 - [x] Scientific Limitations Report (Model Characterization) [DONE: references/Auditoría Estructural Modelos Parsing Español.md]

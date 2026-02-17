@@ -26,6 +26,14 @@ const PUNCTUATION_MARKS = [
   "¿", "¡"
 ];
 
+// Palette for Master Map Subtrees (Wong Palette - Colorblind safe)
+const SUBTREE_PALETTE = [
+    "#D55E00", // Vermilion (Main Tree)
+    "#E69F00", // Orange
+    "#56B4E9", // Sky Blue
+    "#0072B2", // Blue
+];
+
 @customElement("grammatomy-editor")
 export class GrammatomyEditor extends LitElement {
   @query("#cy")
@@ -39,11 +47,23 @@ export class GrammatomyEditor extends LitElement {
   @property({ type: Array })
   subtrees: SubTree[] = [];
 
+  @property({ type: Array })
+  elements: any[] = [];
+
   @property({ type: Boolean })
   isMainTree: boolean = true;
 
   @property({ type: String })
   parentLabel: string = "";
+
+  @property({ type: Boolean })
+  readOnly: boolean = false;
+
+  @property({ type: Number })
+  activeColorIndex: number = -1;
+
+  @property({ type: String })
+  initialFocusSelector: string = "";
 
   @state()
   private selectedNode: any = null;
@@ -80,14 +100,14 @@ export class GrammatomyEditor extends LitElement {
   @state()
   private contextMenu: { open: boolean; x: number; y: number; target: any; type: 'node' | 'bg' } | null = null;
 
+  private layoutPromise: Promise<void> | null = null;
+
   private resizeObserver: ResizeObserver | null = null;
 
   private readonly layoutConfig: any = {
     name: "dagre",
     rankDir: "TB",
     spacingFactor: 1.1,
-    animate: true,
-    animationDuration: 400,
     fit: true,
     ranker: 'network-simplex',
     // Sort based on global DFS index to ensure correct left-to-right order across branches
@@ -107,8 +127,12 @@ export class GrammatomyEditor extends LitElement {
   }
 
   override firstUpdated() {
-    // Wait for the first render to complete
-    this.updateComplete.then(() => {
+    // Wait for the first render to complete AND for fonts to be ready
+    Promise.all([
+        this.updateComplete,
+        document.fonts.ready
+    ]).then(() => {
+        console.log("GrammatomyEditor: Component updated and fonts loaded. Initializing graph.");
         this.attemptInitialization();
     });
   }
@@ -116,8 +140,27 @@ export class GrammatomyEditor extends LitElement {
   override updated(
     changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>,
   ) {
-    if (this.cy && changedProperties.has("ptb") && this.ptb) {
-      this.loadPtb(this.ptb, true);
+    // Fix: Ensure Cytoscape stays mounted to the live DOM element if Lit replaces it
+    if (this.cy && this.container && this.cy.container() !== this.container) {
+        console.warn("GrammatomyEditor: DOM Container changed. Remounting Cytoscape instance.");
+        this.cy.mount(this.container);
+        this.cy.resize();
+    }
+
+    if (this.cy && changedProperties.has("ptb")) {
+        if (this.ptb) {
+            const loader = (opts: any) => this.loadPtb(this.ptb, opts);
+            this._performLoadWithTransition(loader);
+        } else if (this.cy.elements().length > 0 && (!this.elements || this.elements.length === 0)) {
+            // PTB became empty, and we are not loading elements, so clear the graph
+            this.cy.elements().remove();
+        }
+    }
+    if (this.cy && changedProperties.has("elements")) {
+        if (this.elements && this.elements.length > 0) {
+            const loader = (opts: any) => this.loadElements(this.elements, opts);
+            this._performLoadWithTransition(loader);
+        }
     }
     // Reload subtrees if they change externally (though usually editor generates them)
     if (changedProperties.has("subtrees")) {
@@ -152,7 +195,10 @@ export class GrammatomyEditor extends LitElement {
           
           if (this.ptb) {
               console.log("GrammatomyEditor: Loading initial PTB data.");
-              this.loadPtb(this.ptb, true);
+              this.loadPtb(this.ptb, { isTransition: false });
+          } else if (this.elements && this.elements.length > 0) {
+              console.log("GrammatomyEditor: Loading initial Elements data.");
+              this.loadElements(this.elements, { isTransition: false });
           }
       } else {
           console.error("GrammatomyEditor: FATAL - Container #cy not found in DOM after updateComplete.");
@@ -192,17 +238,19 @@ export class GrammatomyEditor extends LitElement {
             "background-color": "#E69F00",
             "border-width": 2,
             "border-color": "rgba(0,0,0,0.1)",
+            width: "label",
+            height: "label",
             label: "data(label)",
             color: "#161616",
             shape: "round-rectangle",
-            width: "label",
-            height: "label",
             padding: "8px",
             "text-valign": "center",
             "text-halign": "center",
             "font-family": "Roboto Mono",
             "font-size": "12px",
             "font-weight": "bold",
+            "text-wrap": "wrap",
+            "text-max-width": "120px",
           },
         },
         {
@@ -238,6 +286,8 @@ export class GrammatomyEditor extends LitElement {
             "border-color": "#009E73",
             color: "#009E73",
             shape: "triangle",
+            width: "90px",
+            height: "50px",
             padding: "20px",
             "text-margin-y": "15px",
           },
@@ -260,9 +310,28 @@ export class GrammatomyEditor extends LitElement {
             "border-width": 1,
             "font-weight": "bold",
             "font-family": "Roboto Mono",
+            width: "90px",
+            height: "50px",
             padding: "20px",
             "text-margin-y": "15px",
+            label: "data(shortLabel)",
+            "font-size": "20px",
           },
+        },
+        {
+          selector: "node.material-icon",
+          style: {
+            "font-family": "Material Symbols Outlined",
+            "font-weight": "normal",
+            "font-size": "32px",
+            "text-transform": "none",
+          },
+        },
+        {
+          selector: "node.main-link",
+          style: {
+            "font-size": "30px",
+          }
         },
         {
           selector: ".cut-dimmed",
@@ -295,6 +364,56 @@ export class GrammatomyEditor extends LitElement {
             "border-color": "#E69F00",
           },
         },
+        // Master Map Subtree Colors
+        {
+            selector: "node.subtree-color-0",
+            style: { "background-color": SUBTREE_PALETTE[0], "color": "#161616", "border-color": "rgba(0,0,0,0.2)" }
+        },
+        {
+            selector: "node.subtree-color-1",
+            style: { "background-color": SUBTREE_PALETTE[1], "color": "#161616", "border-color": "rgba(0,0,0,0.2)" }
+        },
+        {
+            selector: "node.subtree-color-2",
+            style: { "background-color": SUBTREE_PALETTE[2], "color": "#161616", "border-color": "rgba(0,0,0,0.2)" }
+        },
+        {
+            selector: "node.subtree-color-3",
+            style: { "background-color": SUBTREE_PALETTE[3], "color": "#161616", "border-color": "rgba(0,0,0,0.2)" }
+        },
+        // Ensure leaves stay green in Master Map (Override subtree color)
+        {
+            selector: "node.link-node.subtree-color-0",
+            style: { "background-color": SUBTREE_PALETTE[0], "color": "#161616", "border-color": "#161616" }
+        },
+        {
+            selector: "node.link-node.subtree-color-1",
+            style: { "background-color": SUBTREE_PALETTE[1], "color": "#161616", "border-color": "#161616" }
+        },
+        {
+            selector: "node.link-node.subtree-color-2",
+            style: { "background-color": SUBTREE_PALETTE[2], "color": "#161616", "border-color": "#161616" }
+        },
+        {
+            selector: "node.link-node.subtree-color-3",
+            style: { "background-color": SUBTREE_PALETTE[3], "color": "#161616", "border-color": "#161616" }
+        },
+        {
+            selector: "node.leaf.subtree-color-0",
+            style: { "background-color": "#009E73", "color": "#F4F4F4", "border-width": 0 }
+        },
+        {
+            selector: "node.leaf.subtree-color-1",
+            style: { "background-color": "#009E73", "color": "#F4F4F4", "border-width": 0 }
+        },
+        {
+            selector: "node.leaf.subtree-color-2",
+            style: { "background-color": "#009E73", "color": "#F4F4F4", "border-width": 0 }
+        },
+        {
+            selector: "node.leaf.subtree-color-3",
+            style: { "background-color": "#009E73", "color": "#F4F4F4", "border-width": 0 }
+        },
         {
           selector: "node.pos.subtree-highlight",
           style: {
@@ -322,6 +441,21 @@ export class GrammatomyEditor extends LitElement {
             "background-opacity": 0.5,
           },
         },
+        // Master Link Override (Must be last and specific to override subtree colors)
+        {
+          selector: "node.link-node.master-link",
+          style: {
+            "background-color": "#F5F5DC", // Bone White
+            "color": "#161616", // Charcoal
+            "border-color": "#161616",
+            "border-width": 2,
+            "shape": "triangle",
+            "font-weight": "bold",
+            "font-family": "Roboto Mono",
+            width: "90px",
+            height: "50px",
+          },
+        },
       ],
 
       layout: this.layoutConfig,
@@ -331,8 +465,59 @@ export class GrammatomyEditor extends LitElement {
   }
 
   private setupEventHandlers() {
+    // Manual Double Tap Logic for Robustness
+    let lastTapTime = 0;
+    let lastTapTarget: string | null = null;
+
     this.cy.on("tap", "node", (evt) => {
       const node = evt.target;
+      const currentTime = Date.now();
+      const tapInterval = currentTime - lastTapTime;
+      const isLink = node.hasClass("link-node") || (node.data('label') && node.data('label').toString().startsWith("LINK"));
+
+      // In ReadOnly mode, double tap on ANY node triggers navigation request
+      if (this.readOnly && tapInterval < 500 && tapInterval > 0 && lastTapTarget === node.id()) {
+          this.dispatchEvent(new CustomEvent('node-dblclick', {
+              detail: node.data(),
+              bubbles: true,
+              composed: true
+          }));
+          return;
+      }
+
+      // Check for Double Tap (Interval < 500ms)
+      if (isLink && tapInterval < 500 && tapInterval > 0 && lastTapTarget === node.id()) {
+          console.log("GrammatomyEditor: Manual Double tap detected on", node.data('label'));
+          
+          let label = node.data('label');
+          if (label === "LINK") {
+              label = "UP";
+          } else if (label && label.toString().startsWith("LINK-")) {
+              const parts = label.toString().split('-');
+              // parts[0]="LINK", parts[1]=Label, parts[2]=ID
+              if (parts.length >= 2) {
+                  label = parts[1];
+              } else {
+                  label = label.replace("LINK-", "");
+              }
+          }
+
+          this.dispatchEvent(new CustomEvent('request-navigation', {
+            detail: { label: label || "UP" },
+            bubbles: true,
+            composed: true
+          }));
+          
+          // Reset and return to prevent selection logic
+          lastTapTime = 0;
+          lastTapTarget = null;
+          return;
+      }
+
+      // Register this tap
+      lastTapTime = currentTime;
+      lastTapTarget = node.id();
+
       this.selectNode(node);
     });
 
@@ -344,36 +529,7 @@ export class GrammatomyEditor extends LitElement {
     });
 
     this.cy.on("dragfree", "node", () => {
-      this.runLayout(false);
-    });
-
-    // Navigation via Link Nodes (Manual Double Tap for robustness)
-    let lastTapTime = 0;
-    let lastTapTarget: string | null = null;
-
-    this.cy.on("tap", "node.link-node", (evt) => {
-      const node = evt.target;
-      const currentTime = Date.now();
-      const tapInterval = currentTime - lastTapTime;
-
-      if (tapInterval < 500 && tapInterval > 0 && lastTapTarget === node.id()) {
-          let label = node.data('label');
-          if (label && label.toString().startsWith("LINK-")) {
-              label = label.replace("LINK-", "");
-          }
-
-          this.dispatchEvent(new CustomEvent('request-navigation', {
-            detail: { label: label || "UP" }, // Default to UP if label is empty/0
-            bubbles: true,
-            composed: true
-          }));
-          
-          lastTapTime = 0;
-          lastTapTarget = null;
-      } else {
-          lastTapTime = currentTime;
-          lastTapTarget = node.id();
-      }
+      this.runLayout({ fit: false });
     });
 
     // Context Menu (Right Click)
@@ -446,7 +602,8 @@ export class GrammatomyEditor extends LitElement {
 
   // --- Core Logic Methods ---
 
-  private loadPtb(ptbString: string, fit: boolean = true) {
+  private async loadPtb(ptbString: string, options: { isTransition?: boolean } = {}): Promise<void> {
+    const { isTransition = false } = options;
     if (!this.cy) return;
 
     this.clearSelection(); // Ensure panel is closed and state is clean
@@ -496,15 +653,94 @@ export class GrammatomyEditor extends LitElement {
 
     // Visual Fix: Rename generic LINK-0 to specific parent label if available
     if (this.parentLabel) {
-        const link0 = this.cy.nodes().filter((n: any) => n.data('label') === 'LINK-0');
-        link0.data('label', `LINK-${this.parentLabel}`);
+        this.cy.nodes().forEach((n: any) => {
+            const l = n.data('label');
+            if (l === 'LINK-0' || (l && l.toString().startsWith('LINK-0-'))) {
+                n.data('label', `LINK-${this.parentLabel}`);
+            }
+        });
     }
 
     this.classifyNodes();
     this.recalculateGlobalIndices(); // Calculate global order before validation/layout
     this.validateAllNodes();
+
+    if (isTransition) {
+        // The overlay is fading out. We just animate to the new state.
+        // The pan/zoom animation the user likes is the one from runLayout.
+        return this.runLayout({ fit: true, animate: true });
+    } else {
+        // Normal load (e.g. initial load)
+        return this.runLayout({ fit: true, animate: true });
+    }
+  }
+
+  public async loadElements(elements: any[], options: { isTransition?: boolean } = {}): Promise<void> {
+      const { isTransition = false } = options;
+      if (!this.cy) return;
+      this.clearSelection();
+      
+      this.cy.elements().remove();
+      this.cy.add(elements);
+      
+      this.classifyNodes();
+      this.recalculateGlobalIndices();
+      // Skip validation in read-only/master view for performance
+
+    if (isTransition && this.initialFocusSelector) {
+        // Cinematic Transition: Zoom In to specific tree
+        // 1. Start with full map visible (Global Context)
+        await this.runLayout({ fit: true, animate: false });
+        
+        // 2. Animate Zoom In to target nodes (Locate Origin)
+        const targetNodes = this.cy.filter(this.initialFocusSelector);
+        if (targetNodes.length > 0) {
+            // Calculate precise pan to center the node
+            const nodePos = targetNodes.position();
+            const zoomLevel = 1.2; // Adjusted zoom level (not too aggressive)
+            const w = this.cy.width();
+            const h = this.cy.height();
+            
+            const pan = {
+                x: (w / 2) - (nodePos.x * zoomLevel),
+                y: (h / 2) - (nodePos.y * zoomLevel)
+            };
+
+            this.cy.animate({
+                zoom: zoomLevel,
+                pan: pan,
+                duration: 1500,
+                easing: 'ease-in-out'
+            });
+        }
+        
+        return;
+    } else if (isTransition) {
+        return this.runLayout({ fit: true, animate: true });
+    } else {
+        return this.runLayout({ fit: true, animate: true });
+    }
+  }
+
+  private _performLoadWithTransition(loader: (options: { isTransition: boolean }) => Promise<void>) {
+    if (!this.cy || this.cy.elements().length === 0) {
+        loader({ isTransition: false }); // No transition if graph is empty, just do a normal load
+        return;
+    }
+
+    // 1. Capture Snapshot
+    const png = this.cy.png({ full: false, scale: 1, output: 'base64uri', bg: 'transparent' });
+    const overlay = this.querySelector('#transition-overlay') as HTMLElement;
     
-    this.runLayout(fit);
+    if (overlay) {
+        overlay.style.backgroundImage = `url(${png})`;
+        overlay.style.opacity = '1';
+        overlay.style.display = 'block';
+        setTimeout(() => { overlay.style.opacity = '0'; }, 20);
+    }
+
+    // 2. Call the loader which will handle the animation of the new graph
+    loader({ isTransition: true });
   }
 
   public getCurrentPtb(): string {
@@ -517,8 +753,8 @@ export class GrammatomyEditor extends LitElement {
     if (currentPtb) {
       this.undoStack = [...this.undoStack, currentPtb];
       this.redoStack = [];
-      if (this.undoStack.length > 50) {
-        this.undoStack.shift();
+      while (this.undoStack.length > 50) {
+        this.undoStack.shift(); // Keep stack size manageable
       }
     }
   }
@@ -753,16 +989,38 @@ export class GrammatomyEditor extends LitElement {
         const isLeaf = node.outdegree(false) === 0;
         const label = node.data("label");
         
-        if (label && label.toString().startsWith("LINK-")) {
+        if (label && (label.toString().startsWith("LINK-") || label === "LINK")) {
             node.addClass("link-node");
             node.unselectify();
+
+            // Calculate short label for display (e.g. "LINK-A-123" -> "A")
+            let shortLabel = label;
+            if (label === "LINK") {
+                shortLabel = "UP";
+            } else if (label.toString().startsWith("LINK-")) {
+                const parts = label.toString().split('-');
+                if (parts.length >= 2) shortLabel = parts[1];
+            }
+
+            // Visual Polish: Icon for Main Tree
+            if (shortLabel === "Main") {
+                node.addClass("main-link");
+                shortLabel = "/"; 
+            }
+            node.data('shortLabel', shortLabel);
+
+            // Apply Subtree Color to LINK node (Normal View)
+            if (!this.readOnly && this.activeColorIndex >= 0) {
+                node.addClass(`subtree-color-${this.activeColorIndex}`);
+            }
         }
         const isLink = node.hasClass("link-node");
 
         // Reset structural classes only, preserving validation state (error)
         node.removeClass("pos leaf punctuation ghost-node");
 
-        if (label.includes("👻") || label.includes("ERR") || node.data('isGhost')) {
+        const isGhost = label.includes("👻") || label.includes("ERR") || node.data('isGhost');
+        if (isGhost) {
           if (label.includes("👻") || node.data('isGhost')) node.addClass("ghost-node");
           return;
         }
@@ -792,6 +1050,13 @@ export class GrammatomyEditor extends LitElement {
     if (node.hasClass("link-node") || node.data("label").startsWith("LINK-")) {
         this.clearSelection();
         return;
+    }
+
+    // FIX: Ensure visual selection (border) is applied
+    // This is necessary when triggered programmatically via emit('tap')
+    if (!node.selected()) {
+        this.cy.$(':selected').unselect();
+        node.select();
     }
 
     this.cy.elements().removeClass("subtree-highlight");
@@ -828,7 +1093,7 @@ export class GrammatomyEditor extends LitElement {
 
       try {
         const encodedLabel = encodeURIComponent(this.selectedNode.label);
-        const response = await fetch(`/api/validation/rules/${encodedLabel}`);
+        const response = await fetch(`/api/validation/rules/`);
         if (response.ok) {
           this.selectedNodeRule = await response.json();
         } else {
@@ -847,6 +1112,7 @@ export class GrammatomyEditor extends LitElement {
   }
 
   public clearSelection() {
+    this.cy?.$(':selected').unselect();
     this.cy.elements().removeClass("subtree-highlight");
     this.selectedNode = null;
     this.selectedNodeRule = {};
@@ -1018,64 +1284,36 @@ export class GrammatomyEditor extends LitElement {
 
     if (!confirm("Are you sure you want to delete this node?")) return;
 
+    // Use live data from graph
     const nodeElement = this.cy.$id(this.selectedNode.id);
     if (nodeElement.empty()) return;
 
-    if ((nodeElement as any).data("label") === "ROOT") {
-      this.feedbackMsg = "Cannot delete ROOT.";
-      return;
-    }
+    const globalIndex = nodeElement.data('globalIndex');
+    const currentPtb = this.getCurrentPtb();
 
-    const isLeaf = nodeElement.outgoers().length === 0;
-    const isGhost = this.selectedNode.isGhost || this.selectedNode.label.includes("👻");
+    try {
+        const response = await fetch('/api/mutation/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                main_ptb: currentPtb,
+                node_index: globalIndex
+            })
+        });
 
-    let targetToDelete = nodeElement;
+        if (!response.ok) throw new Error(await response.text());
+        const data = await response.json();
 
-    if (
-      (isLeaf && !isGhost) ||
-      nodeElement.hasClass("pos") ||
-      nodeElement.hasClass("punctuation")
-    ) {
-      if (isLeaf) {
-        const parent = nodeElement.incomers("edge").source();
-        if (parent.length > 0) targetToDelete = parent;
-      }
-    }
-
-    const parentOfDeleted = targetToDelete.incomers("edge").source();
-
-    this.pushState();
-
-    const branch = targetToDelete.successors().union(targetToDelete);
-    branch.remove();
-
-    this.feedbackMsg = "Node deleted.";
-
-    if (parentOfDeleted.length > 0 && parentOfDeleted.inside()) {
-      if (parentOfDeleted.outgoers("node").length === 0) {
-        const ghostId = GhostLogic.spawnGhost(this.cy, parentOfDeleted.id());
-        this.cy.$id(ghostId).data("index", 0);
-        this.feedbackMsg += " Parent was empty, ghost added.";
+        this.pushState(); // Save previous state for undo
+        this.loadPtb(data.ptb, { isTransition: false });
         
-        // Ensure the parent itself maintains its index relative to its siblings
-        // (No change needed for parentOfDeleted, but good to know)
-        this.runLayout(false);
-      }
-      
-      try {
-        await this.validateAncestors(parentOfDeleted);
-      } catch (e) {
-        console.error("Ancestor validation failed after delete:", e);
-      }
+        this.feedbackMsg = "Node deleted (Server-Side).";
+        this.clearSelection();
+
+    } catch (e) {
+        console.error("Delete failed:", e);
+        this.feedbackMsg = "Delete failed: " + e;
     }
-
-    // Reindex siblings of the deleted node (if any remain) to close gaps
-    // If parentOfDeleted is valid, reindex its children
-    if (parentOfDeleted.length > 0) this.reindexChildren(parentOfDeleted);
-    this.recalculateGlobalIndices(); // Topology changed
-
-    this.clearSelection();
-    this.runLayout(false);
   }
 
   private async handleContextExport(format: string) {
@@ -1095,44 +1333,53 @@ export class GrammatomyEditor extends LitElement {
       
       this.contextMenu = null; // Close menu
       this.requestUpdate();
-
-      // Call API
       try {
-          let endpoint = '/api/export/image';
-          let isText = false;
-          let ext = format;
+        // Local PTB export: no backend needed
+        if (format === 'ptb') {
+          const content = ptb || "";
+          const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+          this.downloadBlob(blob, `.ptb`);
+          this.feedbackMsg = `Exported PTB successfully.`;
+          this.requestUpdate();
+          return;
+        }
+
+        // For other textual exports (ascii/latex) we keep existing server-side pipeline
+        let endpoint = '/api/export/image';
+        let isText = false;
+        let ext = format;
           
-          if (format === 'ascii') {
-              endpoint = '/api/export/ascii';
-              isText = true;
-              ext = 'txt';
-          } else if (format === 'latex') {
-              endpoint = '/api/export/latex';
-              isText = true;
-              ext = 'tex';
-          }
+        if (format === 'ascii') {
+          endpoint = '/api/export/ascii';
+          isText = true;
+          ext = 'txt';
+        } else if (format === 'latex') {
+          endpoint = '/api/export/latex';
+          isText = true;
+          ext = 'tex';
+        }
 
-          const response = await fetch(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ptb, format })
-          });
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ptb, format })
+        });
 
-          if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) throw new Error(await response.text());
 
-          if (isText) {
-              const text = await response.text();
-              const blob = new Blob([text], { type: 'text/plain' });
-              this.downloadBlob(blob, `.`);
-          } else {
-              const blob = await response.blob();
-              this.downloadBlob(blob, `.`);
-          }
+        if (isText) {
+          const text = await response.text();
+          const blob = new Blob([text], { type: 'text/plain' });
+          this.downloadBlob(blob, `.`);
+        } else {
+          const blob = await response.blob();
+          this.downloadBlob(blob, `.`);
+        }
           
-          this.feedbackMsg = `Exported ${format.toUpperCase()} successfully.`;
+        this.feedbackMsg = `Exported ${format.toUpperCase()} successfully.`;
       } catch (e) {
-          console.error("Export failed:", e);
-          this.feedbackMsg = "Export failed.";
+        console.error("Export failed:", e);
+        this.feedbackMsg = "Export failed.";
       }
       this.requestUpdate();
   }
@@ -1381,7 +1628,7 @@ export class GrammatomyEditor extends LitElement {
     if (previousPtb) {
       this.redoStack = [...this.redoStack, currentPtb];
       this.undoStack = [...this.undoStack];
-      this.loadPtb(previousPtb, false);
+      this.loadPtb(previousPtb, { isTransition: false });
       this.feedbackMsg = "Undo successful.";
     }
   }
@@ -1395,24 +1642,40 @@ export class GrammatomyEditor extends LitElement {
     if (nextPtb) {
       this.undoStack = [...this.undoStack, currentPtb];
       this.redoStack = [...this.redoStack];
-      this.loadPtb(nextPtb, false);
+      this.loadPtb(nextPtb, { isTransition: false });
       this.feedbackMsg = "Redo successful.";
     }
   }
 
-  private runLayout(fit: boolean = true) {
-    if (!this.cy) return;
+  private runLayout(options: { fit?: boolean, animate?: boolean } = {}): Promise<void> {
+    const { fit = true, animate = true } = options;
+    if (!this.cy) return Promise.resolve();
 
     this.cy.resize();
-    this.cy.layout({ ...this.layoutConfig, fit: fit }).run();
+    const layout = this.cy.layout({ 
+        ...this.layoutConfig, 
+        fit: fit,
+        animate: animate,
+        animationDuration: animate ? 1200 : 0
+    });
+    
+    this.layoutPromise = new Promise<void>(resolve => {
+        layout.one('layoutstop', () => resolve());
+    });
+    
+    layout.run();
+    return this.layoutPromise;
   }
 
   public fit() {
-    this.runLayout(true);
+    this.runLayout({ fit: true, animate: true });
   }
 
-  public focusNode(nodeId: string) {
+  public async focusNode(nodeId: string) {
     if (!this.cy) return;
+    
+    if (this.layoutPromise) await this.layoutPromise;
+
     const node = this.cy.$id(nodeId);
     if (node.empty()) return;
 
@@ -1421,13 +1684,16 @@ export class GrammatomyEditor extends LitElement {
     this.cy.animate({
       center: { eles: node },
       zoom: 1.5,
-      duration: 800,
+      duration: 1200,
       easing: 'ease-in-out'
     });
   }
 
-  public focusNodeByGlobalIndex(index: number) {
+  public async focusNodeByGlobalIndex(index: number) {
     if (!this.cy) return;
+    
+    if (this.layoutPromise) await this.layoutPromise;
+
     const node = this.cy.nodes().filter((n: any) => n.data('globalIndex') === index);
     if (node.empty()) return;
 
@@ -1436,91 +1702,109 @@ export class GrammatomyEditor extends LitElement {
     this.cy.animate({
       center: { eles: node },
       zoom: 1.5,
-      duration: 800,
+      duration: 1200,
       easing: 'ease-in-out'
     });
   }
 
-  public focusNodeByLabel(label: string) {
+  public async focusNodeByLabel(label: string) {
     if (!this.cy) return;
-    const node = this.cy.nodes().filter((n: any) => n.data('label') === label);
+    
+    if (this.layoutPromise) await this.layoutPromise;
+
+    // Try exact match first
+    let node = this.cy.nodes().filter((n: any) => n.data('label') === label);
+
+    // If not found and it looks like a LINK request, try prefix match (e.g. find "LINK-A-123" when looking for "LINK-A")
+    if (node.empty() && label.startsWith("LINK-")) {
+        node = this.cy.nodes().filter((n: any) => {
+            const l = n.data('label');
+            return l && l.toString().startsWith(label);
+        });
+    }
+
     if (node.empty()) return;
 
     this.cy.animate({
       center: { eles: node },
       zoom: 1.5,
-      duration: 800,
+      duration: 1200,
       easing: 'ease-in-out'
     });
+  }
+
+  public getViewport(): { zoom: number, pan: { x: number, y: number } } | null {
+      if (!this.cy) return null;
+      return {
+          zoom: this.cy.zoom(),
+          pan: this.cy.pan()
+      };
+  }
+
+  public setViewport(viewport: { zoom: number, pan: { x: number, y: number } }) {
+      if (!this.cy) return;
+      this.cy.viewport(viewport);
+  }
+
+  public animateTo(viewport: { zoom: number, pan: { x: number, y: number } }, duration: number = 500) {
+      if (!this.cy) return;
+      this.cy.animate({ ...viewport, duration, easing: 'ease-in-out' });
   }
 
   public getSelectedNodeId(): string | null {
       return this.selectedNode ? this.selectedNode.id : null;
   }
 
-  public executeDetach(nodeId: string, label: string): { mainPtb: string, fragmentPtb: string } | null {
-      const node = this.cy.$id(nodeId);
-      if (node.empty()) return null;
-
-      // Strategy: Detach Content (Keep Container)
-      // We keep the selected node in the main tree but move its children to the fragment.
-      const children = node.outgoers().nodes().sort((a: any, b: any) => (a.data('index') || 0) - (b.data('index') || 0));
-      
-      if (children.length === 0) {
-          return null; // Cannot detach empty node
-      }
-
-      // 1. Extract Content (Children)
-      const contentPtb = children.map((child: any) => serializeNodeToPtb(child)).join(' ');
-      const containerLabel = node.data('label');
-      
-      // 2. Construct Fragment PTB (Wrapper: ROOT -> LINK -> Content)
-      // Strategy: Children Only. We do NOT duplicate the container.
-      const fragmentPtb = `(ROOT LINK-${containerLabel} ${contentPtb})`;
-
-      // 3. Replace in Main Graph (Surgery)
-      this.cy.batch(() => {
-          // Remove children edges (effectively removing children from this node)
-          node.outgoers().remove();
-
-          // Add Link Node as the ONLY child of the container
-          const linkId = `link_${Date.now()}`;
-          this.cy.add({
-              group: 'nodes',
-              data: { id: linkId, label: `LINK-${label}`, index: 0 },
-              classes: 'link-node'
-          });
-          
-          this.cy.add({
-              group: 'edges',
-              data: { source: node.id(), target: linkId }
-          });
-      });
-
-      // 4. Serialize Modified Main Graph
-      const mainPtb = this.getCurrentPtb();
-
-      return { mainPtb, fragmentPtb };
-  }
-
-  public getDetachPayload(): { ptb: string, nodeIndex: number, label: string } | null {
+  public getDetachPayload(): { ptb: string, nodePath: number[], label: string } | null {
       if (!this.selectedNode) return null;
       
-      // Ensure global indices are up to date with current structure
-      // (They should be, as they are updated on layout/modification)
-      const globalIndex = this.selectedNode.globalIndex;
-      const label = this.selectedNode.label;
+      // FIX: Use live data from graph, as this.selectedNode might be stale
+      const node = this.cy.$id(this.selectedNode.id);
+      if (node.empty()) return null;
       
-      return { ptb: this.getCurrentPtb(), nodeIndex: globalIndex, label };
+      console.log(`[getDetachPayload] Calculating path for '${node.data('label')}'`);
+
+      // Calculate Path from Root (e.g. [0, 2, 1])
+      // This is safer than global index for tree navigation
+      const path: number[] = [];
+      let current = node;
+      while (current.incomers("edge").length > 0) {
+          const parent = current.incomers("edge").source();
+          // Get index among siblings
+          const siblings = parent.outgoers("node").toArray().sort((a: any, b: any) => (a.data("index") ?? 0) - (b.data("index") ?? 0));
+          const index = siblings.findIndex((n: any) => n.id() === current.id());
+          console.log(`  - Step: ${current.data('label')} is child # of ${parent.data('label')}`);
+          path.unshift(index);
+          current = parent;
+      }
+      
+      // FIX: Handle Forests. Find index of the root node among all roots.
+      const roots = this.cy.nodes().filter((n: any) => n.incomers().length === 0);
+      // Sort roots to match PTB serialization order (by index)
+      const sortedRoots = roots.toArray().sort((a: any, b: any) => (a.data('index') || 0) - (b.data('index') || 0));
+      const rootIndex = sortedRoots.findIndex((r: any) => r.id() === current.id());
+      console.log(`  - Root Step: ${current.data('label')} is root #`);
+      path.unshift(rootIndex);
+      
+      const label = node.data('label');
+      
+      console.log(`[getDetachPayload] Final Path: [${path.join(', ')}]`);
+      return { ptb: this.getCurrentPtb(), nodePath: path, label };
   }
 
   override render() {
-    const isPanelOpen = !!this.selectedNode;
+    const isPanelOpen = !!this.selectedNode && !this.readOnly;
 
     return html`
       <div class="h-full w-full relative overflow-hidden bg-white">
         <!-- Cytoscape Container (Full Screen Layer) -->
         <div id="cy" class="absolute inset-0 z-0 bg-gray-50"></div>
+
+        <!-- Transition Overlay (Snapshot Layer) -->
+        <div 
+            id="transition-overlay" 
+            class="absolute inset-0 z-10 pointer-events-none bg-gray-50 bg-no-repeat bg-center bg-contain transition-opacity duration-[1200ms] ease-in-out" 
+            style="opacity: 0; display: none;" @transitionend=${(e: TransitionEvent) => { if ((e.target as HTMLElement).style.opacity === '0') (e.target as HTMLElement).style.display = 'none'; }}></div>
 
         <!-- Inspector & Toolbar Overlay (Sliding Panel) -->
         <div 
@@ -1546,12 +1830,12 @@ export class GrammatomyEditor extends LitElement {
           Validation Issues
         </div>
         <ul class="list-disc list-inside text-red-600 space-y-1 leading-tight">
-          ${errors.map((e) => html`<li></li>`)}
+          ${errors.map((e) => html`<li>${e}</li>`)}
         </ul>
         <div class="mt-2 pt-2 border-t border-red-200">
             <div class="font-bold text-red-800 mb-1 text-[10px] uppercase">Trace Log</div>
             <ul class="font-mono text-[10px] text-gray-600 space-y-1">
-                ${trace.map(t => html`<li></li>`)}
+                ${trace.map(t => html`<li>${t}</li>`)}
             </ul>
         </div>
       </div>
@@ -1596,7 +1880,7 @@ export class GrammatomyEditor extends LitElement {
           @change=${this.handlePendingLabelChange}
         >
           ${PUNCTUATION_MARKS.map(mark => html`
-            <option value="" ?selected=${mark === this.pendingLabel}></option>
+            <option value="${mark}" ?selected=${mark === this.pendingLabel}>${mark}</option>
           `)}
         </select>
       `;
@@ -1608,15 +1892,15 @@ export class GrammatomyEditor extends LitElement {
           ? "border-gray-300"
           : "border-red-500 bg-red-50"} rounded shadow-sm focus:border-ibm-blue focus:ring-1 focus:ring-ibm-blue outline-none text-base-dark font-mono font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         @change=${this.handlePendingLabelChange}
-        ?disabled=
+        ?disabled=${isDropdownDisabled}
       >
         ${isGhostLeaf
           ? html`<option value="" disabled selected>Select tag...</option>`
           : html``}
         ${validTags.map(
           (tag) => html`
-            <option value="" ?selected=${tag === this.pendingLabel}>
-              
+            <option value="${tag}" ?selected=${tag === this.pendingLabel}>
+              ${tag}
             </option>
           `,
         )}
@@ -1750,12 +2034,12 @@ export class GrammatomyEditor extends LitElement {
       <div class="flex flex-col gap-6">
         <div
           class="rounded-lg p-4 shadow-sm flex flex-col items-center justify-center gap-2 transition-colors duration-300"
-          style="background-color: ; color: ;"
+          style="background-color: ${headerBg}; color: ${headerText};"
         >
           <div
             class="text-[10px] uppercase tracking-widest opacity-80 font-bold"
           >
-            
+            ${typeLabel}
           </div>
           <div class="text-2xl font-mono font-bold tracking-tight">
             ${this.selectedNode.label}
@@ -1793,7 +2077,7 @@ export class GrammatomyEditor extends LitElement {
           <div class="grid grid-cols-4 gap-2 mb-2">
             <button
               @click=${this.cutSelected}
-              ?disabled=
+              ?disabled=${isLink}
               class="p-2 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
               title="Cut Subtree"
             >
@@ -1827,7 +2111,7 @@ export class GrammatomyEditor extends LitElement {
           <!-- Row 2: Structure & Reorder -->
           <div class="grid grid-cols-4 gap-2 mb-2">
             <button @click=${this.handleAddChild} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-ibm-blue disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${canAddChild ? "Add Child" : "Cannot add child to Terminal/POS"}" ?disabled=${!canAddChild}><span class="material-symbols-outlined">add_circle</span></button>
-            <button @click=${this.deleteSelected} ?disabled= class="p-2 bg-white border border-gray-300 rounded hover:bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${isOnlyChild ? "Cannot delete: Parent would be empty" : "Delete Node"}"><span class="material-symbols-outlined">delete</span></button>
+            <button @click=${this.deleteSelected} ?disabled=${isOnlyChild} class="p-2 bg-white border border-gray-300 rounded hover:bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:text-gray-400 flex justify-center items-center" title="${isOnlyChild ? "Cannot delete: Parent would be empty" : "Delete Node"}"><span class="material-symbols-outlined">delete</span></button>
             <button @click=${() => this.handleReorder("left")} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center" title="Move Left" ?disabled=${!canMoveLeft}><span class="material-symbols-outlined">arrow_back</span></button>
             <button @click=${() => this.handleReorder("right")} class="p-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center" title="Move Right" ?disabled=${!canMoveRight}><span class="material-symbols-outlined">arrow_forward</span></button>
           </div>
@@ -1836,7 +2120,7 @@ export class GrammatomyEditor extends LitElement {
     `;
     } catch (e) {
         console.error("GrammatomyEditor: Error in render()", e);
-        return html`<div class="text-red-500 p-4">Render Error: </div>`;
+        return html`<div class="text-red-500 p-4">Render Error: ${e}</div>`;
     }
   }
 }

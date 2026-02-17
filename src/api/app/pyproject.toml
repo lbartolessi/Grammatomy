@@ -25,3 +25,5 @@ grammatomy-server = "app.main:start"
 # Resolve imports from the 'src' root (located two levels up)
 extraPaths = ["../../"]
 include = ["."]
+[tool.pylint.format]
+max-line-length = 120

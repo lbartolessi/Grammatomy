@@ -6,10 +6,17 @@ Usage: python .mnemosyne/startup.py
 import re
 from pathlib import Path
 
+SUMMARY = "SUMMARY:"
+
 
 def chapter_number(name: str) -> int:
     m = re.search(r"chapter_(\d+)", name)
     return int(m.group(1)) if m else -1
+
+
+def should_stop_capture(line: str) -> bool:
+    """Check if we should stop capturing summary lines."""
+    return not line or line.startswith("NEXT IMMEDIATE STEP") or line.startswith("##")
 
 
 def extract_summary(text: str) -> str:
@@ -19,13 +26,11 @@ def extract_summary(text: str) -> str:
     for ln in lines:
         s = ln.strip()
         if capture:
-            if not s:
-                break
-            if s.startswith("NEXT IMMEDIATE STEP") or s.startswith("##"):
+            if should_stop_capture(s):
                 break
             summary_lines.append(s)
-        if s == "SUMMARY:" or s.startswith("SUMMARY:"):
-            rest = s[len("SUMMARY:") :].strip()
+        elif s == SUMMARY or s.startswith(SUMMARY):
+            rest = s[len(SUMMARY) :].strip()
             if rest:
                 summary_lines.append(rest)
             capture = True

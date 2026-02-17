@@ -29,6 +29,7 @@ export interface SubTree {
   ptb: string;          // Estructura interna del subárbol
   notes?: string;       // Observaciones específicas de este fragmento
   metadata?: Record<string, any>;
+  colorIndex?: number;  // Índice de color asignado (0-3) para visualización
 }
 
 export type ProjectAction = 'new' | 'load' | 'save' | 'export';
